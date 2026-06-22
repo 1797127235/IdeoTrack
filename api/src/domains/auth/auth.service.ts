@@ -92,7 +92,7 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
   const token = jwt.sign(
     { userId: user.id, role: user.role as UserRole },
     config.jwtSecret,
-    { expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'] }
+    { expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'], noTimestamp: true }
   );
 
   return {

@@ -2,7 +2,9 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import request from 'supertest';
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import app from '../src/index.js';
+import { config } from '../src/config/index.js';
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.TEST_DATABASE_URL;
 
@@ -316,6 +318,35 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.userId).toBeDefined();
       expect(res.body.data.role).toBe('student');
+    });
+
+    it('issues a token with only userId, role, and exp claims', async () => {
+      const res = await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: testPassword,
+      });
+      const token = res.body.data.token;
+      const payload = jwt.decode(token) as Record<string, unknown>;
+
+      expect(payload).toBeDefined();
+      expect(payload.userId).toBeDefined();
+      expect(payload.role).toBe('student');
+      expect(payload.exp).toBeDefined();
+      expect(payload.password).toBeUndefined();
+      expect(payload.password_hash).toBeUndefined();
+      expect(payload.school_id).toBeUndefined();
+    });
+
+    it('rejects expired tokens', async () => {
+      const expiredToken = jwt.sign(
+        { userId: '00000000-0000-0000-0000-000000000000', role: 'student' },
+        config.jwtSecret,
+        { expiresIn: '-1s' }
+      );
+
+      const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${expiredToken}`);
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('AUTH_UNAUTHORIZED');
     });
 
     it('allows admin-only resource for admin token', async () => {

@@ -16,27 +16,25 @@ export default function Index() {
 
   useEffect(() => {
     SecureStore.getItemAsync('auth_token')
-      .then((token) => {
+      .then(async (token) => {
         if (!token) {
           setRole(null);
           return;
         }
 
         const payload = decodeJwtPayload(token);
-        if (payload?.exp && payload.exp * 1000 < Date.now()) {
-          // Token expired
-          SecureStore.deleteItemAsync('auth_token').catch(() => undefined);
+        const isExpired = payload?.exp ? payload.exp * 1000 < Date.now() : false;
+
+        if (isExpired || !isValidRole(payload?.role)) {
+          await SecureStore.deleteItemAsync('auth_token').catch(() => undefined);
           setRole(null);
           return;
         }
 
-        if (isValidRole(payload?.role)) {
-          setRole(payload.role);
-        } else {
-          setRole(null);
-        }
+        setRole(payload.role);
       })
-      .catch(() => {
+      .catch(async () => {
+        await SecureStore.deleteItemAsync('auth_token').catch(() => undefined);
         setRole(null);
       });
   }, []);

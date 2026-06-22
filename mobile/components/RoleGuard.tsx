@@ -21,25 +21,26 @@ export function RoleGuard({ allowedRole, children }: RoleGuardProps) {
 
   useEffect(() => {
     SecureStore.getItemAsync('auth_token')
-      .then((token) => {
+      .then(async (token) => {
         if (!token) {
           setStatus('unauthorized');
           return;
         }
 
         const payload = decodeJwtPayload(token);
-        if (payload?.exp && payload.exp * 1000 < Date.now()) {
+        const isExpired = payload?.exp ? payload.exp * 1000 < Date.now() : false;
+        const isAuthorized = isValidRole(payload?.role) && payload.role === allowedRole && !isExpired;
+
+        if (!isAuthorized) {
+          await SecureStore.deleteItemAsync('auth_token').catch(() => undefined);
           setStatus('unauthorized');
           return;
         }
 
-        if (isValidRole(payload?.role) && payload.role === allowedRole) {
-          setStatus('authorized');
-        } else {
-          setStatus('unauthorized');
-        }
+        setStatus('authorized');
       })
-      .catch(() => {
+      .catch(async () => {
+        await SecureStore.deleteItemAsync('auth_token').catch(() => undefined);
         setStatus('unauthorized');
       });
   }, [allowedRole]);
