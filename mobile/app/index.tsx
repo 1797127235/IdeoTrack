@@ -3,23 +3,42 @@ import { View, ActivityIndicator } from 'react-native';
 import { Redirect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { theme } from '../theme';
+import { decodeJwtPayload } from '../utils/jwt';
 
 type UserRole = 'student' | 'counselor' | 'admin';
+
+function isValidRole(role: string | undefined): role is UserRole {
+  return role === 'student' || role === 'counselor' || role === 'admin';
+}
 
 export default function Index() {
   const [role, setRole] = useState<UserRole | null | 'loading'>('loading');
 
   useEffect(() => {
-    // In a real app, decode the JWT to get the role.
-    // For Story 1.1, we redirect to login until a valid token + role is available.
-    SecureStore.getItemAsync('auth_token').then((token) => {
-      if (!token) {
+    SecureStore.getItemAsync('auth_token')
+      .then((token) => {
+        if (!token) {
+          setRole(null);
+          return;
+        }
+
+        const payload = decodeJwtPayload(token);
+        if (payload?.exp && payload.exp * 1000 < Date.now()) {
+          // Token expired
+          SecureStore.deleteItemAsync('auth_token').catch(() => undefined);
+          setRole(null);
+          return;
+        }
+
+        if (isValidRole(payload?.role)) {
+          setRole(payload.role);
+        } else {
+          setRole(null);
+        }
+      })
+      .catch(() => {
         setRole(null);
-        return;
-      }
-      // TODO: decode JWT and set role
-      setRole(null);
-    });
+      });
   }, []);
 
   if (role === 'loading') {

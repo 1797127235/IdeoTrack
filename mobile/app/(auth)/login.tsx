@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
+  Animated,
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -14,11 +15,31 @@ import { router } from 'expo-router';
 import { login } from '../../services/api';
 import { theme } from '../../theme';
 
+const SCHOOL_ID_MAX_LENGTH = 32;
+const PASSWORD_MAX_LENGTH = 64;
+
 export default function LoginScreen() {
   const [schoolId, setSchoolId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  function handlePressIn() {
+    Animated.timing(scaleAnim, {
+      toValue: 0.98,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function handlePressOut() {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }
 
   async function handleLogin() {
     if (!schoolId.trim() || !password.trim()) {
@@ -71,6 +92,7 @@ export default function LoginScreen() {
             placeholder="请输入学号或工号"
             placeholderTextColor={theme.colors.textLight}
             autoCapitalize="none"
+            maxLength={SCHOOL_ID_MAX_LENGTH}
             accessibilityLabel="学号或工号输入框"
           />
 
@@ -82,27 +104,34 @@ export default function LoginScreen() {
             placeholder="请输入密码"
             placeholderTextColor={theme.colors.textLight}
             secureTextEntry
+            maxLength={PASSWORD_MAX_LENGTH}
             accessibilityLabel="密码输入框"
           />
 
           {error ? (
             <View style={styles.errorContainer}>
+              <Text style={styles.errorIcon} aria-hidden>
+                ⚠️
+              </Text>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.98}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.buttonText}>登录</Text>
-            )}
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Pressable
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>登录</Text>
+              )}
+            </Pressable>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -160,12 +189,19 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FEF2F2',
     borderRadius: theme.borderRadius.sm,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
+  errorIcon: {
+    fontSize: 16,
+    marginRight: theme.spacing.sm,
+  },
   errorText: {
+    flex: 1,
     color: theme.colors.error,
     fontSize: 14,
   },

@@ -8,6 +8,9 @@ if (!DATABASE_URL) {
 }
 
 const MIGRATION_SQL = `
+-- 确保 pgcrypto 扩展可用（Supabase 默认启用，但独立 Postgres 需要显式创建）
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- 学院表
 CREATE TABLE IF NOT EXISTS colleges (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -72,9 +75,13 @@ async function migrate() {
     await client.connect();
     console.log('Connected to database');
 
+    await client.query('BEGIN');
     await client.query(MIGRATION_SQL);
+    await client.query('COMMIT');
+
     console.log('Migrations completed successfully');
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
     console.error('Migration failed:', error);
     process.exit(1);
   } finally {

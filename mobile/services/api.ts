@@ -1,6 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const DEFAULT_API_BASE_URL =
+  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_BASE_URL;
+const REQUEST_TIMEOUT_MS = 10000;
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -29,19 +34,43 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  const data = await response.json();
-  return data as ApiResponse<T>;
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (response.status === 401) {
+      await SecureStore.deleteItemAsync('auth_token');
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || !contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(text || `请求失败: ${response.status}`);
+    }
+
+    const data = (await response.json()) as ApiResponse<T>;
+    return data;
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('请求超时，请检查网络连接');
+    }
+    throw err;
+  }
 }
 
 export async function login(schoolId: string, password: string): Promise<LoginResponse> {
   const result = await request<LoginResponse>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ schoolId, password }),
+    body: JSON.stringify({ schoolId: schoolId.trim(), password }),
   });
 
   if (!result.success || !result.data) {

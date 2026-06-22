@@ -49,7 +49,7 @@ async function seed() {
         [user.schoolId, passwordHash, user.role, user.classId]
       );
 
-      console.log(`Seeded user: ${user.schoolId} / ${user.role} / initial password: ${password}`);
+      console.log(`Seeded user: ${user.schoolId} / ${user.role}`);
     }
 
     // 关联辅导员和班级

@@ -110,4 +110,29 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     expect(lockedRes.status).toBe(403);
     expect(lockedRes.body.error.code).toBe('AUTH_ACCOUNT_LOCKED');
   });
+
+  it('allows login again after the lock duration has passed', async () => {
+    // Trigger lock first
+    for (let i = 0; i < 5; i++) {
+      await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: 'wrongpassword',
+      });
+    }
+
+    // Simulate that the lock duration has expired
+    await client.query(
+      "UPDATE users SET locked_until = NOW() - INTERVAL '1 minute' WHERE school_id = $1",
+      [testSchoolId]
+    );
+
+    const res = await request(app).post('/api/auth/login').send({
+      schoolId: testSchoolId,
+      password: testPassword,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.token).toBeDefined();
+  });
 });
