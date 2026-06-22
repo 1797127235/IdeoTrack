@@ -1,0 +1,22 @@
+meta {
+  name: 任务列表-管理员（带分页）
+  type: http
+}
+
+get {
+  url: {{baseUrl}}/api/tasks?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.items: isArray
+  res.body.data.page: eq 1
+  res.body.data.limit: lte 50
+}

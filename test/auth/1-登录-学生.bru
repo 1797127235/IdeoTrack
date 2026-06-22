@@ -1,0 +1,32 @@
+meta {
+  name: 登录-学生
+  type: http
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "schoolId": "2024001",
+    "password": "024001"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.token: isString
+  res.body.data.user.role: eq student
+}
+
+tests {
+  // 登录成功后，把 token 存到环境变量，后续请求复用
+  const data = res.body.data;
+  if (data && data.token) {
+    setVar('studentToken', data.token);
+  }
+}

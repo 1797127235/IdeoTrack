@@ -1,0 +1,28 @@
+meta {
+  name: 更新名言-关闭启用
+  type: http
+}
+
+put {
+  url: {{baseUrl}}/api/quotes/{{quoteId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  {{adminToken}}
+}
+
+body:json {
+  {
+    "content": "测试名言-已更新",
+    "isEnabled": false
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.isEnabled: eq false
+  res.body.data.content: eq 测试名言-已更新
+}

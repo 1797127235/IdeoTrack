@@ -86,6 +86,8 @@ async function seed() {
             role: user.role,
             is_initial_password: true,
             class_id: user.classId,
+            failed_login_attempts: 0,
+            locked_until: null,
           })
           .eq('id', existingUser.id);
 

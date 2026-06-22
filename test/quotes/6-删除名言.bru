@@ -1,0 +1,19 @@
+meta {
+  name: 删除名言
+  type: http
+}
+
+delete {
+  url: {{baseUrl}}/api/quotes/{{quoteId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  {{adminToken}}
+}
+
+assert {
+  res.status: anyOf [200, 204]
+  res.body.success: eq true
+}

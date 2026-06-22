@@ -1,0 +1,29 @@
+meta {
+  name: 发布任务-截止早于发布时间
+  type: http
+}
+
+post {
+  url: {{baseUrl}}/api/tasks
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  {{adminToken}}
+}
+
+body:json {
+  {
+    "title": "无效任务",
+    "content": "截止时间早于发布时间",
+    "scope_type": "school",
+    "published_at": "2099-12-31T00:00:00.000Z",
+    "deadline_at": "2020-01-01T00:00:00.000Z"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+}
