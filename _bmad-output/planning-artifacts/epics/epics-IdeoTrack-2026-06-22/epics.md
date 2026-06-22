@@ -5,6 +5,7 @@ stepsCompleted:
   - 提取 UX 设计要求
   - 按功能域拆分 Epic 与 Story
   - 2026-06-23 应用 sprint-change-proposal-2026-06-23（客户端分端策略）
+  - 2026-06-23 应用 sprint-change-proposal-2026-06-23-v2（辅导员端迁入小程序，管理员保留 App + Web V2）
 inputDocuments:
   - ../../prds/prd-IdeoTrack-2026-06-22/prd.md
   - ../../architecture/architecture-IdeoTrack-2026-06-22/ARCHITECTURE-SPINE.md
@@ -16,10 +17,10 @@ inputDocuments:
 
 ## 概述
 
-本文档将 PRD 中的 31 条功能需求、架构脊柱中的 17 条架构决策以及 UX 体验设计规范，拆分为 12 个 Epic 和 43 个可交付的 User Story。每个 Story 均使用标准的用户故事格式（作为……我想要……以便……）和 Gherkin 风格的验收标准（Given/When/Then/And）。
+本文档将 PRD 中的 31 条功能需求、架构脊柱中的 17 条架构决策以及 UX 体验设计规范，拆分为 12 个 Epic 和 44 个可交付的 User Story。每个 Story 均使用标准的用户故事格式（作为……我想要……以便……）和 Gherkin 风格的验收标准（Given/When/Then/And）。
 
-> **范围**：V1 MVP，覆盖学生（微信小程序）、辅导员和管理员（Expo App）三端。
-> **分端策略**（AD-17）：学生端为微信小程序（`miniprogram/`），辅导员/管理员端为 Expo App（`mobile/`）。
+> **范围**：V1 MVP，覆盖学生（微信小程序）、辅导员（微信小程序）、管理员（Expo App）三端；管理员 Web 后台推迟到 V2。
+> **分端策略**（AD-17）：学生端和辅导员端为微信小程序（`miniprogram/`），管理员端 V1 为 Expo App（`mobile/`），V2 补充 Web 后台。
 > **语言**：本文件及所有下游文档使用中文。
 
 ---
@@ -106,7 +107,7 @@ inputDocuments:
 | AD-14 | 用户角色、班级、学院范围由 `users` 域作为唯一事实来源 | Architecture Spine |
 | AD-15 | 所有主键使用 Supabase 默认 UUID（v4） | Architecture Spine |
 | AD-16 | 班级排行榜按需计算，无持久化表，结果缓存最多 5 分钟 | Architecture Spine |
-| AD-17 | 客户端按角色分端：学生微信小程序（`miniprogram/`），辅导员/管理员 Expo App（`mobile/`） | Architecture Spine |
+| AD-17 | 客户端按角色分端：学生 + 辅导员微信小程序（`miniprogram/`），管理员 V1 Expo App（`mobile/`）、V2 Web 后台 | Architecture Spine |
 
 ### UX 设计要求
 
@@ -115,7 +116,7 @@ inputDocuments:
 | UX-1 | 主要平台为 Android 手机，设计基准宽度 375–414px | EXPERIENCE.md |
 | UX-2 | React Native 代码同时编译到 iOS，平台级行为按平台适配 | EXPERIENCE.md |
 | UX-3 | 学生底部 4 Tab：首页 / 日历 / 排行 / 我的 | EXPERIENCE.md |
-| UX-4 | 辅导员底部 3 Tab：看板 / 复核 / 我的 | EXPERIENCE.md |
+| UX-4 | 辅导员底部 3 Tab：看板 / 复核 / 我的（小程序同结构，由 `miniprogram/app.json` tabBar 配置） | EXPERIENCE.md |
 | UX-5 | 管理员底部 4 Tab：概览 / 报表 / 任务 / 管理 | EXPERIENCE.md |
 | UX-6 | 页面转场：push 从右向左 250ms，pop 从左向右 250ms，Modal 从下滑入 300ms | EXPERIENCE.md |
 | UX-7 | 首页名言支持左右滑动查看近 7 日历史 | EXPERIENCE.md |
@@ -366,6 +367,8 @@ inputDocuments:
 - **And** 发布范围支持全校、某个学院、某个班级
 - **And** 管理员可发布全校/学院/班级任务；辅导员只能发布自己所带班级的任务
 
+**归属端**：管理员在 Expo App（`mobile/`）实现；辅导员在小程序（`miniprogram/`）实现。
+
 ### Story 3.2：编辑与下架任务
 
 作为一名任务发布人，
@@ -380,6 +383,8 @@ inputDocuments:
 - **And** 已下架任务不在学生列表展示
 - **And** 截止时间后不允许编辑或下架
 - **And** 发布人可以查看任务的完成率统计
+
+**归属端**：管理员在 Expo App（`mobile/`）实现；辅导员在小程序（`miniprogram/`）实现。
 
 ### Story 3.3：学生任务列表
 
@@ -554,6 +559,8 @@ inputDocuments:
 - **And** 选择「要求修改」后，学生可重新提交心得
 - **And** 辅导员只能查看所带班级的待复核数据（AD-5）
 
+**归属端**：辅导员小程序（`miniprogram/pages/counselor/review`）。
+
 ### Story 5.4：学生查看复核结果
 
 作为一名学生，
@@ -721,6 +728,8 @@ inputDocuments:
 - **And** 数据允许最多 5 分钟延迟
 - **And** 辅导员只能看到自己所带班级的数据（AD-5）
 
+**归属端**：辅导员小程序（`miniprogram/pages/counselor/dashboard`）。
+
 ### Story 8.2：未打卡学生名单
 
 作为一名辅导员，
@@ -735,6 +744,8 @@ inputDocuments:
 - **And** 连续 3 天及以上未打卡的学生标红显示并提示「重点关注」
 - **And** 支持按班级、日期筛选
 
+**归属端**：辅导员小程序（`miniprogram/pages/counselor/absentees`）。
+
 ### Story 8.3：一键提醒
 
 作为一名辅导员，
@@ -745,11 +756,13 @@ inputDocuments:
 
 - **Given** 辅导员在未打卡名单中勾选了学生
 - **When** 点击「一键提醒」
-- **Then** 系统向选中学生发送 App 内推送消息
+- **Then** 系统向选中学生发送微信订阅消息（学生端）或服务通知（辅导员端在小程序内可查看发送记录）
 - **And** 同一学生每天最多收到 1 次提醒
 - **And** 发送时间限制在 8:00–22:00
 - **And** 发送记录在看板中保存，显示发送时间和人数
 - **And** V1 暂不支持短信提醒
+
+**归属端**：辅导员小程序（`miniprogram/pages/counselor/absentees`）。
 
 ### Story 8.4：辅导员数据导出
 
@@ -764,7 +777,10 @@ inputDocuments:
 - **Then** 系统生成 Excel 文件
 - **And** 导出内容包含：学生姓名、学号、打卡状态、打卡时间、心得内容、审核状态
 - **And** 文件通过服务端生成并上传 Supabase Storage，返回 24 小时有效签名 URL（AD-7）
+- **And** 辅导员在小程序中复制该链接，并在浏览器中完成下载（绕过微信小程序文件沙箱限制）
 - **And** 辅导员只能导出自己的班级数据（AD-5）
+
+**归属端**：辅导员小程序（`miniprogram/pages/counselor/export`）。
 
 ---
 
@@ -910,7 +926,8 @@ inputDocuments:
 
 > **分端实现说明（AD-17）：**
 > - 学生端（小程序）：使用微信订阅消息推送。涉及 `wx.requestSubscribeMessage` 获取用户授权，后端调用微信 `subscribeMessage.send` 推送。
-> - 辅导员/管理员端（App）：使用 App 内通知中心。
+> - 辅导员端（小程序）：使用小程序订阅消息或服务通知；辅导员在小程序内可查看通知历史。
+> - 管理员端（App）：使用 App 内通知中心；V2 Web 后台使用站内通知。
 
 ### Story 11.1：每日打卡提醒
 
@@ -922,9 +939,11 @@ inputDocuments:
 
 - **Given** 学生当日有未完成任务且未关闭提醒
 - **When** 到达每日默认提醒时间 20:00（可配置）
-- **Then** 系统向学生发送 App 内推送提醒
+- **Then** 系统向学生发送微信订阅消息提醒
 - **And** 学生可以在设置中关闭提醒
 - **And** 提醒文案友好，如「今天还没有打卡哦，3 分钟就能完成～」
+
+**归属端**：学生小程序。
 
 ### Story 11.2：复核结果通知
 
@@ -936,8 +955,10 @@ inputDocuments:
 
 - **Given** 辅导员完成复核操作
 - **When** 系统更新复核状态后
-- **Then** 向学生发送 App 内通知，显示「通过」「不通过」或「要求修改」
+- **Then** 向学生发送微信订阅消息或在小程序通知中心显示复核结果，状态为「通过」「不通过」或「要求修改」
 - **And** 通知可跳转至对应打卡记录详情
+
+**归属端**：学生小程序。
 
 ### Story 11.3：系统通知中心
 
@@ -1010,12 +1031,12 @@ inputDocuments:
 | SM-5 AI 初审覆盖率 ≥ 99% | 5.1, 5.2 | 提交心得统计 |
 | SM-6 人工复核处理时长 ≤ 5 分钟 | 5.3 | 演示场景计时 |
 
-## Epic 12：微信小程序基础设施（学生端）
+## Epic 12：微信小程序基础设施（学生端 + 辅导员端）
 
-**目标**：搭建学生端微信小程序的技术骨架，为 Epic 1-7、11 的学生侧功能提供运行基础。
+**目标**：搭建微信小程序的技术骨架，按角色为学生和辅导员提供不同的入口与导航，支撑 Epic 1-8、11 的小程序侧功能。
 
 **覆盖需求**：AD-17、NFR-11、NFR-13
-**归属端**：学生小程序（`miniprogram/`）+ 后端 `auth` 域
+**归属端**：学生 + 辅导员小程序（`miniprogram/`）+ 后端 `auth` 域
 
 ### Story 12.1：小程序工程初始化
 
@@ -1031,6 +1052,7 @@ inputDocuments:
 - **And** `services/` 目录包含 `wx.request` 封装（对应 `mobile/services/api.ts`），支持 JWT 请求头注入、统一错误处理、超时
 - **And** `utils/` 包含 token 存储（`wx.setStorageSync`）、日期格式化等工具
 - **And** 配置学生端 4 个 tabBar：首页 / 排行 / 日历 / 我的
+- **And** 预留辅导员端 tabBar 扩展能力（看板 / 复核 / 我的）
 - **And** 在微信开发者工具中能正常编译打开（需 AppID）
 
 ### Story 12.2：微信登录与绑定流程（前端）
@@ -1077,6 +1099,26 @@ inputDocuments:
 **覆盖需求：** FR-1、AD-4、AD-17
 **归属端：** 后端（`api/`）
 
+### Story 12.4：辅导员小程序登录与角色路由
+
+作为辅导员，
+我想要在微信小程序中使用工号和密码登录，
+以便进入辅导员看板并使用班级管理功能。
+
+**验收标准：**
+
+- **Given** 小程序登录页
+- **When** 用户选择「辅导员登录」并输入工号 + 密码
+- **Then** 调用 `POST /api/auth/login` 校验账号密码
+- **And** 登录成功后存储 JWT，并根据角色进入辅导员首页
+- **And** 辅导员首页底部展示 3 个 tabBar：看板 / 复核 / 我的
+- **And** 学生微信登录流程不受影响
+- **And** 未登录或令牌过期时统一跳转到登录页
+
+**覆盖需求：** FR-1、AD-4、AD-5、AD-17
+**归属端：** 辅导员小程序（`miniprogram/pages/counselor`）+ 后端 `auth` 域
+**依赖：** Story 12.1（工程骨架）
+
 ---
 
 ## 跨 Epic 通用实现任务
@@ -1108,4 +1150,5 @@ inputDocuments:
 |------|------|---------|
 | 1.0 | 2026-06-22 | 初始版本，拆分 11 个 Epic、40 个 Story，覆盖 31 条 FR、17 条 NFR、16 条 AD、16 条 UX 需求 |
 | 1.1 | 2026-06-23 | 应用 sprint-change-proposal-2026-06-23：新增 Story 1.6（学生微信登录与学号绑定）、新增 Epic 12（微信小程序基础设施）、Epic 11 补分端实现说明、AD 清单补 AD-17。现共 12 个 Epic、43 个 Story。 |
+| 1.2 | 2026-06-23 | 应用 sprint-change-proposal-2026-06-23-v2：辅导员端迁入小程序，管理员端保留 Expo App + Web V2；Epic 12 扩展为学生 + 辅导员小程序基础设施；新增 Story 12.4（辅导员小程序登录与角色路由）。现共 12 个 Epic、44 个 Story。 |
 

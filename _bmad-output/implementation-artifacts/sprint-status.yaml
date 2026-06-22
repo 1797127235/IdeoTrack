@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: '2026-06-22T07:04:25Z'
-last_updated: '2026-06-23T07:10:00Z'
+last_updated: '2026-06-23T05:06:37Z'
 project: IdeoTrack
 project_key: NOKEY
 tracking_system: file-system
@@ -63,8 +63,8 @@ development_status:
   2-3-ming-yan-ku-guan-li: done
   epic-2-retrospective: optional
   epic-3: done
-  3-1-chuang-jian-yu-fa-bu-ren-wu: done
-  3-2-bian-ji-yu-xia-jia-ren-wu: done
+  3-1-chuang-jian-yu-fa-bu-ren-wu: done  # admin: mobile, counselor: miniprogram
+  3-2-bian-ji-yu-xia-jia-ren-wu: done  # admin: mobile, counselor: miniprogram
   3-3-xue-sheng-ren-wu-lie-biao: done
   3-4-ren-wu-xiang-qing-cha-kan: done
   3-5-ren-wu-zhuang-tai-ji-suan-yu-zhan-shi: done
@@ -78,7 +78,7 @@ development_status:
   epic-5: backlog
   5-1-ai-chu-shen-fu-wu: backlog
   5-2-ai-chu-shen-chao-shi-shi-bai-dou-di: backlog
-  5-3-fu-dao-yuan-ren-gong-fu-he: backlog
+  5-3-fu-dao-yuan-ren-gong-fu-he: backlog  # counselor: miniprogram
   5-4-xue-sheng-cha-kan-fu-he-jie-guo: backlog
   5-5-yao-qiu-xiu-gai-hou-chong-xin-ti-jiao: backlog
   epic-5-retrospective: optional
@@ -93,30 +93,31 @@ development_status:
   7-2-pai-hang-bang-an-xu-ji-suan-yu-huan-cun: backlog  # V2 deferred
   epic-7-retrospective: optional
   epic-8: backlog
-  8-1-ban-ji-shu-ju-gai-lan: backlog
-  8-2-wei-da-ka-xue-sheng-ming-dan: backlog
-  8-3-yi-jian-ti-xing: backlog
-  8-4-fu-dao-yuan-shu-ju-dao-chu: backlog
+  8-1-ban-ji-shu-ju-gai-lan: backlog  # counselor: miniprogram
+  8-2-wei-da-ka-xue-sheng-ming-dan: backlog  # counselor: miniprogram
+  8-3-yi-jian-ti-xing: backlog  # counselor: miniprogram
+  8-4-fu-dao-yuan-shu-ju-dao-chu: backlog  # counselor: miniprogram, temp-link export
   epic-8-retrospective: optional
   epic-9: backlog
-  9-1-xue-yuan-guan-li: backlog
-  9-2-ban-ji-guan-li: backlog
-  9-3-dan-ge-yong-hu-chuang-jian: backlog
-  9-4-pi-liang-dao-ru-yong-hu: backlog
+  9-1-xue-yuan-guan-li: backlog  # admin: mobile
+  9-2-ban-ji-guan-li: backlog  # admin: mobile
+  9-3-dan-ge-yong-hu-chuang-jian: backlog  # admin: mobile
+  9-4-pi-liang-dao-ru-yong-hu: backlog  # admin: mobile
   epic-9-retrospective: optional
   epic-10: backlog
-  10-1-duo-wei-du-shu-ju-tong-ji: backlog
-  10-2-yi-chang-shu-ju-ti-shi: backlog
-  10-3-excel-bao-gao-dao-chu: backlog
-  10-4-pdf-bao-gao-dao-chu: backlog
+  10-1-duo-wei-du-shu-ju-tong-ji: backlog  # admin: mobile
+  10-2-yi-chang-shu-ju-ti-shi: backlog  # admin: mobile
+  10-3-excel-bao-gao-dao-chu: backlog  # admin: mobile
+  10-4-pdf-bao-gao-dao-chu: backlog  # admin: mobile
   epic-10-retrospective: optional
   epic-11: backlog
   11-1-mei-ri-da-ka-ti-xing: backlog
-  11-2-fu-he-jie-guo-tong-zhi: backlog
+  11-2-fu-he-jie-guo-tong-zhi: backlog  # student: miniprogram
   11-3-xi-tong-tong-zhi-zhong-xin: backlog
   epic-11-retrospective: optional
-  epic-12: done
+  epic-12: in-progress  # 已完成后端微信接口与学生登录；新增 Story 12.4 辅导员小程序登录与角色路由
   12-1-xiao-cheng-xu-gong-cheng-chu-shi-hua: done
   12-2-wei-xin-deng-lu-yu-bang-ding-liu-cheng: done
   12-3-hou-duan-wei-xin-deng-lu-jie-kou: done
+  12-4-fu-dao-yuan-xiao-cheng-xu-deng-lu-yu-jiao-se-lu-you: backlog  # 辅导员端 miniprogram
   epic-12-retrospective: optional
