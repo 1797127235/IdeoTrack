@@ -135,4 +135,111 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.token).toBeDefined();
   });
+
+  describe('POST /api/auth/change-password', () => {
+    const newPassword = 'newpass123';
+
+    it('rejects unauthenticated requests', async () => {
+      const res = await request(app).post('/api/auth/change-password').send({
+        currentPassword: testPassword,
+        newPassword,
+      });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('AUTH_UNAUTHORIZED');
+    });
+
+    it('changes password when current password is correct', async () => {
+      const loginRes = await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: testPassword,
+      });
+      const token = loginRes.body.data.token;
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          currentPassword: testPassword,
+          newPassword,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      // Old password should no longer work
+      const oldLoginRes = await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: testPassword,
+      });
+      expect(oldLoginRes.status).toBe(401);
+
+      // New password should work
+      const newLoginRes = await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: newPassword,
+      });
+      expect(newLoginRes.status).toBe(200);
+      expect(newLoginRes.body.success).toBe(true);
+      expect(newLoginRes.body.data.user.isInitialPassword).toBe(false);
+    });
+
+    it('rejects change when current password is wrong', async () => {
+      const loginRes = await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: newPassword,
+      });
+      const token = loginRes.body.data.token;
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          currentPassword: 'wrongpassword',
+          newPassword: 'anothernewpass123',
+        });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('AUTH_INVALID_PASSWORD');
+    });
+
+    it('rejects new password shorter than 6 characters', async () => {
+      const loginRes = await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: newPassword,
+      });
+      const token = loginRes.body.data.token;
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          currentPassword: newPassword,
+          newPassword: '123',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('AUTH_WEAK_PASSWORD');
+    });
+
+    it('rejects new password equal to current password', async () => {
+      const loginRes = await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: newPassword,
+      });
+      const token = loginRes.body.data.token;
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          currentPassword: newPassword,
+          newPassword,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('AUTH_SAME_PASSWORD');
+    });
+  });
 });

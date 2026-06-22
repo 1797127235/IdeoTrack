@@ -3,10 +3,12 @@ import jwt from 'jsonwebtoken';
 import { supabase } from '../../lib/supabase.js';
 import { config } from '../../config/index.js';
 import { AppError } from '../../middleware/error-handler.js';
-import type { LoginInput, LoginResponse, User, UserRole } from './auth.types.js';
+import type { LoginInput, LoginResponse, User, UserRole, ChangePasswordInput } from './auth.types.js';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
+const MIN_PASSWORD_LENGTH = 6;
+const BCRYPT_SALT_ROUNDS = 10;
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
   const normalizedSchoolId = input.schoolId.trim();
@@ -100,4 +102,50 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
       isInitialPassword: user.is_initial_password,
     },
   };
+}
+
+export async function changePassword(
+  userId: string,
+  input: ChangePasswordInput
+): Promise<void> {
+  if (input.newPassword.length < MIN_PASSWORD_LENGTH) {
+    throw new AppError('AUTH_WEAK_PASSWORD', `新密码长度不能少于 ${MIN_PASSWORD_LENGTH} 位`, 400);
+  }
+
+  if (input.newPassword === input.currentPassword) {
+    throw new AppError('AUTH_SAME_PASSWORD', '新密码不能与当前密码相同', 400);
+  }
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error || !user) {
+    throw new AppError('AUTH_SERVICE_ERROR', '用户查询失败', 500);
+  }
+
+  if (typeof user.password_hash !== 'string' || !user.password_hash) {
+    throw new AppError('AUTH_SERVICE_ERROR', '用户凭据数据异常', 500);
+  }
+
+  const currentValid = await bcrypt.compare(input.currentPassword, user.password_hash);
+  if (!currentValid) {
+    throw new AppError('AUTH_INVALID_PASSWORD', '当前密码错误', 401);
+  }
+
+  const newPasswordHash = await bcrypt.hash(input.newPassword, BCRYPT_SALT_ROUNDS);
+
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({
+      password_hash: newPasswordHash,
+      is_initial_password: false,
+    })
+    .eq('id', userId);
+
+  if (updateError) {
+    throw new AppError('AUTH_SERVICE_ERROR', '密码更新失败', 500);
+  }
 }

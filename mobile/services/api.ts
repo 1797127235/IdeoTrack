@@ -81,6 +81,20 @@ export async function login(schoolId: string, password: string): Promise<LoginRe
   return result.data;
 }
 
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const result = await request<null>('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+  if (!result.success) {
+    throw new Error(result.error?.message || '修改密码失败');
+  }
+}
+
 export async function logout(): Promise<void> {
   await SecureStore.deleteItemAsync('auth_token');
 }

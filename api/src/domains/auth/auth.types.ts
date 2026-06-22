@@ -17,6 +17,11 @@ export interface LoginInput {
   password: string;
 }
 
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface LoginResponse {
   token: string;
   user: {
