@@ -3,7 +3,7 @@ story_id: 4.1
 story_key: 4-1-ding-wei-qian-dao
 epic: 4
 epic_title: 学生打卡流程
-status: in-progress
+status: done
 priority: high
 points: 3
 baseline_commit: NO_VCS
