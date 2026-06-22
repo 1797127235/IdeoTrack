@@ -118,7 +118,6 @@ export async function createOrUpdateCheckIn(
     .single();
 
   if (error || !data) {
-    console.error('checkin upsert error:', error);
     throw new AppError('CHECKIN_SERVICE_ERROR', '签到失败', 500);
   }
 
