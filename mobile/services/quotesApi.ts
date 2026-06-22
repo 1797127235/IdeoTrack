@@ -8,8 +8,8 @@ export interface Quote {
 }
 
 export async function getDailyQuote(date?: string): Promise<Quote> {
-  const path = date ? `/api/quotes/daily?date=${encodeURIComponent(date)}` : '/api/quotes/daily';
-  const result = await request<Quote>(path);
+  const params = date ? `?date=${encodeURIComponent(date)}` : '';
+  const result = await request<Quote>(`/api/quotes/daily${params}`);
 
   if (!result.success || !result.data) {
     throw new Error(result.error?.message || '获取每日名言失败');

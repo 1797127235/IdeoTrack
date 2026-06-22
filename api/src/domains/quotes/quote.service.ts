@@ -24,17 +24,22 @@ function toResponse(quote: Quote): QuoteResponse {
   };
 }
 
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+function simpleHash(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
 }
 
-export async function getDailyQuote(dateStr?: string): Promise<QuoteResponse> {
-  const date = dateStr || getTodayDate();
-
+export async function getDailyQuote(dateStr: string): Promise<QuoteResponse> {
+  // 1. 检查是否已有当日记录
   const { data: existingDaily, error: dailyError } = await supabase
     .from('daily_quotes')
     .select('quote_id, quotes(*)')
-    .eq('date', date)
+    .eq('date', dateStr)
     .single();
 
   if (dailyError && dailyError.code !== 'PGRST116') {
@@ -45,6 +50,7 @@ export async function getDailyQuote(dateStr?: string): Promise<QuoteResponse> {
     return toResponse(existingDaily.quotes as unknown as Quote);
   }
 
+  // 2. 获取启用名言列表
   const { data: enabledQuotes, error: quotesError } = await supabase
     .from('quotes')
     .select('*')
@@ -59,17 +65,14 @@ export async function getDailyQuote(dateStr?: string): Promise<QuoteResponse> {
     return FALLBACK_QUOTE;
   }
 
-  const { count } = await supabase
-    .from('daily_quotes')
-    .select('*', { count: 'exact', head: true });
-
-  const historyCount = count || 0;
-  const selectedIndex = historyCount % enabledQuotes.length;
+  // 3. 按日期确定性选择名言，避免并发竞态
+  const selectedIndex = simpleHash(dateStr) % enabledQuotes.length;
   const selectedQuote = enabledQuotes[selectedIndex];
 
+  // 4. 尝试写入当日记录；若已存在则忽略冲突
   await supabase
     .from('daily_quotes')
-    .insert({ quote_id: selectedQuote.id, date })
+    .insert({ quote_id: selectedQuote.id, date: dateStr })
     .select()
     .single();
 
@@ -93,17 +96,21 @@ export async function listQuotes(filters: QuoteFilters = {}): Promise<Quote[]> {
 }
 
 export async function createQuote(input: CreateQuoteInput): Promise<Quote> {
-  const { data: maxOrderData } = await supabase
+  const { data: maxOrderData, error: maxOrderError } = await supabase
     .from('quotes')
     .select('display_order')
     .order('display_order', { ascending: false })
     .limit(1)
     .single();
 
+  if (maxOrderError && maxOrderError.code !== 'PGRST116') {
+    throw new AppError('QUOTE_SERVICE_ERROR', '获取名言排序失败', 500);
+  }
+
   const displayOrder =
     typeof input.display_order === 'number'
       ? input.display_order
-      : (maxOrderData?.display_order ?? 0) + 1;
+      : (maxOrderData?.display_order ?? -1) + 1;
 
   const { data, error } = await supabase
     .from('quotes')
@@ -125,6 +132,12 @@ export async function createQuote(input: CreateQuoteInput): Promise<Quote> {
 }
 
 export async function updateQuote(id: string, input: UpdateQuoteInput): Promise<Quote> {
+  const { data: existing } = await supabase.from('quotes').select('id').eq('id', id).single();
+
+  if (!existing) {
+    throw new AppError('QUOTE_NOT_FOUND', '名言不存在', 404);
+  }
+
   const updatePayload: Record<string, unknown> = {};
 
   if (input.content !== undefined) updatePayload.content = input.content;
@@ -148,6 +161,27 @@ export async function updateQuote(id: string, input: UpdateQuoteInput): Promise<
 }
 
 export async function deleteQuote(id: string): Promise<void> {
+  const { data: existing } = await supabase.from('quotes').select('id').eq('id', id).single();
+
+  if (!existing) {
+    throw new AppError('QUOTE_NOT_FOUND', '名言不存在', 404);
+  }
+
+  const { data: references } = await supabase
+    .from('daily_quotes')
+    .select('id')
+    .eq('quote_id', id)
+    .limit(1)
+    .single();
+
+  if (references) {
+    throw new AppError(
+      'QUOTE_IN_USE',
+      '该名言已被用于历史每日记录，无法删除。建议先禁用它。',
+      409
+    );
+  }
+
   const { error } = await supabase.from('quotes').delete().eq('id', id);
 
   if (error) {

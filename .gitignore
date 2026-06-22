@@ -39,3 +39,9 @@ coverage/
 
 # Misc
 .cache/
+
+# BMad workflow artifacts (local agent state, planning outputs, review diffs)
+.agents/
+.tools/
+_bmad/
+_bmad-output/

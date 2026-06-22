@@ -5,7 +5,7 @@ export const createQuoteSchema = z.object({
   author: z.string().max(50, '作者不能超过 50 字').nullable().optional(),
   source: z.string().max(100, '出处不能超过 100 字').nullable().optional(),
   is_enabled: z.boolean().optional(),
-  display_order: z.number().int().optional(),
+  display_order: z.number().int().min(0, '排序不能为负数').optional(),
 });
 
 export const updateQuoteSchema = z.object({
@@ -13,5 +13,5 @@ export const updateQuoteSchema = z.object({
   author: z.string().max(50, '作者不能超过 50 字').nullable().optional(),
   source: z.string().max(100, '出处不能超过 100 字').nullable().optional(),
   is_enabled: z.boolean().optional(),
-  display_order: z.number().int().optional(),
+  display_order: z.number().int().min(0, '排序不能为负数').optional(),
 });

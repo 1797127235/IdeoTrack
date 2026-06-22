@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './domains/auth/auth.routes.js';
 import quoteRoutes from './domains/quotes/quote.routes.js';
+import taskRoutes from './domains/tasks/task.routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { config } from './config/index.js';
 
@@ -19,6 +20,7 @@ app.use(express.json({ limit: '10kb' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/quotes', quoteRoutes);
+app.use('/api/tasks', taskRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ success: true, data: { status: 'ok' } });

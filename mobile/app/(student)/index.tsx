@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { theme } from '../../theme';
 import { DailyQuote } from '../../components/DailyQuote';
+import { TaskList } from '../../components/TaskList';
 
 export default function StudentHome() {
   return (
@@ -8,6 +9,7 @@ export default function StudentHome() {
       <Text style={styles.greeting}>早上好，同学</Text>
       <Text style={styles.subtitle}>每日学习，积累成长</Text>
       <DailyQuote />
+      <TaskList />
     </ScrollView>
   );
 }

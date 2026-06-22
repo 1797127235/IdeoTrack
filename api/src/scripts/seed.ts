@@ -169,6 +169,38 @@ async function seed() {
       }
     }
 
+    // 创建示例任务
+    const { data: adminUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('school_id', 'A001')
+      .single();
+
+    if (adminUser && classId) {
+      const { data: existingTask } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('title', '示例：每日思政学习任务')
+        .single();
+
+      if (!existingTask) {
+        const { error: taskError } = await supabase.from('tasks').insert({
+          title: '示例：每日思政学习任务',
+          content:
+            '请认真阅读今日思政学习材料，结合自己的学习与生活实际，撰写不少于 50 字的学习心得。',
+          scope_type: 'class',
+          target_class_id: classId,
+          created_by: adminUser.id,
+          published_at: new Date().toISOString(),
+          deadline_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+
+        if (taskError) {
+          throw new Error(`Failed to seed task: ${taskError.message}`);
+        }
+      }
+    }
+
     console.log('Seed completed successfully');
   } catch (error) {
     console.error('Seed failed:', error);

@@ -13,10 +13,6 @@ import { theme } from '../theme';
 import { getDailyQuote } from '../services/quotesApi';
 import type { Quote } from '../services/quotesApi';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_MARGIN = theme.spacing.md;
-const PAGE_WIDTH = SCREEN_WIDTH - CARD_MARGIN * 2;
-
 const FALLBACK_QUOTE: Quote = {
   id: 'fallback',
   content: '路虽远，行则将至；事虽难，做则必成。',
@@ -24,16 +20,23 @@ const FALLBACK_QUOTE: Quote = {
   source: '《荀子·修身》',
 };
 
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function formatDateLabel(dateStr: string): string {
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatLocalDate(new Date());
   if (dateStr === today) return '今天';
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  if (dateStr === yesterday.toISOString().split('T')[0]) return '昨天';
+  if (dateStr === formatLocalDate(yesterday)) return '昨天';
 
-  const date = new Date(dateStr);
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
+  const [year, month, day] = dateStr.split('-');
+  return `${parseInt(month, 10)}月${parseInt(day, 10)}日`;
 }
 
 function getLast7Days(): string[] {
@@ -41,17 +44,38 @@ function getLast7Days(): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() - (6 - i));
-    return d.toISOString().split('T')[0];
+    return formatLocalDate(d);
   });
 }
 
 export function DailyQuote() {
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const pageWidth = screenWidth;
   const days = getLast7Days();
   const todayIndex = days.length - 1;
   const scrollViewRef = useRef<ScrollView>(null);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(todayIndex);
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // 初始加载完成或屏幕旋转导致宽度变化后，滚动到当前页
+  useEffect(() => {
+    if (loading) return;
+    scrollViewRef.current?.scrollTo({
+      x: activeIndexRef.current * pageWidth,
+      animated: false,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, pageWidth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,15 +109,9 @@ export function DailyQuote() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!loading) {
-      scrollViewRef.current?.scrollTo({ x: todayIndex * PAGE_WIDTH, animated: false });
-    }
-  }, [loading, todayIndex]);
-
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / PAGE_WIDTH);
+    const index = Math.round(offsetX / pageWidth);
     setActiveIndex(Math.max(0, Math.min(index, days.length - 1)));
   };
 
@@ -113,16 +131,16 @@ export function DailyQuote() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        snapToInterval={PAGE_WIDTH}
-        snapToAlignment="start"
         contentContainerStyle={styles.scrollContent}
         onScroll={handleScroll}
+        onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
       >
-        {days.map((date, index) => {
+        {days.map((date) => {
           const quote = quotes[date] || FALLBACK_QUOTE;
+          const isFallback = quote.id === FALLBACK_QUOTE.id;
           return (
-            <View key={date} style={[styles.page, { width: PAGE_WIDTH }]}>
+            <View key={date} style={[styles.page, { width: pageWidth }]}>
               <View style={styles.container}>
                 <Text style={styles.dateLabel}>{formatDateLabel(date)}</Text>
                 <Text style={styles.quoteIcon}>"</Text>
@@ -133,8 +151,10 @@ export function DailyQuote() {
                     {quote.source && ` ${quote.source}`}
                   </Text>
                 )}
+                {isFallback && (
+                  <Text style={styles.fallbackHint}>名言库暂未配置，显示默认内容</Text>
+                )}
               </View>
-              {index < days.length - 1 && <View style={styles.pageSpacing} />}
             </View>
           );
         })}
@@ -144,10 +164,7 @@ export function DailyQuote() {
         {days.map((_, index) => (
           <View
             key={index}
-            style={[
-              styles.indicator,
-              index === activeIndex && styles.indicatorActive,
-            ]}
+            style={[styles.indicator, index === activeIndex && styles.indicatorActive]}
           />
         ))}
       </View>
@@ -166,17 +183,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 160,
   },
-  scrollContent: {
-    paddingHorizontal: 0,
-  },
+  scrollContent: {},
   page: {
-    flexDirection: 'row',
-  },
-  pageSpacing: {
-    width: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
   },
   container: {
-    flex: 1,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
@@ -184,7 +195,7 @@ const styles = StyleSheet.create({
   dateLabel: {
     fontSize: 12,
     lineHeight: 18,
-    color: theme.colors.primary,
+    color: theme.colors.textLight,
     fontFamily: theme.fonts.medium,
     marginBottom: theme.spacing.sm,
   },
@@ -208,6 +219,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     fontFamily: theme.fonts.regular,
     textAlign: 'right',
+  },
+  fallbackHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: theme.colors.textLight,
+    fontFamily: theme.fonts.regular,
+    marginTop: theme.spacing.sm,
+    textAlign: 'center',
   },
   indicatorContainer: {
     flexDirection: 'row',

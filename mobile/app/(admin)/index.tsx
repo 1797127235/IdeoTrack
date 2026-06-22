@@ -11,6 +11,12 @@ export default function AdminHome() {
       <Text style={styles.subtitle}>管理组织、用户、任务与内容</Text>
 
       <View style={styles.grid}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('./tasks')}>
+          <Text style={styles.cardIcon}>📝</Text>
+          <Text style={styles.cardTitle}>任务管理</Text>
+          <Text style={styles.cardDesc}>发布与管理思政学习任务</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.card} onPress={() => router.push('./quotes')}>
           <Text style={styles.cardIcon}>"</Text>
           <Text style={styles.cardTitle}>名言库</Text>

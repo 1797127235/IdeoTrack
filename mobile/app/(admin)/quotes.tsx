@@ -39,6 +39,7 @@ export default function QuotesManagement() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadQuotes();
@@ -124,10 +125,22 @@ export default function QuotesManagement() {
     ]);
   }
 
-  function toggleEnabled(quote: Quote) {
-    updateQuote(quote.id, { is_enabled: !quote.is_enabled })
-      .then(() => loadQuotes())
-      .catch((error) => Alert.alert('错误', error instanceof Error ? error.message : '更新失败'));
+  async function toggleEnabled(quote: Quote) {
+    if (updatingIds.has(quote.id)) return;
+
+    setUpdatingIds((prev) => new Set(prev).add(quote.id));
+    try {
+      await updateQuote(quote.id, { is_enabled: !quote.is_enabled });
+      await loadQuotes();
+    } catch (error) {
+      Alert.alert('错误', error instanceof Error ? error.message : '更新失败');
+    } finally {
+      setUpdatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(quote.id);
+        return next;
+      });
+    }
   }
 
   if (loading) {
@@ -215,6 +228,7 @@ export default function QuotesManagement() {
               <Switch
                 value={quote.is_enabled}
                 onValueChange={() => toggleEnabled(quote)}
+                disabled={updatingIds.has(quote.id)}
                 trackColor={{ false: '#E2E8F0', true: theme.colors.primaryLight }}
                 thumbColor={quote.is_enabled ? theme.colors.primary : '#94A3B8'}
               />
