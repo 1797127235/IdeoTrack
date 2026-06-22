@@ -1,20 +1,26 @@
 import { createCheckIn } from '../../services/checkinApi';
+import { getMyTaskDetail, type Task } from '../../services/taskApi';
+
+let successNavigateTimer: number | undefined;
 
 Page({
   data: {
     taskId: '',
     taskTitle: '定位签到',
+    task: null as Task | null,
+    taskLoading: true,
+    taskError: '',
     latitude: 0,
     longitude: 0,
     address: '',
     locationLoading: true,
+    locationReady: false,
     locationError: '',
     submitting: false,
   },
 
   onLoad(options: { taskId?: string; title?: string }) {
     const taskId = options.taskId || '';
-    const taskTitle = options.title ? decodeURIComponent(options.title) : '定位签到';
 
     if (!taskId) {
       wx.showToast({ title: '任务信息缺失', icon: 'none' });
@@ -22,13 +28,40 @@ Page({
       return;
     }
 
-    wx.setNavigationBarTitle({ title: taskTitle });
-    this.setData({ taskId, taskTitle });
+    this.setData({ taskId });
+    this.loadTaskDetail(taskId);
     this.loadLocation();
   },
 
+  onUnload() {
+    if (successNavigateTimer) {
+      clearTimeout(successNavigateTimer);
+      successNavigateTimer = undefined;
+    }
+  },
+
+  async loadTaskDetail(taskId: string) {
+    this.setData({ taskLoading: true, taskError: '' });
+    try {
+      const res = await getMyTaskDetail(taskId);
+      if (res.success && res.data) {
+        const task = res.data;
+        wx.setNavigationBarTitle({ title: task.title });
+        this.setData({ task, taskTitle: task.title, taskLoading: false });
+      } else {
+        this.setData({
+          taskError: res.error?.message || '获取任务详情失败',
+          taskLoading: false,
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '获取任务详情失败';
+      this.setData({ taskError: message, taskLoading: false });
+    }
+  },
+
   loadLocation() {
-    this.setData({ locationLoading: true, locationError: '' });
+    this.setData({ locationLoading: true, locationReady: false, locationError: '' });
 
     wx.getLocation({
       type: 'gcj02',
@@ -37,6 +70,7 @@ Page({
           latitude: res.latitude,
           longitude: res.longitude,
           locationLoading: false,
+          locationReady: true,
         });
         this.reverseGeocode(res.latitude, res.longitude);
       },
@@ -44,6 +78,7 @@ Page({
         const isAuthDenied = err.errMsg?.includes('deny') || err.errMsg?.includes('auth');
         this.setData({
           locationLoading: false,
+          locationReady: false,
           locationError: isAuthDenied
             ? '请开启定位权限以完成签到'
             : '获取位置失败，请重试',
@@ -74,11 +109,18 @@ Page({
     this.loadLocation();
   },
 
+  onRetryTask() {
+    const { taskId } = this.data;
+    if (taskId) {
+      this.loadTaskDetail(taskId);
+    }
+  },
+
   async onSubmitCheckIn() {
-    const { taskId, latitude, longitude, address, submitting } = this.data;
+    const { taskId, latitude, longitude, address, locationReady, submitting } = this.data;
 
     if (submitting) return;
-    if (!latitude || !longitude) {
+    if (!locationReady) {
       wx.showToast({ title: '请等待定位完成', icon: 'none' });
       return;
     }
@@ -90,9 +132,10 @@ Page({
         wx.showToast({ title: '签到成功', icon: 'success' });
         // Story 4.2：跳转到心得提交页
         // 当前用 navigateBack 回到任务详情，待 4.2 实现后替换
-        setTimeout(() => {
+        successNavigateTimer = setTimeout(() => {
+          successNavigateTimer = undefined;
           wx.navigateBack();
-        }, 1200);
+        }, 1200) as unknown as number;
       } else {
         wx.showToast({
           title: res.error?.message || '签到失败',

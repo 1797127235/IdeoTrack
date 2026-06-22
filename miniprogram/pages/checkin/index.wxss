@@ -11,6 +11,59 @@ page {
   box-sizing: border-box;
 }
 
+.loading-wrap,
+.error-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+}
+
+.loading {
+  color: #64748B;
+  font-size: 28rpx;
+}
+
+.error-text {
+  color: #EF4444;
+  font-size: 28rpx;
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+
+.retry-btn {
+  background-color: #0891B2;
+  color: #FFFFFF;
+  font-size: 28rpx;
+  padding: 16rpx 48rpx;
+  border-radius: 32rpx;
+}
+
+.task-bar {
+  background-color: #FFFFFF;
+  border-radius: 32rpx;
+  padding: 24rpx 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(8, 145, 178, 0.08);
+}
+
+.task-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #164E63;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+}
+
+.task-deadline {
+  display: block;
+  font-size: 24rpx;
+  color: #64748B;
+}
+
 .location-card,
 .tips-card {
   background-color: #FFFFFF;
@@ -66,13 +119,6 @@ page {
 .error-icon {
   font-size: 64rpx;
   margin-bottom: 16rpx;
-}
-
-.error-text {
-  font-size: 28rpx;
-  color: #EF4444;
-  margin-bottom: 32rpx;
-  text-align: center;
 }
 
 .error-actions {

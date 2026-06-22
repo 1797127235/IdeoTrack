@@ -113,7 +113,7 @@ async function assertTaskEditable(task: Task, userId: string): Promise<void> {
   }
 }
 
-async function fetchTaskById(taskId: string): Promise<Task> {
+export async function fetchTaskById(taskId: string): Promise<Task> {
   const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).single();
   if (error || !data) {
     throw new AppError('TASK_NOT_FOUND', '任务不存在', 404);
@@ -465,13 +465,19 @@ export async function listMyTasks(
   });
 }
 
-export async function getMyTaskDetail(userId: string, taskId: string): Promise<TaskDetail> {
-  const scope = await getUserScope(userId);
-  const task = await fetchTaskById(taskId);
+export async function assertTaskVisibleToStudent(
+  task: Task,
+  userId: string
+): Promise<void> {
+  const now = new Date();
+  if (new Date(task.deadline_at) <= now) {
+    throw new AppError('CHECKIN_DEADLINE_PASSED', '任务已截止，无法打卡', 409);
+  }
 
+  const scope = await getUserScope(userId);
   const isVisible =
     task.status === 'published' &&
-    new Date(task.published_at) <= new Date() &&
+    new Date(task.published_at) <= now &&
     (task.scope_type === 'school' ||
       (task.scope_type === 'college' && task.target_college_id === scope.college_id) ||
       (task.scope_type === 'class' && task.target_class_id === scope.class_id));
@@ -479,6 +485,11 @@ export async function getMyTaskDetail(userId: string, taskId: string): Promise<T
   if (!isVisible) {
     throw new AppError('TASK_NOT_FOUND', '任务不存在', 404);
   }
+}
+
+export async function getMyTaskDetail(userId: string, taskId: string): Promise<TaskDetail> {
+  const task = await fetchTaskById(taskId);
+  await assertTaskVisibleToStudent(task, userId);
 
   const checkIns = await fetchUserCheckIns(userId, [taskId]);
   const checkIn = checkIns[taskId];

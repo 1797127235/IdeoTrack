@@ -103,7 +103,7 @@ Page({
     }
 
     wx.navigateTo({
-      url: `/pages/checkin/index?taskId=${taskId}&title=${encodeURIComponent(task.title)}`,
+      url: `/pages/checkin/index?taskId=${taskId}`,
     });
   },
 });

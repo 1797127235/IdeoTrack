@@ -181,5 +181,36 @@ describe.skipIf(!DATABASE_URL)('CheckIns API', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('accepts coordinates at zero (equator/prime meridian)', async () => {
+      const task = await createTask();
+      const res = await request(app)
+        .post('/api/checkins')
+        .set('Authorization', `Bearer ${studentToken}`)
+        .send({ task_id: task.id, latitude: 0, longitude: 0 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.latitude).toBe(0);
+      expect(res.body.data.longitude).toBe(0);
+    });
+
+    it('rejects unauthenticated requests', async () => {
+      const task = await createTask();
+      const res = await request(app)
+        .post('/api/checkins')
+        .send({ task_id: task.id, latitude: 31.2304, longitude: 121.4737 });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('rejects address longer than 500 characters', async () => {
+      const task = await createTask();
+      const res = await request(app)
+        .post('/api/checkins')
+        .set('Authorization', `Bearer ${studentToken}`)
+        .send({ task_id: task.id, latitude: 31.2304, longitude: 121.4737, address: 'a'.repeat(501) });
+
+      expect(res.status).toBe(400);
+    });
   });
 });
