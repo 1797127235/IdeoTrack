@@ -40,6 +40,8 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     await client.connect();
 
     // Clean users before seeding
+    await client.query('DELETE FROM check_ins');
+    await client.query('DELETE FROM tasks');
     await client.query('DELETE FROM counselor_classes');
     await client.query('DELETE FROM users');
     await client.query('DELETE FROM classes');

@@ -1,8 +1,5 @@
 {
   "version": "1",
   "name": "IdeoTrack API",
-  "type": "collection",
-  "insomnia": {
-    "name": "IdeoTrack API"
-  }
+  "type": "collection"
 }

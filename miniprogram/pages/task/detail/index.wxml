@@ -1,7 +1,47 @@
-<view class="page-placeholder">
-  <view class="card">
-    <view class="title">任务详情</view>
-    <view class="desc">任务内容与打卡入口将在这里展示</view>
-    <view class="tag">待 Epic 4</view>
-  </view>
+<view class="container">
+  <block wx:if="{{loading}}">
+    <view class="loading-wrap">
+      <view class="loading">加载中...</view>
+    </view>
+  </block>
+
+  <block wx:elif="{{error}}">
+    <view class="error-wrap">
+      <text class="error-text">{{error}}</text>
+      <button class="retry-btn" bindtap="onRetry">重试</button>
+    </view>
+  </block>
+
+  <block wx:elif="{{task}}">
+    <scroll-view class="task-scroll" scroll-y>
+      <view class="task-card">
+        <view class="task-header">
+          <text class="task-title">{{task.title}}</text>
+          <view class="status-badge" style="background-color: {{statusColor}}20; color: {{statusColor}};">
+            {{statusLabel}}
+          </view>
+        </view>
+
+        <view class="deadline-row">
+          <text class="deadline-icon">⏰</text>
+          <text class="deadline-text">{{deadlineText}}</text>
+        </view>
+
+        <view class="content-section">
+          <text class="section-title">任务内容</text>
+          <text class="task-content">{{task.content}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="footer">
+      <button
+        class="checkin-btn {{buttonDisabled ? 'disabled' : ''}}"
+        disabled="{{buttonDisabled}}"
+        bindtap="onCheckIn"
+      >
+        {{buttonText}}
+      </button>
+    </view>
+  </block>
 </view>

@@ -1,4 +1,7 @@
 import { Client } from 'pg';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -124,10 +127,24 @@ CREATE TABLE IF NOT EXISTS check_ins (
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   status TEXT NOT NULL CHECK (status IN ('submitted', 'ai_reviewing', 'ai_approved', 'pending_manual_review', 'approved', 'rejected', 'requires_modification')),
+  latitude DECIMAL(10, 8) NOT NULL DEFAULT 0,
+  longitude DECIMAL(11, 8) NOT NULL DEFAULT 0,
+  address TEXT,
+  checked_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (task_id, user_id)
 );
+
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8) NOT NULL DEFAULT 0;
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8) NOT NULL DEFAULT 0;
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- 为历史数据兼容设置默认值；新记录必须由 API 提供真实坐标。
+-- V2 数据清理后可移除默认值：
+-- ALTER TABLE check_ins ALTER COLUMN latitude DROP DEFAULT;
+-- ALTER TABLE check_ins ALTER COLUMN longitude DROP DEFAULT;
 
 CREATE INDEX IF NOT EXISTS idx_tasks_status_deadline ON tasks(status, deadline_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_published_at ON tasks(published_at);

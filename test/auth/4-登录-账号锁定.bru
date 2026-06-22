@@ -17,7 +17,7 @@ body:json {
 }
 
 assert {
-  res.status: anyOf [401, 403]
+  res.status: eq 401
 }
 
 docs {

@@ -10,10 +10,10 @@ delete {
 }
 
 auth:bearer {
-  {{adminToken}}
+  token: {{adminToken}}
 }
 
 assert {
-  res.status: anyOf [200, 204]
+  res.status: eq 200
   res.body.success: eq true
 }
