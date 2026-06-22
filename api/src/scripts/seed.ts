@@ -1,31 +1,65 @@
 import bcrypt from 'bcryptjs';
-import { Client } from 'pg';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
 
-const DATABASE_URL = process.env.DATABASE_URL;
+dotenv.config();
 
-if (!DATABASE_URL) {
-  console.error('Missing DATABASE_URL environment variable');
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variable');
   process.exit(1);
 }
 
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
 async function seed() {
-  const client = new Client({ connectionString: DATABASE_URL });
-
   try {
-    await client.connect();
-    console.log('Connected to database');
+    // 创建测试学院
+    const { data: existingCollege } = await supabase
+      .from('colleges')
+      .select('id')
+      .eq('name', '马克思主义学院')
+      .single();
 
-    // 创建测试学院和班级
-    const collegeResult = await client.query(
-      `INSERT INTO colleges (name) VALUES ('马克思主义学院') ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`
-    );
-    const collegeId = collegeResult.rows[0].id;
+    let collegeId = existingCollege?.id;
+    if (!collegeId) {
+      const { data: college, error: collegeError } = await supabase
+        .from('colleges')
+        .insert({ name: '马克思主义学院' })
+        .select('id')
+        .single();
 
-    const classResult = await client.query(
-      `INSERT INTO classes (college_id, name) VALUES ($1, '思政一班') ON CONFLICT (college_id, name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-      [collegeId]
-    );
-    const classId = classResult.rows[0].id;
+      if (collegeError || !college) {
+        throw new Error(`Failed to create college: ${collegeError?.message}`);
+      }
+      collegeId = college.id;
+    }
+
+    // 创建测试班级
+    const { data: existingClass } = await supabase
+      .from('classes')
+      .select('id')
+      .eq('college_id', collegeId)
+      .eq('name', '思政一班')
+      .single();
+
+    let classId = existingClass?.id;
+    if (!classId) {
+      const { data: cls, error: classError } = await supabase
+        .from('classes')
+        .insert({ college_id: collegeId, name: '思政一班' })
+        .select('id')
+        .single();
+
+      if (classError || !cls) {
+        throw new Error(`Failed to create class: ${classError?.message}`);
+      }
+      classId = cls.id;
+    }
 
     // 创建测试账号，初始密码为学号/工号后 6 位
     const testUsers = [
@@ -38,39 +72,74 @@ async function seed() {
       const password = user.schoolId.slice(-6);
       const passwordHash = await bcrypt.hash(password, 10);
 
-      await client.query(
-        `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id)
-         VALUES ($1, $2, $3, true, $4)
-         ON CONFLICT (school_id) DO UPDATE SET
-           password_hash = EXCLUDED.password_hash,
-           role = EXCLUDED.role,
-           is_initial_password = EXCLUDED.is_initial_password,
-           class_id = EXCLUDED.class_id`,
-        [user.schoolId, passwordHash, user.role, user.classId]
-      );
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('school_id', user.schoolId)
+        .single();
+
+      if (existingUser) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            password_hash: passwordHash,
+            role: user.role,
+            is_initial_password: true,
+            class_id: user.classId,
+          })
+          .eq('id', existingUser.id);
+
+        if (updateError) {
+          throw new Error(`Failed to update user ${user.schoolId}: ${updateError.message}`);
+        }
+      } else {
+        const { error: insertError } = await supabase.from('users').insert({
+          school_id: user.schoolId,
+          password_hash: passwordHash,
+          role: user.role,
+          is_initial_password: true,
+          class_id: user.classId,
+        });
+
+        if (insertError) {
+          throw new Error(`Failed to insert user ${user.schoolId}: ${insertError.message}`);
+        }
+      }
 
       console.log(`Seeded user: ${user.schoolId} / ${user.role}`);
     }
 
     // 关联辅导员和班级
-    const counselorResult = await client.query(
-      `SELECT id FROM users WHERE school_id = 'T001'`
-    );
-    if (counselorResult.rows.length > 0) {
-      const counselorId = counselorResult.rows[0].id;
-      await client.query(
-        `INSERT INTO counselor_classes (counselor_id, class_id) VALUES ($1, $2)
-         ON CONFLICT (counselor_id, class_id) DO NOTHING`,
-        [counselorId, classId]
-      );
+    const { data: counselor } = await supabase
+      .from('users')
+      .select('id')
+      .eq('school_id', 'T001')
+      .single();
+
+    if (counselor && classId) {
+      const { data: existingRelation } = await supabase
+        .from('counselor_classes')
+        .select('id')
+        .eq('counselor_id', counselor.id)
+        .eq('class_id', classId)
+        .single();
+
+      if (!existingRelation) {
+        const { error: relationError } = await supabase.from('counselor_classes').insert({
+          counselor_id: counselor.id,
+          class_id: classId,
+        });
+
+        if (relationError) {
+          throw new Error(`Failed to create counselor relation: ${relationError.message}`);
+        }
+      }
     }
 
     console.log('Seed completed successfully');
   } catch (error) {
     console.error('Seed failed:', error);
     process.exit(1);
-  } finally {
-    await client.end();
   }
 }
 
