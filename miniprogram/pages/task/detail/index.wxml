@@ -1,0 +1,7 @@
+<view class="page-placeholder">
+  <view class="card">
+    <view class="title">任务详情</view>
+    <view class="desc">任务内容与打卡入口将在这里展示</view>
+    <view class="tag">待 Epic 4</view>
+  </view>
+</view>

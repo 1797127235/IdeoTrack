@@ -1,0 +1,7 @@
+<view class="page-placeholder">
+  <view class="card">
+    <view class="title">通知</view>
+    <view class="desc">打卡提醒与复核结果通知将在这里展示</view>
+    <view class="tag">待 Epic 11</view>
+  </view>
+</view>

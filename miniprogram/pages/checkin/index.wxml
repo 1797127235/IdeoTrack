@@ -1,0 +1,7 @@
+<view class="page-placeholder">
+  <view class="card">
+    <view class="title">打卡</view>
+    <view class="desc">定位签到与心得提交将在这里完成</view>
+    <view class="tag">待 Epic 4</view>
+  </view>
+</view>
