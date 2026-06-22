@@ -136,6 +136,39 @@ async function seed() {
       }
     }
 
+    // 创建名言库
+    const quotes = [
+      { content: '路虽远，行则将至；事虽难，做则必成。', author: '荀子', source: '《荀子·修身》' },
+      { content: '不积跬步，无以至千里；不积小流，无以成江海。', author: '荀子', source: '《荀子·劝学》' },
+      { content: '业精于勤，荒于嬉；行成于思，毁于随。', author: '韩愈', source: '《进学解》' },
+      { content: '博学之，审问之，慎思之，明辨之，笃行之。', author: '子思', source: '《中庸》' },
+      { content: '天行健，君子以自强不息。', author: '周公', source: '《周易》' },
+      { content: '士不可以不弘毅，任重而道远。', author: '孔子弟子', source: '《论语·泰伯》' },
+      { content: '知之者不如好之者，好之者不如乐之者。', author: '孔子', source: '《论语·雍也》' },
+    ];
+
+    for (let i = 0; i < quotes.length; i++) {
+      const { data: existingQuote } = await supabase
+        .from('quotes')
+        .select('id')
+        .eq('content', quotes[i].content)
+        .single();
+
+      if (existingQuote) continue;
+
+      const { error: quoteError } = await supabase.from('quotes').insert({
+        content: quotes[i].content,
+        author: quotes[i].author,
+        source: quotes[i].source,
+        is_enabled: true,
+        display_order: i,
+      });
+
+      if (quoteError) {
+        throw new Error(`Failed to seed quote ${i}: ${quoteError.message}`);
+      }
+    }
+
     console.log('Seed completed successfully');
   } catch (error) {
     console.error('Seed failed:', error);

@@ -1,30 +1,41 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { theme } from '../../theme';
+import { DailyQuote } from '../../components/DailyQuote';
 
 export default function StudentHome() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>学生首页</Text>
-      <Text style={styles.subtitle}>Story 1.1 登录成功占位页</Text>
-    </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.greeting}>早上好，同学</Text>
+      <Text style={styles.subtitle}>每日学习，积累成长</Text>
+      <DailyQuote />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: theme.colors.background,
   },
-  title: {
+  content: {
+    paddingBottom: theme.spacing.xl,
+  },
+  greeting: {
     fontSize: 24,
-    fontWeight: 'bold',
+    lineHeight: 32,
+    fontWeight: '700',
     color: theme.colors.text,
+    fontFamily: theme.fonts.bold,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.xl,
   },
   subtitle: {
     fontSize: 14,
+    lineHeight: 22,
     color: theme.colors.textLight,
-    marginTop: 8,
+    fontFamily: theme.fonts.regular,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
   },
 });

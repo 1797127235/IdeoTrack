@@ -22,7 +22,7 @@ export interface LoginResponse {
   };
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+export async function request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const token = await SecureStore.getItemAsync('auth_token');
 
   const headers: Record<string, string> = {
