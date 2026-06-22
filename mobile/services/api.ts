@@ -46,7 +46,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
 
     clearTimeout(timeout);
 
-    if (response.status === 401) {
+    if (response.status === 401 && path !== '/api/auth/change-password') {
       await SecureStore.deleteItemAsync('auth_token');
     }
 

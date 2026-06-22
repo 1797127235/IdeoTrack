@@ -8,6 +8,7 @@ import type { LoginInput, LoginResponse, User, UserRole, ChangePasswordInput } f
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
 const MIN_PASSWORD_LENGTH = 6;
+const MAX_PASSWORD_LENGTH = 64;
 const BCRYPT_SALT_ROUNDS = 10;
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
@@ -108,17 +109,24 @@ export async function changePassword(
   userId: string,
   input: ChangePasswordInput
 ): Promise<void> {
-  if (input.newPassword.length < MIN_PASSWORD_LENGTH) {
+  const currentPassword = input.currentPassword.trim();
+  const newPassword = input.newPassword.trim();
+
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
     throw new AppError('AUTH_WEAK_PASSWORD', `新密码长度不能少于 ${MIN_PASSWORD_LENGTH} 位`, 400);
   }
 
-  if (input.newPassword === input.currentPassword) {
+  if (newPassword.length > MAX_PASSWORD_LENGTH) {
+    throw new AppError('AUTH_WEAK_PASSWORD', `新密码长度不能超过 ${MAX_PASSWORD_LENGTH} 位`, 400);
+  }
+
+  if (newPassword === currentPassword) {
     throw new AppError('AUTH_SAME_PASSWORD', '新密码不能与当前密码相同', 400);
   }
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('*')
+    .select('password_hash')
     .eq('id', userId)
     .single();
 
@@ -130,22 +138,23 @@ export async function changePassword(
     throw new AppError('AUTH_SERVICE_ERROR', '用户凭据数据异常', 500);
   }
 
-  const currentValid = await bcrypt.compare(input.currentPassword, user.password_hash);
+  const currentValid = await bcrypt.compare(currentPassword, user.password_hash);
   if (!currentValid) {
     throw new AppError('AUTH_INVALID_PASSWORD', '当前密码错误', 401);
   }
 
-  const newPasswordHash = await bcrypt.hash(input.newPassword, BCRYPT_SALT_ROUNDS);
+  const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
 
-  const { error: updateError } = await supabase
+  const { data: updatedUsers, error: updateError } = await supabase
     .from('users')
     .update({
       password_hash: newPasswordHash,
       is_initial_password: false,
     })
-    .eq('id', userId);
+    .eq('id', userId)
+    .select('id');
 
-  if (updateError) {
+  if (updateError || !updatedUsers || updatedUsers.length === 0) {
     throw new AppError('AUTH_SERVICE_ERROR', '密码更新失败', 500);
   }
 }

@@ -17,6 +17,8 @@ declare global {
   }
 }
 
+const validRoles: UserRole[] = ['student', 'counselor', 'admin'];
+
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
@@ -27,8 +29,17 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
   const token = authHeader.slice(7);
 
   try {
-    const payload = jwt.verify(token, config.jwtSecret) as { userId: string; role: UserRole };
-    req.user = { userId: payload.userId, role: payload.role };
+    const payload = jwt.verify(token, config.jwtSecret) as { userId?: unknown; role?: unknown };
+
+    if (typeof payload.userId !== 'string' || !payload.userId) {
+      return next(new AppError('AUTH_UNAUTHORIZED', '认证令牌载荷无效', 401));
+    }
+
+    if (typeof payload.role !== 'string' || !validRoles.includes(payload.role as UserRole)) {
+      return next(new AppError('AUTH_UNAUTHORIZED', '认证令牌角色无效', 401));
+    }
+
+    req.user = { userId: payload.userId, role: payload.role as UserRole };
     next();
   } catch {
     next(new AppError('AUTH_UNAUTHORIZED', '认证令牌无效或已过期', 401));

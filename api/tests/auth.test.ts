@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import request from 'supertest';
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
@@ -41,6 +41,20 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
       `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id)
        VALUES ($1, $2, 'student', true, $3)`,
       [testSchoolId, passwordHash, classId]
+    );
+  });
+
+  afterEach(async () => {
+    if (!client) return;
+    const passwordHash = await bcrypt.hash(testPassword, 10);
+    await client.query(
+      `UPDATE users
+       SET password_hash = $1,
+           is_initial_password = true,
+           failed_login_attempts = 0,
+           locked_until = NULL
+       WHERE school_id = $2`,
+      [passwordHash, testSchoolId]
     );
   });
 

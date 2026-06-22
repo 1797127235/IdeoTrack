@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import {
   Platform,
   SafeAreaView,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { changePassword } from '../../services/api';
 import { theme } from '../../theme';
+import { decodeJwtPayload } from '../../utils/jwt';
 
 const MIN_PASSWORD_LENGTH = 6;
 const PASSWORD_MAX_LENGTH = 64;
@@ -32,6 +34,15 @@ export default function ChangePasswordScreen() {
   const [error, setError] = useState('');
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  useEffect(() => {
+    // Ensure a valid token exists; otherwise redirect to login.
+    SecureStore.getItemAsync('auth_token').then((token) => {
+      if (!token) {
+        router.replace('/(auth)/login');
+      }
+    });
+  }, []);
+
   function handlePressIn() {
     Animated.timing(scaleAnim, {
       toValue: 0.98,
@@ -48,25 +59,26 @@ export default function ChangePasswordScreen() {
     }).start();
   }
 
-  const params = useLocalSearchParams<{ role?: string }>();
-
   async function handleSubmit() {
-    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+    const current = currentPassword.trim();
+    const nextPass = newPassword.trim();
+
+    if (!current || !nextPass || !confirmPassword.trim()) {
       setError('请填写所有密码字段');
       return;
     }
 
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    if (nextPass.length < MIN_PASSWORD_LENGTH) {
       setError(`新密码长度不能少于 ${MIN_PASSWORD_LENGTH} 位`);
       return;
     }
 
-    if (newPassword === currentPassword) {
+    if (nextPass === current) {
       setError('新密码不能与当前密码相同');
       return;
     }
 
-    if (newPassword !== confirmPassword) {
+    if (nextPass !== confirmPassword.trim()) {
       setError('两次输入的新密码不一致');
       return;
     }
@@ -75,9 +87,12 @@ export default function ChangePasswordScreen() {
     setError('');
 
     try {
-      await changePassword(currentPassword.trim(), newPassword.trim());
+      await changePassword(current, nextPass);
 
-      const role = isValidRole(params.role) ? params.role : null;
+      const token = await SecureStore.getItemAsync('auth_token');
+      const payload = token ? decodeJwtPayload(token) : null;
+      const role = isValidRole(payload?.role) ? payload.role : null;
+
       if (role === 'student') {
         router.replace('/(student)');
       } else if (role === 'counselor') {

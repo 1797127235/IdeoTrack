@@ -54,10 +54,7 @@ export default function LoginScreen() {
       const result = await login(schoolId.trim(), password);
 
       if (result.user.isInitialPassword) {
-        router.replace({
-          pathname: '/(auth)/change-password',
-          params: { role: result.user.role },
-        });
+        router.replace('/(auth)/change-password');
         return;
       }
 
