@@ -150,6 +150,31 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     expect(res.body.data.token).toBeDefined();
   });
 
+  it('resets failed attempts and lock status on successful login', async () => {
+    // Create some failed attempts but do not trigger lock
+    for (let i = 0; i < 3; i++) {
+      await request(app).post('/api/auth/login').send({
+        schoolId: testSchoolId,
+        password: 'wrongpassword',
+      });
+    }
+
+    const res = await request(app).post('/api/auth/login').send({
+      schoolId: testSchoolId,
+      password: testPassword,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const userResult = await client.query(
+      'SELECT failed_login_attempts, locked_until FROM users WHERE school_id = $1',
+      [testSchoolId]
+    );
+    expect(userResult.rows[0].failed_login_attempts).toBe(0);
+    expect(userResult.rows[0].locked_until).toBeNull();
+  });
+
   describe('POST /api/auth/change-password', () => {
     const newPassword = 'newpass123';
 
