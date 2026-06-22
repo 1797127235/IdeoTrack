@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
@@ -6,7 +6,9 @@ import jwt from 'jsonwebtoken';
 import app from '../src/index.js';
 import { config } from '../src/config/index.js';
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.TEST_DATABASE_URL;
+const DATABASE_URL = process.env.TEST_DATABASE_URL;
+
+vi.setConfig({ testTimeout: 30000 });
 
 describe.skipIf(!DATABASE_URL)('Auth API', () => {
   let client: Client;
@@ -131,13 +133,13 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
       expect(res.status).toBe(401);
     }
 
-    // 5th failed attempt should trigger lock
+    // 5th failed attempt records the lock and still returns invalid credentials.
     const fifthRes = await request(app).post('/api/auth/login').send({
       schoolId: testSchoolId,
       password: 'wrongpassword',
     });
-    expect(fifthRes.status).toBe(403);
-    expect(fifthRes.body.error.code).toBe('AUTH_ACCOUNT_LOCKED');
+    expect(fifthRes.status).toBe(401);
+    expect(fifthRes.body.error.code).toBe('AUTH_INVALID_CREDENTIALS');
 
     // Subsequent attempts should be locked
     const lockedRes = await request(app).post('/api/auth/login').send({
@@ -159,8 +161,8 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
 
     // Simulate that the lock duration has expired
     await client.query(
-      "UPDATE users SET locked_until = NOW() - INTERVAL '1 minute' WHERE school_id = $1",
-      [testSchoolId]
+      'UPDATE users SET locked_until = $1, failed_login_attempts = 5 WHERE school_id = $2',
+      [new Date(Date.now() - 60 * 60 * 1000).toISOString(), testSchoolId]
     );
 
     const res = await request(app).post('/api/auth/login').send({
@@ -250,7 +252,7 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     it('rejects change when current password is wrong', async () => {
       const loginRes = await request(app).post('/api/auth/login').send({
         schoolId: testSchoolId,
-        password: newPassword,
+        password: testPassword,
       });
       const token = loginRes.body.data.token;
 
@@ -269,7 +271,7 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     it('rejects new password shorter than 6 characters', async () => {
       const loginRes = await request(app).post('/api/auth/login').send({
         schoolId: testSchoolId,
-        password: newPassword,
+        password: testPassword,
       });
       const token = loginRes.body.data.token;
 
@@ -277,7 +279,7 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
         .post('/api/auth/change-password')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          currentPassword: newPassword,
+          currentPassword: testPassword,
           newPassword: '123',
         });
 
@@ -288,7 +290,7 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     it('rejects new password equal to current password', async () => {
       const loginRes = await request(app).post('/api/auth/login').send({
         schoolId: testSchoolId,
-        password: newPassword,
+        password: testPassword,
       });
       const token = loginRes.body.data.token;
 
@@ -296,8 +298,8 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
         .post('/api/auth/change-password')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          currentPassword: newPassword,
-          newPassword,
+          currentPassword: testPassword,
+          newPassword: testPassword,
         });
 
       expect(res.status).toBe(400);

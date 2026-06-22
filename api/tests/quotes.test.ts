@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import app from '../src/index.js';
 import { config } from '../src/config/index.js';
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.TEST_DATABASE_URL;
+const DATABASE_URL = process.env.TEST_DATABASE_URL;
 
 function createToken(role: 'student' | 'admin', userId = '00000000-0000-0000-0000-000000000000'): string {
   return jwt.sign({ userId, role }, config.jwtSecret, { expiresIn: '1h' });

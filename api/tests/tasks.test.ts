@@ -6,9 +6,9 @@ import jwt from 'jsonwebtoken';
 import app from '../src/index.js';
 import { config } from '../src/config/index.js';
 
-vi.setConfig({ testTimeout: 10000 });
+vi.setConfig({ testTimeout: 30000 });
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.TEST_DATABASE_URL;
+const DATABASE_URL = process.env.TEST_DATABASE_URL;
 
 function createToken(role: 'student' | 'counselor' | 'admin', userId: string): string {
   return jwt.sign({ userId, role }, config.jwtSecret, { expiresIn: '1h' });

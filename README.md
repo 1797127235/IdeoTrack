@@ -32,6 +32,8 @@ npm run dev               # 启动服务，监听 localhost:3000
 
 详见 **[test/README.md](./test/README.md)** —— 用 Bruno 打开 `test/` 目录，19 个测试覆盖认证、名言、任务三大业务域。
 
+老师验收或从零拉取后跑全量测试，建议直接看 **[TESTING.md](./TESTING.md)**。里面包含后端自动化测试、小程序类型检查、Bruno GUI/CLI 的完整命令顺序。
+
 ### 3. 启动前端（按需）
 
 **管理员/辅导员 App**：
@@ -67,6 +69,7 @@ npm start                 # Expo 开发服务器
 
 ## 文档
 
+- 测试运行说明：[TESTING.md](./TESTING.md)
 - 产品需求：见 `_bmad-output/planning-artifacts/prds/`（BMad 工作流产物）
 - 架构设计：见 `_bmad-output/planning-artifacts/architecture/`
 - API 测试说明：[test/README.md](./test/README.md)

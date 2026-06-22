@@ -77,7 +77,14 @@ API server running on port 3000
 **方式 B：批量跑**
 点 Collection 根节点「IdeoTrack API」→ 顶部「Runner」→「Run All」。
 
-**重要**：必须按编号顺序跑！前面的请求（登录、创建）会自动设置环境变量，供后续请求使用。
+**重要**：批量跑之前建议先执行一次 `cd api && npm run db:seed`。这会重置测试账号密码、清除锁定状态，并补齐示例数据。collection 内已经为请求设置 `meta.seq`，Bruno 会按链式依赖顺序执行。
+
+**方式 C：命令行跑 Bruno**
+
+```bash
+cd test
+npx --yes @usebruno/cli run . -r --env-file environments/本地开发.bru
+```
 
 ### 预期结果
 
@@ -95,6 +102,24 @@ API server running on port 3000
 | 401 未认证 | 没按顺序跑 → 先跑 `auth/1-登录-学生` 和 `auth/2-登录-管理员` |
 | 数据库相关错误 | 没初始化 → 回第 2 步跑 migrate + seed |
 | 锁定错误（403 AUTH_ACCOUNT_LOCKED） | 账号被锁 → 重跑 `npm run db:seed` 解锁 |
+
+## 验收推荐流程
+
+如果是从零拉取项目，建议按仓库根目录的 [TESTING.md](../TESTING.md) 执行。最短流程是：
+
+```bash
+cd api
+npm install
+npm run db:migrate
+npm run db:seed
+npm run build
+npm test
+npm run dev
+```
+
+后端启动后，再用 Bruno 打开 `test/`，选择 `本地开发` 环境，Run All。
+
+注意：`npm test` 中的数据库集成测试只读取 `TEST_DATABASE_URL`。如果没有配置测试库，相关用例会跳过；Bruno 测试才是老师本地验收 API 行为的推荐方式。
 
 ## 测试集结构
 
