@@ -1,0 +1,7 @@
+<view class="page-placeholder">
+  <view class="card">
+    <view class="title">打卡日历</view>
+    <view class="desc">个人打卡日历与连续天数将在这里展示</view>
+    <view class="tag">待 Epic 6</view>
+  </view>
+</view>

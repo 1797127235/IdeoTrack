@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/auth/login/index",
+    "pages/auth/bind/index",
+    "pages/home/index",
+    "pages/leaderboard/index",
+    "pages/calendar/index",
+    "pages/profile/index",
+    "pages/task/detail/index",
+    "pages/checkin/index",
+    "pages/notifications/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#0891B2",
+    "navigationBarTitleText": "思政打卡",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#ECFEFF"
+  },
+  "tabBar": {
+    "color": "#64748B",
+    "selectedColor": "#0891B2",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/leaderboard/index",
+        "text": "排行"
+      },
+      {
+        "pagePath": "pages/calendar/index",
+        "text": "日历"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于完成思政学习任务的定位签到"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation"],
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

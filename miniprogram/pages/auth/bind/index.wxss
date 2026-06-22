@@ -1,0 +1,79 @@
+.bind-page {
+  padding: var(--space-5) var(--space-4);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.header {
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.form {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.field {
+  margin-bottom: var(--space-4);
+}
+
+.label {
+  display: block;
+  font-size: 28rpx;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 var(--space-3);
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 30rpx;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  box-sizing: border-box;
+}
+
+.placeholder {
+  color: var(--color-text-disabled);
+}
+
+.error-msg {
+  color: var(--color-error);
+  font-size: 26rpx;
+  margin-bottom: var(--space-3);
+}
+
+.btn-submit {
+  width: 100%;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-size: 32rpx;
+  font-weight: 500;
+  margin-top: var(--space-3);
+  border: none;
+}
+
+.btn-submit[disabled] {
+  background-color: var(--color-primary);
+  opacity: 0.6;
+  color: #ffffff;
+}

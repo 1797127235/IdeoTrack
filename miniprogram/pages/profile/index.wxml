@@ -1,0 +1,8 @@
+<view class="page-placeholder">
+  <view class="card">
+    <view class="title">我的</view>
+    <view class="desc">积分 / 等级 / 勋章 / 个人信息将在这里展示</view>
+    <view class="tag">待 Epic 6</view>
+  </view>
+  <button class="btn-logout" bindtap="handleLogout">退出登录</button>
+</view>

@@ -1,0 +1,7 @@
+<view class="page-placeholder">
+  <view class="card">
+    <view class="title">排行榜</view>
+    <view class="desc">班级打卡率排名将在这里展示</view>
+    <view class="tag">待 Epic 7</view>
+  </view>
+</view>

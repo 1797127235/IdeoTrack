@@ -1,0 +1,42 @@
+<view class="bind-page">
+  <view class="header">
+    <view class="title">绑定学号</view>
+    <view class="subtitle">首次使用需验证你的学号身份，绑定后可免密登录</view>
+  </view>
+
+  <view class="form">
+    <view class="field">
+      <text class="label">学号</text>
+      <input
+        class="input"
+        placeholder="请输入学号"
+        placeholder-class="placeholder"
+        value="{{schoolId}}"
+        bindinput="onSchoolIdInput"
+      />
+    </view>
+
+    <view class="field">
+      <text class="label">密码</text>
+      <input
+        class="input"
+        password
+        placeholder="请输入密码"
+        placeholder-class="placeholder"
+        value="{{password}}"
+        bindinput="onPasswordInput"
+      />
+    </view>
+
+    <view wx:if="{{errorMsg}}" class="error-msg">{{errorMsg}}</view>
+
+    <button
+      class="btn-submit"
+      bindtap="handleSubmit"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+    >
+      {{loading ? '绑定中...' : '完成绑定'}}
+    </button>
+  </view>
+</view>

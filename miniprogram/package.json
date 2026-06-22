@@ -1,0 +1,13 @@
+{
+  "name": "ideotrack-miniprogram",
+  "version": "1.0.0",
+  "description": "IdeoTrack 学生端微信小程序（仅学生端）",
+  "private": true,
+  "scripts": {
+    "tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "^3.12.3",
+    "typescript": "^5.4.0"
+  }
+}

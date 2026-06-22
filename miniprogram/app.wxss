@@ -1,0 +1,101 @@
+/* 全局样式 — 主题 token 来自 DESIGN.md（清新教育风：青色 + 绿色） */
+page {
+  /* Colors */
+  --color-primary: #0891b2;
+  --color-primary-light: #22d3ee;
+  --color-primary-dark: #164e63;
+  --color-cta: #22c55e;
+  --color-cta-hover: #16a34a;
+  --color-background: #ecfeff;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f0fdff;
+  --color-text: #164e63;
+  --color-text-secondary: #64748b;
+  --color-text-disabled: #94a3b8;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-border: #e2e8f0;
+  --color-divider: #f1f5f9;
+
+  /* Spacing */
+  --space-1: 8rpx;
+  --space-2: 16rpx;
+  --space-3: 24rpx;
+  --space-4: 32rpx;
+  --space-5: 40rpx;
+  --space-6: 48rpx;
+  --space-7: 64rpx;
+  --space-8: 80rpx;
+
+  /* Border radius */
+  --radius-sm: 16rpx;
+  --radius-md: 32rpx;
+  --radius-lg: 48rpx;
+
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: -apple-system, 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+/* 通用容器 */
+.container {
+  padding: var(--space-4);
+}
+
+/* 卡片 */
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+/* 主按钮 */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.btn-primary[disabled] {
+  opacity: 0.5;
+}
+
+/* 次要按钮 */
+.btn-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  font-size: 30rpx;
+  text-align: center;
+}
+
+/* 文本辅助类 */
+.text-secondary {
+  color: var(--color-text-secondary);
+  font-size: 24rpx;
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+/* 空状态 */
+.empty-state {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 26rpx;
+}

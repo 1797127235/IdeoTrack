@@ -1,0 +1,25 @@
+.page-placeholder {
+  padding: var(--space-4);
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-2);
+}
+
+.desc {
+  font-size: 28rpx;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.tag {
+  display: inline-block;
+  font-size: 22rpx;
+  color: var(--color-primary);
+  background-color: rgba(8, 145, 178, 0.1);
+  padding: 6rpx 16rpx;
+  border-radius: var(--radius-full, 999rpx);
+}

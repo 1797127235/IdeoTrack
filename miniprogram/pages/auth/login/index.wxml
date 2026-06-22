@@ -1,0 +1,28 @@
+<view class="login-page">
+  <view class="logo-area">
+    <view class="logo-icon">📚</view>
+    <view class="app-name">思政打卡</view>
+    <view class="app-slogan">每日积累，轻松成长</view>
+  </view>
+
+  <view class="login-card">
+    <button
+      class="btn-wechat"
+      bindtap="handleWechatLogin"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+    >
+      {{loading ? '登录中...' : '微信一键登录'}}
+    </button>
+
+    <view class="hint">
+      首次登录需绑定学号验证身份
+    </view>
+
+    <view wx:if="{{errorMsg}}" class="error-msg">{{errorMsg}}</view>
+  </view>
+
+  <view class="footer">
+    <text>登录即表示同意《用户协议》和《隐私政策》</text>
+  </view>
+</view>
