@@ -30,8 +30,8 @@ assert {
 
 tests {
   // 保存新建名言的 id，供后续更新/删除测试用
-  const data = res.body.data;
+  const data = res.getBody().data;
   if (data && data.id) {
-    setVar('quoteId', data.id);
+    bru.setVar('quoteId', data.id);
   }
 }

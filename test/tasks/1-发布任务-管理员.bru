@@ -30,8 +30,8 @@ assert {
 }
 
 tests {
-  const data = res.body.data;
+  const data = res.getBody().data;
   if (data && data.id) {
-    setVar('taskId', data.id);
+    bru.setVar('taskId', data.id);
   }
 }
