@@ -22,3 +22,23 @@ export interface QuoteResponse {
   author: string | null;
   source: string | null;
 }
+
+export interface CreateQuoteInput {
+  content: string;
+  author?: string | null;
+  source?: string | null;
+  is_enabled?: boolean;
+  display_order?: number;
+}
+
+export interface UpdateQuoteInput {
+  content?: string;
+  author?: string | null;
+  source?: string | null;
+  is_enabled?: boolean;
+  display_order?: number;
+}
+
+export interface QuoteFilters {
+  is_enabled?: boolean;
+}
