@@ -4,6 +4,8 @@ import { post } from './api';
 export interface WechatLoginResponse {
   /** 是否需要绑定学号 */
   needBind: boolean;
+  /** 未绑定时返回 openid，前端透传给绑定页 */
+  openid?: string;
   /** 已绑定时返回的 JWT */
   token?: string;
   /** 已绑定时的用户信息 */

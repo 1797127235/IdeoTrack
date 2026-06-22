@@ -38,4 +38,7 @@ export const config = {
   supabaseServiceKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  // 微信小程序（AD-17 学生端登录）。开发期可不配，配了才支持微信登录。
+  wechatAppId: process.env.WECHAT_APP_ID || '',
+  wechatAppSecret: process.env.WECHAT_APP_SECRET || '',
 };

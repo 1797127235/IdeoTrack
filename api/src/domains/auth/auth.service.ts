@@ -3,7 +3,17 @@ import jwt from 'jsonwebtoken';
 import { supabase } from '../../lib/supabase.js';
 import { config } from '../../config/index.js';
 import { AppError } from '../../middleware/error-handler.js';
-import type { LoginInput, LoginResponse, User, UserRole, ChangePasswordInput } from './auth.types.js';
+import type {
+  LoginInput,
+  LoginResponse,
+  User,
+  UserRole,
+  ChangePasswordInput,
+  WechatLoginInput,
+  WechatLoginResponse,
+  WechatBindInput,
+  WechatCode2SessionResponse,
+} from './auth.types.js';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -157,4 +167,149 @@ export async function changePassword(
   if (updateError || !updatedUsers || updatedUsers.length === 0) {
     throw new AppError('AUTH_SERVICE_ERROR', '密码更新失败', 500);
   }
+}
+
+// ===== 微信登录（Story 12.3，AD-17）=====
+
+/** 抽出 JWT 签发逻辑，供账号密码登录和微信登录复用 */
+function signToken(user: { id: string; role: UserRole }): string {
+  return jwt.sign({ userId: user.id, role: user.role }, config.jwtSecret, {
+    expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
+    noTimestamp: true,
+  });
+}
+
+/** 调用微信 code2session 接口，用 code 换 openid */
+async function code2session(code: string): Promise<string> {
+  if (!config.wechatAppId || !config.wechatAppSecret) {
+    throw new AppError('AUTH_WECHAT_NOT_CONFIGURED', '微信登录未配置，请联系管理员', 500);
+  }
+
+  const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(
+    config.wechatAppId
+  )}&secret=${encodeURIComponent(config.wechatAppSecret)}&js_code=${encodeURIComponent(
+    code
+  )}&grant_type=authorization_code`;
+
+  let resp: Response;
+  try {
+    resp = await fetch(url);
+  } catch {
+    throw new AppError('AUTH_WECHAT_SERVICE_ERROR', '调用微信服务失败', 502);
+  }
+
+  if (!resp.ok) {
+    throw new AppError('AUTH_WECHAT_SERVICE_ERROR', '微信服务不可用', 502);
+  }
+
+  const data = (await resp.json()) as WechatCode2SessionResponse;
+  if (data.errcode || !data.openid) {
+    throw new AppError('AUTH_WECHAT_CODE_INVALID', `微信登录凭证无效: ${data.errmsg || '未知错误'}`, 401);
+  }
+  return data.openid;
+}
+
+/** 微信登录：code → openid → 查绑定 → 签发 JWT 或返回 needBind */
+export async function wechatLogin(input: WechatLoginInput): Promise<WechatLoginResponse> {
+  if (!input.code || !input.code.trim()) {
+    throw new AppError('VALIDATION_ERROR', '微信登录凭证不能为空', 400);
+  }
+
+  const openid = await code2session(input.code.trim());
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, role, is_initial_password, wechat_openid')
+    .eq('wechat_openid', openid)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError('AUTH_SERVICE_ERROR', '登录服务异常，请稍后重试', 500);
+  }
+
+  // 已绑定 → 直接签发 JWT
+  if (user && user.wechat_openid === openid) {
+    const token = signToken({ id: user.id, role: user.role as UserRole });
+    return {
+      needBind: false,
+      token,
+      user: {
+        id: user.id,
+        role: user.role as UserRole,
+        isInitialPassword: user.is_initial_password,
+      },
+    };
+  }
+
+  // 未绑定 → 返回 openid，前端引导走绑定流程
+  return { needBind: true, openid };
+}
+
+/** 绑定学号：验证学号密码 → 把 openid 写入 users（旧绑定自动解绑） */
+export async function bindWechat(input: WechatBindInput): Promise<LoginResponse> {
+  const openid = input.openid.trim();
+  const schoolId = input.schoolId.trim();
+
+  if (!openid || !schoolId || !input.password) {
+    throw new AppError('VALIDATION_ERROR', 'openid、学号、密码均不能为空', 400);
+  }
+
+  // 查用户（按学号）
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('school_id', schoolId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      throw new AppError('AUTH_INVALID_CREDENTIALS', '学号或密码错误', 401);
+    }
+    throw new AppError('AUTH_SERVICE_ERROR', '登录服务异常，请稍后重试', 500);
+  }
+
+  if (!user || typeof user.password_hash !== 'string' || !user.password_hash) {
+    throw new AppError('AUTH_INVALID_CREDENTIALS', '学号或密码错误', 401);
+  }
+
+  // 验证密码（不走账号锁定逻辑，绑定是首次场景，简化处理）
+  const passwordValid = await bcrypt.compare(input.password, user.password_hash);
+  if (!passwordValid) {
+    throw new AppError('AUTH_INVALID_CREDENTIALS', '学号或密码错误', 401);
+  }
+
+  // 仅学生角色可绑定（辅导员/管理员走 App，AD-17）
+  if (user.role !== 'student') {
+    throw new AppError('AUTH_WECHAT_ROLE_NOT_ALLOWED', '仅学生账号支持微信登录', 403);
+  }
+
+  // 先解绑占用该 openid 的旧账号（同一 openid 只能绑一个用户）
+  const { error: unbindError } = await supabase
+    .from('users')
+    .update({ wechat_openid: null })
+    .eq('wechat_openid', openid);
+
+  if (unbindError) {
+    throw new AppError('AUTH_SERVICE_ERROR', '绑定服务异常，请稍后重试', 500);
+  }
+
+  // 绑定到当前用户
+  const { error: bindError } = await supabase
+    .from('users')
+    .update({ wechat_openid: openid })
+    .eq('id', user.id);
+
+  if (bindError) {
+    throw new AppError('AUTH_SERVICE_ERROR', '绑定失败，请稍后重试', 500);
+  }
+
+  const token = signToken({ id: user.id, role: user.role as UserRole });
+  return {
+    token,
+    user: {
+      id: user.id,
+      role: user.role as UserRole,
+      isInitialPassword: user.is_initial_password,
+    },
+  };
 }

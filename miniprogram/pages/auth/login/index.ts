@@ -16,11 +16,10 @@ Page({
       const res = await wechatLogin();
 
       if (res.needBind) {
-        // 需要绑定学号 → 跳转绑定页
-        // openid 由后端在 login 响应里返回，前端透传给绑定页
-        // （后端 Story 12.3 实现时会在 needBind 时附带 openid）
+        // 需要绑定学号 → 跳转绑定页，透传后端返回的 openid
+        const openid = res.openid || '';
         wx.navigateTo({
-          url: `/pages/auth/bind/index?openid=${encodeURIComponent(res.token || '')}`,
+          url: `/pages/auth/bind/index?openid=${encodeURIComponent(openid)}`,
         });
         this.setData({ loading: false });
         return;

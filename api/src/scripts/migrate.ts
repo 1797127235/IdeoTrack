@@ -67,6 +67,11 @@ CREATE TRIGGER update_users_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- 微信 openid 字段（学生微信登录绑定，AD-17）
+ALTER TABLE users ADD COLUMN IF NOT EXISTS wechat_openid TEXT;
+DROP INDEX IF EXISTS idx_users_wechat_openid;
+CREATE UNIQUE INDEX idx_users_wechat_openid ON users(wechat_openid) WHERE wechat_openid IS NOT NULL;
+
 -- 名言库
 CREATE TABLE IF NOT EXISTS quotes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

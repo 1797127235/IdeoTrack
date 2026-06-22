@@ -30,3 +30,38 @@ export interface LoginResponse {
     isInitialPassword: boolean;
   };
 }
+
+// ===== 微信登录（Story 12.3，AD-17）=====
+
+export interface WechatLoginInput {
+  /** wx.login 返回的临时 code */
+  code: string;
+}
+
+export interface WechatLoginResponse {
+  /** true = openid 未绑定，需走绑定流程 */
+  needBind: boolean;
+  /** 未绑定时返回 openid，前端透传给绑定接口 */
+  openid?: string;
+  /** 已绑定时返回的 JWT */
+  token?: string;
+  user?: LoginResponse['user'];
+}
+
+export interface WechatBindInput {
+  /** 微信 openid（由登录接口透传） */
+  openid: string;
+  /** 学号 */
+  schoolId: string;
+  /** 密码 */
+  password: string;
+}
+
+/** 微信 code2session 接口返回 */
+export interface WechatCode2SessionResponse {
+  openid?: string;
+  session_key?: string;
+  unionid?: string;
+  errcode?: number;
+  errmsg?: string;
+}
