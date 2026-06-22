@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=375, initial-scale=1.0">
+  <title>辅导员看板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>body{font-family:'Noto Sans SC',sans-serif;background:#f3f4f6;}.phone{width:375px;height:812px;margin:20px auto;background:#ECFEFF;border-radius:40px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}</style>
+</head>
+<body>
+  <div class="phone flex flex-col">
+    <div class="bg-gradient-to-r from-cyan-600 to-cyan-500 pt-12 pb-6 px-5 rounded-b-[32px] shadow-lg">
+      <p class="text-cyan-100 text-sm">辅导员看板</p>
+      <h1 class="text-xl font-bold text-white">王老师，下午好</h1>
+    </div>
+    <div class="flex-1 px-5 py-5 overflow-y-auto">
+      <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        <p class="text-sm text-gray-500 mb-3">今日总体打卡率</p>
+        <div class="flex items-end gap-2">
+          <span class="text-5xl font-bold text-cyan-700">91</span>
+          <span class="text-2xl text-cyan-700 mb-2">%</span>
+          <span class="text-sm text-green-500 mb-2 ml-2">↑ 3%</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">120 人中已打卡 109 人</p>
+      </div>
+      <h2 class="text-base font-bold text-gray-800 mb-3">所带班级</h2>
+      <div class="space-y-3 mb-5">
+        <div class="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div><p class="font-bold text-gray-800">计算机 2301 班</p><p class="text-xs text-gray-500">40 人 · 已打卡 38 人</p></div>
+          <div class="text-right"><p class="text-xl font-bold text-green-500">95%</p><p class="text-xs text-gray-400">2 人未打卡</p></div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div><p class="font-bold text-gray-800">计算机 2302 班</p><p class="text-xs text-gray-500">40 人 · 已打卡 34 人</p></div>
+          <div class="text-right"><p class="text-xl font-bold text-yellow-500">85%</p><p class="text-xs text-gray-400">6 人未打卡</p></div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div><p class="font-bold text-gray-800">软件工程 2301 班</p><p class="text-xs text-gray-500">40 人 · 已打卡 37 人</p></div>
+          <div class="text-right"><p class="text-xl font-bold text-green-500">92%</p><p class="text-xs text-gray-400">3 人未打卡</p></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-gray-800">重点关注</h3>
+          <span class="text-xs text-red-500">连续 3 天未打卡</span>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between p-3 bg-red-50 rounded-xl">
+            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-red-200 flex items-center justify-center text-xs">张</div><span class="text-sm text-gray-800">张三</span></div>
+            <span class="text-xs text-red-600">计算机 2302</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-red-50 rounded-xl">
+            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-red-200 flex items-center justify-center text-xs">李</div><span class="text-sm text-gray-800">李四</span></div>
+            <span class="text-xs text-red-600">计算机 2302</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white px-6 py-4 flex justify-between items-center text-xs border-t border-gray-100">
+      <div class="flex flex-col items-center text-cyan-600"><span class="text-xl mb-1">📊</span><span>看板</span></div>
+      <div class="flex flex-col items-center text-gray-400"><span class="text-xl mb-1">📝</span><span>复核</span></div>
+      <div class="flex flex-col items-center text-gray-400"><span class="text-xl mb-1">👤</span><span>我的</span></div>
+    </div>
+  </div>
+</body>
+</html>

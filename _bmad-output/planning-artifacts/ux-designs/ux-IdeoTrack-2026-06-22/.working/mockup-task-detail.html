@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=375, initial-scale=1.0">
+  <title>任务详情</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>body{font-family:'Noto Sans SC',sans-serif;background:#f3f4f6;}.phone{width:375px;height:812px;margin:20px auto;background:#ECFEFF;border-radius:40px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}</style>
+</head>
+<body>
+  <div class="phone flex flex-col">
+    <div class="bg-white px-5 pt-12 pb-4 flex items-center border-b border-gray-100">
+      <button class="text-cyan-600 text-sm mr-3">← 返回</button>
+      <h1 class="text-lg font-bold text-gray-800">任务详情</h1>
+    </div>
+    <div class="flex-1 px-5 py-5 overflow-y-auto">
+      <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        <div class="flex items-center gap-2 mb-3"><span class="px-2 py-1 bg-cyan-100 text-cyan-700 text-xs rounded-full">今日任务</span><span class="text-xs text-gray-400">截止 22:00</span></div>
+        <h2 class="text-xl font-bold text-gray-800 mb-3">学习《新时代青年使命担当》</h2>
+        <div class="text-sm text-gray-600 leading-relaxed space-y-3">
+          <p>青年是国家的未来、民族的希望。新时代中国青年要树立远大理想，热爱伟大祖国，担当时代责任，勇于砥砺奋斗。</p>
+          <p>请认真阅读以上内容，并结合自身实际，思考以下问题：</p>
+          <p class="text-cyan-700 font-medium">作为新时代大学生，你如何理解个人理想与国家发展的关系？</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        <h3 class="text-base font-bold text-gray-800 mb-3">步骤 1：定位签到</h3>
+        <button class="w-full bg-cyan-50 border-2 border-dashed border-cyan-300 text-cyan-700 py-4 rounded-xl flex flex-col items-center gap-2">
+          <span class="text-2xl">📍</span>
+          <span class="font-medium">点击签到</span>
+          <span class="text-xs text-cyan-500">将记录你的当前位置</span>
+        </button>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        <h3 class="text-base font-bold text-gray-800 mb-3">步骤 2：撰写心得</h3>
+        <textarea class="w-full h-32 p-4 bg-gray-50 rounded-xl text-sm text-gray-700 resize-none border border-gray-200 focus:border-cyan-500 focus:outline-none" placeholder="写下你的学习心得（最少 10 字）"></textarea>
+        <div class="text-right text-xs text-gray-400 mt-2">0 / 500 字</div>
+      </div>
+    </div>
+    <div class="bg-white px-5 py-4 border-t border-gray-100">
+      <button class="w-full bg-gradient-to-r from-green-500 to-green-400 text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-200 active:scale-[0.98] transition-transform">提交打卡</button>
+    </div>
+  </div>
+</body>
+</html>

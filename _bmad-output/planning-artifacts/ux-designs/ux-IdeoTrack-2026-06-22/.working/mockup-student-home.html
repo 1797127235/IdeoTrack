@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=375, initial-scale=1.0">
+  <title>学生首页</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>body{font-family:'Noto Sans SC',sans-serif;background:#f3f4f6;}.phone{width:375px;height:812px;margin:20px auto;background:#ECFEFF;border-radius:40px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}</style>
+</head>
+<body>
+  <div class="phone flex flex-col">
+    <div class="bg-gradient-to-r from-cyan-600 to-cyan-500 pt-12 pb-6 px-5 rounded-b-[32px] shadow-lg">
+      <div class="flex justify-between items-center text-white mb-4">
+        <div><p class="text-cyan-100 text-sm">早安，小林</p><h1 class="text-xl font-bold">今日思政打卡</h1></div>
+        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-sm">👤</div>
+      </div>
+      <div class="bg-white/15 backdrop-blur rounded-2xl p-4 text-white">
+        <p class="text-xs text-cyan-100 mb-1">每日名言</p>
+        <p class="text-sm font-medium leading-relaxed">"青年一代有理想、有本领、有担当，国家就有前途，民族就有希望。"</p>
+      </div>
+    </div>
+    <div class="flex-1 px-5 py-5 overflow-y-auto">
+      <div class="bg-white rounded-2xl p-4 shadow-sm mb-4 flex items-center justify-between">
+        <div><p class="text-gray-500 text-xs">连续打卡</p><p class="text-2xl font-bold text-cyan-700">5 <span class="text-sm font-normal text-gray-500">天</span></p></div>
+        <div class="flex gap-1">
+          <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs">一</div>
+          <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs">二</div>
+          <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs">三</div>
+          <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs">四</div>
+          <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs">五</div>
+          <div class="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">六</div>
+          <div class="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">日</div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        <div class="flex items-center gap-2 mb-3"><span class="w-2 h-2 rounded-full bg-cyan-500"></span><p class="text-xs text-cyan-600 font-medium">今日任务</p></div>
+        <h2 class="text-lg font-bold text-gray-800 mb-2">学习《新时代青年使命担当》</h2>
+        <p class="text-sm text-gray-600 leading-relaxed mb-4">阅读文章并完成思考：作为新时代大学生，你如何理解个人理想与国家发展的关系？</p>
+        <div class="flex items-center justify-between text-xs text-gray-500"><span>截止时间：22:00</span><span>预计 3 分钟</span></div>
+      </div>
+      <button class="w-full bg-gradient-to-r from-green-500 to-green-400 text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-200 active:scale-[0.98] transition-transform">立即打卡 +10 积分</button>
+      <div class="mt-4 flex justify-center"><div class="bg-white rounded-full px-5 py-2 shadow-sm flex items-center gap-2"><span class="text-yellow-500">⭐</span><span class="text-sm font-medium text-gray-700">当前等级：白银 · 256 积分</span></div></div>
+    </div>
+    <div class="bg-white px-6 py-4 flex justify-between items-center text-xs border-t border-gray-100">
+      <div class="flex flex-col items-center text-cyan-600"><span class="text-xl mb-1">🏠</span><span>首页</span></div>
+      <div class="flex flex-col items-center text-gray-400"><span class="text-xl mb-1">📅</span><span>日历</span></div>
+      <div class="flex flex-col items-center text-gray-400"><span class="text-xl mb-1">🏆</span><span>排行</span></div>
+      <div class="flex flex-col items-center text-gray-400"><span class="text-xl mb-1">👤</span><span>我的</span></div>
+    </div>
+  </div>
+</body>
+</html>
