@@ -9,7 +9,27 @@ const DATABASE_URL = process.env.DATABASE_URL || process.env.TEST_DATABASE_URL;
 describe.skipIf(!DATABASE_URL)('Auth API', () => {
   let client: Client;
   const testSchoolId = '2024001';
+  const counselorSchoolId = 'T001';
+  const adminSchoolId = 'A001';
   const testPassword = '240001'; // 学号后 6 位
+
+  async function seedUser(schoolId: string, role: string, classId: string | null) {
+    const passwordHash = await bcrypt.hash(testPassword, 10);
+    await client.query(
+      `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id)
+       VALUES ($1, $2, $3, true, $4)`,
+      [schoolId, passwordHash, role, classId]
+    );
+  }
+
+  async function loginUser(schoolId: string): Promise<string> {
+    const res = await request(app).post('/api/auth/login').send({
+      schoolId,
+      password: testPassword,
+    });
+    expect(res.status).toBe(200);
+    return res.body.data.token;
+  }
 
   beforeAll(async () => {
     if (!DATABASE_URL) return;
@@ -23,7 +43,7 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     await client.query('DELETE FROM classes');
     await client.query('DELETE FROM colleges');
 
-    // Seed a test user
+    // Seed test college and class
     const college = await client.query(
       "INSERT INTO colleges (name) VALUES ('测试学院') RETURNING id"
     );
@@ -35,27 +55,26 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
     );
     const classId = classResult.rows[0].id;
 
-    const passwordHash = await bcrypt.hash(testPassword, 10);
-
-    await client.query(
-      `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id)
-       VALUES ($1, $2, 'student', true, $3)`,
-      [testSchoolId, passwordHash, classId]
-    );
+    // Seed test users for each role
+    await seedUser(testSchoolId, 'student', classId);
+    await seedUser(counselorSchoolId, 'counselor', null);
+    await seedUser(adminSchoolId, 'admin', null);
   });
 
   afterEach(async () => {
     if (!client) return;
     const passwordHash = await bcrypt.hash(testPassword, 10);
-    await client.query(
-      `UPDATE users
-       SET password_hash = $1,
-           is_initial_password = true,
-           failed_login_attempts = 0,
-           locked_until = NULL
-       WHERE school_id = $2`,
-      [passwordHash, testSchoolId]
-    );
+    for (const schoolId of [testSchoolId, counselorSchoolId, adminSchoolId]) {
+      await client.query(
+        `UPDATE users
+         SET password_hash = $1,
+             is_initial_password = true,
+             failed_login_attempts = 0,
+             locked_until = NULL
+         WHERE school_id = $2`,
+        [passwordHash, schoolId]
+      );
+    }
   });
 
   afterAll(async () => {
@@ -279,6 +298,48 @@ describe.skipIf(!DATABASE_URL)('Auth API', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('AUTH_SAME_PASSWORD');
+    });
+  });
+
+  describe('GET /api/auth/me and RBAC', () => {
+    it('rejects unauthenticated requests', async () => {
+      const res = await request(app).get('/api/auth/me');
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('AUTH_UNAUTHORIZED');
+    });
+
+    it('returns user info for authenticated requests', async () => {
+      const token = await loginUser(testSchoolId);
+      const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.userId).toBeDefined();
+      expect(res.body.data.role).toBe('student');
+    });
+
+    it('allows admin-only resource for admin token', async () => {
+      const token = await loginUser(adminSchoolId);
+      const res = await request(app).get('/api/auth/admin-only').set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('denies admin-only resource for student token', async () => {
+      const token = await loginUser(testSchoolId);
+      const res = await request(app).get('/api/auth/admin-only').set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('ACCESS_DENIED');
+    });
+
+    it('denies admin-only resource for counselor token', async () => {
+      const token = await loginUser(counselorSchoolId);
+      const res = await request(app).get('/api/auth/admin-only').set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('ACCESS_DENIED');
     });
   });
 });

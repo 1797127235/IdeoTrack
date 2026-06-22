@@ -60,3 +60,25 @@ export async function changePasswordController(
     next(err);
   }
 }
+
+export async function meController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        userId: req.user.userId,
+        role: req.user.role,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
