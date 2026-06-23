@@ -1,8 +1,9 @@
 node_modules
 dist
+logs
+*.log
 .env
 .env.*
-*.log
 .vscode
 .idea
 coverage
