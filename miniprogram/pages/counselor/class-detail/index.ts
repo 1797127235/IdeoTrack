@@ -1,7 +1,7 @@
 import {
   getClassStudentList,
-  ClassStudentItem,
-  StudentFilterStatus,
+  type ClassStudentItem,
+  type StudentFilterStatus,
 } from '../../../services/counselorApi';
 import { formatDateTime } from '../../../utils/format';
 

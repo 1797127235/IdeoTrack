@@ -1,7 +1,7 @@
 import {
   getCounselorDashboard,
-  ClassDashboardItem,
-  DashboardSummary,
+  type ClassDashboardItem,
+  type DashboardSummary,
 } from '../../../services/counselorApi';
 
 import { updateTabBarSelected } from '../../../utils/tabBar';
