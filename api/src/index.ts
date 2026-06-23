@@ -6,7 +6,9 @@ import quoteRoutes from './domains/quotes/quote.routes.js';
 import taskRoutes from './domains/tasks/task.routes.js';
 import checkinRoutes from './domains/checkins/checkins.routes.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { requestLogger } from './middleware/request-logger.js';
 import { config } from './config/index.js';
+import { logStartup } from './lib/logger.js';
 
 const app = express();
 
@@ -18,6 +20,9 @@ app.use(
   })
 );
 app.use(express.json({ limit: '10kb' }));
+
+// 请求日志：记录每个请求的方法/路径/状态码/耗时/用户
+app.use(requestLogger);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/quotes', quoteRoutes);
@@ -39,7 +44,7 @@ app.use(errorHandler);
 
 if (config.nodeEnv !== 'test') {
   app.listen(config.port, () => {
-    console.log(`API server running on port ${config.port}`);
+    logStartup(config.port);
   });
 }
 

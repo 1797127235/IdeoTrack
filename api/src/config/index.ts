@@ -33,9 +33,13 @@ if (jwtSecret.length < 32) {
   throw new Error('JWT_SECRET must be at least 32 characters long');
 }
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isDev = nodeEnv !== 'production';
+
 export const config = {
   port: parsePort(process.env.PORT),
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
+  isDev,
   clientUrl: requireEnv('CLIENT_URL'),
   databaseUrl: requireEnv('DATABASE_URL'),
   jwtSecret,
@@ -43,4 +47,9 @@ export const config = {
   // 微信小程序（AD-17 学生端登录）。开发期可不配，配了才支持微信登录。
   wechatAppId: process.env.WECHAT_APP_ID || '',
   wechatAppSecret: process.env.WECHAT_APP_SECRET || '',
+  // 日志：级别 + 文件目录
+  //   LOG_LEVEL 不设时，dev=debug（最详细），prod=info
+  //   LOG_FILE_DIR 不设时，dev 写 ./logs，prod 仅 stdout（docker logs）
+  logLevel: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+  logFileDir: process.env.LOG_FILE_DIR || '',
 };
