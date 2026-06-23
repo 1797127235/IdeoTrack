@@ -5,6 +5,7 @@ import type {
   ClassStudentItem,
   ClassStudentList,
   CounselorDashboard,
+  DashboardSummary,
   StudentFilterStatus,
 } from './counselor.types.js';
 
