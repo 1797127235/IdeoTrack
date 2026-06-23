@@ -72,6 +72,7 @@ CREATE TRIGGER update_users_updated_at
 
 -- 微信 openid 字段（学生微信登录绑定，AD-17）
 ALTER TABLE users ADD COLUMN IF NOT EXISTS wechat_openid TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
 DROP INDEX IF EXISTS idx_users_wechat_openid;
 CREATE UNIQUE INDEX idx_users_wechat_openid ON users(wechat_openid) WHERE wechat_openid IS NOT NULL;
 

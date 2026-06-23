@@ -49,9 +49,9 @@ async function seed() {
 
     // 创建测试账号，初始密码为学号/工号后 6 位
     const testUsers = [
-      { schoolId: '2024001', role: 'student', classId },
-      { schoolId: 'T001', role: 'counselor', classId: null },
-      { schoolId: 'A001', role: 'admin', classId: null },
+      { schoolId: '2024001', role: 'student', classId, name: '学生2024001' },
+      { schoolId: 'T001', role: 'counselor', classId: null, name: '辅导员T001' },
+      { schoolId: 'A001', role: 'admin', classId: null, name: '管理员A001' },
     ];
 
     for (const user of testUsers) {
@@ -70,16 +70,17 @@ async function seed() {
                role = $2,
                is_initial_password = true,
                class_id = $3,
+               name = $4,
                failed_login_attempts = 0,
                locked_until = NULL
-           WHERE id = $4`,
-          [passwordHash, user.role, user.classId, existingUser.rows[0].id]
+           WHERE id = $5`,
+          [passwordHash, user.role, user.classId, user.name, existingUser.rows[0].id]
         );
       } else {
         await client.query(
-          `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id)
-           VALUES ($1, $2, $3, true, $4)`,
-          [user.schoolId, passwordHash, user.role, user.classId]
+          `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id, name)
+           VALUES ($1, $2, $3, true, $4, $5)`,
+          [user.schoolId, passwordHash, user.role, user.classId, user.name]
         );
       }
 

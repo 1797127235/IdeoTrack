@@ -128,13 +128,25 @@ export async function getClassStudentList(
   const rows = await query<ClassStudentItem>(
     `SELECT
        s.id AS student_id,
-       s.school_id AS student_name,
+       COALESCE(NULLIF(s.name, ''), s.school_id) AS student_name,
        s.school_id AS student_school_id,
        CASE WHEN ci.id IS NOT NULL THEN true ELSE false END AS checked_in,
        ci.checked_in_at::text AS checked_in_at,
        ci.status AS status,
        ci.reflection_content AS reflection_content,
-       0 AS consecutive_absent_days
+       COALESCE(
+         GREATEST(
+           ($2::date - (
+             SELECT MAX(DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai'))
+             FROM check_ins
+             WHERE user_id = s.id
+               AND status = 'approved'
+               AND DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai') <= $2::date
+           ))::int,
+           0
+         ),
+         0
+       ) AS consecutive_absent_days
      FROM users s
      LEFT JOIN check_ins ci
        ON ci.user_id = s.id

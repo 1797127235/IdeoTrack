@@ -1,7 +1,12 @@
 <view class="detail-container">
   <view class="header">
     <view class="class-title">{{className}}</view>
-    <view class="date-text">{{date}}</view>
+    <picker mode="date" value="{{selectedDate}}" bindchange="onDateChange">
+      <view class="date-picker">
+        <text class="date-text">{{dateText}}</text>
+        <text class="date-icon">▼</text>
+      </view>
+    </picker>
   </view>
 
   <!-- Filter tabs -->
@@ -34,10 +39,13 @@
     <view
       wx:for="{{students}}"
       wx:key="student_id"
-      class="student-card {{item.checked_in ? 'checked-in' : 'absent'}}"
+      class="student-card {{item.checked_in ? 'checked-in' : 'absent'}} {{item.isHighRisk ? 'high-risk' : ''}}"
     >
       <view class="student-row">
-        <view class="student-id">{{item.student_school_id}}</view>
+        <view class="student-info">
+          <view class="student-name">{{item.student_name}}</view>
+          <view class="student-school-id">{{item.student_school_id}}</view>
+        </view>
         <view wx:if="{{item.checked_in}}" class="status-badge success">已打卡</view>
         <view wx:else class="status-badge error">未打卡</view>
       </view>
@@ -45,6 +53,12 @@
       <view wx:if="{{item.checked_in && item.checkInTimeText}}" class="student-meta">
         打卡时间：{{item.checkInTimeText}}
       </view>
+
+      <view wx:if="{{!item.checked_in}}" class="student-meta">
+        连续未打卡 {{item.consecutive_absent_days}} 天
+      </view>
+
+      <view wx:if="{{item.isHighRisk}}" class="warning-badge">重点关注</view>
 
       <view wx:if="{{item.reflection_content}}" class="reflection">
         {{item.reflection_content}}

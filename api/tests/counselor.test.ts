@@ -13,13 +13,20 @@ function createToken(role: 'student' | 'counselor' | 'admin', userId: string): s
   return jwt.sign({ userId, role }, config.jwtSecret, { expiresIn: '1h' });
 }
 
-async function seedUser(client: Client, id: string, schoolId: string, role: string, classId: string | null) {
+async function seedUser(
+  client: Client,
+  id: string,
+  schoolId: string,
+  role: string,
+  classId: string | null,
+  name: string | null = null
+) {
   const hash = await bcrypt.hash('123456', 10);
   await client.query(
-    `INSERT INTO users (id, school_id, password_hash, role, is_initial_password, class_id)
-     VALUES ($1, $2, $3, $4, true, $5)
-     ON CONFLICT (id) DO UPDATE SET school_id = EXCLUDED.school_id, role = EXCLUDED.role, class_id = EXCLUDED.class_id`,
-    [id, schoolId, hash, role, classId]
+    `INSERT INTO users (id, school_id, password_hash, role, is_initial_password, class_id, name)
+     VALUES ($1, $2, $3, $4, true, $5, $6)
+     ON CONFLICT (id) DO UPDATE SET school_id = EXCLUDED.school_id, role = EXCLUDED.role, class_id = EXCLUDED.class_id, name = EXCLUDED.name`,
+    [id, schoolId, hash, role, classId, name]
   );
 }
 
@@ -208,5 +215,35 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.class_id).toBe(classIdOther);
+  });
+
+  it('GET /api/counselor/classes/:id/students calculates consecutive_absent_days and name fallback', async () => {
+    const taskA = await createTask(classIdA);
+    const today = new Date();
+    const fourDaysAgo = new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000);
+    const dateQuery = today.toISOString().slice(0, 10);
+
+    await createApprovedCheckIn(taskA, studentA1, today);
+    await createApprovedCheckIn(taskA, studentA2, fourDaysAgo);
+
+    const res = await request(app)
+      .get(`/api/counselor/classes/${classIdA}/students?date=${dateQuery}`)
+      .set('Authorization', `Bearer ${counselorToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const checkedInStudent = res.body.data.students.find(
+      (s: { student_id: string }) => s.student_id === studentA1
+    );
+    expect(checkedInStudent.checked_in).toBe(true);
+    expect(checkedInStudent.consecutive_absent_days).toBe(0);
+    expect(checkedInStudent.student_name).toBe(checkedInStudent.student_school_id);
+
+    const absentStudent = res.body.data.students.find(
+      (s: { student_id: string }) => s.student_id === studentA2
+    );
+    expect(absentStudent.checked_in).toBe(false);
+    expect(absentStudent.consecutive_absent_days).toBe(4);
   });
 });

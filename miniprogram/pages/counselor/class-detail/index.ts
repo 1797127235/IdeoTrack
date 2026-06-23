@@ -4,9 +4,11 @@ import {
   type StudentFilterStatus,
 } from '../../../services/counselorApi';
 import { formatDateTime } from '../../../utils/format';
+import { formatDateText, toBeijingDateString } from '../../../utils/date';
 
 interface StudentViewItem extends ClassStudentItem {
   checkInTimeText: string;
+  isHighRisk: boolean;
 }
 
 const STATUS_OPTIONS: { value: StudentFilterStatus; label: string }[] = [
@@ -19,7 +21,8 @@ Page({
   data: {
     classId: '',
     className: '班级详情',
-    date: '',
+    selectedDate: '',
+    dateText: '',
     status: 'all' as StudentFilterStatus,
     statusOptions: STATUS_OPTIONS,
     students: [] as StudentViewItem[],
@@ -33,8 +36,13 @@ Page({
   onLoad(options: { classId?: string; className?: string; date?: string }) {
     const classId = options.classId || '';
     const className = options.className ? decodeURIComponent(options.className) : '班级详情';
-    const date = options.date ? decodeURIComponent(options.date) : '';
-    this.setData({ classId, className, date });
+    const selectedDate = options.date ? decodeURIComponent(options.date) : toBeijingDateString();
+    this.setData({
+      classId,
+      className,
+      selectedDate,
+      dateText: formatDateText(selectedDate),
+    });
     if (classId) {
       this.loadStudents();
     } else {
@@ -49,10 +57,15 @@ Page({
   async loadStudents() {
     this.setData({ loading: true, errorMsg: '' });
     try {
-      const data = await getClassStudentList(this.data.classId, this.data.status, this.data.date || undefined);
+      const data = await getClassStudentList(
+        this.data.classId,
+        this.data.status,
+        this.data.selectedDate || undefined
+      );
       const students = data.students.map<StudentViewItem>((s) => ({
         ...s,
         checkInTimeText: s.checked_in_at ? formatDateTime(s.checked_in_at) : '',
+        isHighRisk: !s.checked_in && s.consecutive_absent_days >= 3,
       }));
       const total = students.length;
       const checkedCount = students.filter((s) => s.checked_in).length;
@@ -81,5 +94,15 @@ Page({
     this.setData({ status }, () => this.loadStudents());
   },
 
-
+  onDateChange(e: WechatMiniprogram.PickerChange) {
+    const selectedDate = e.detail.value as string;
+    if (!selectedDate || selectedDate === this.data.selectedDate) return;
+    this.setData(
+      {
+        selectedDate,
+        dateText: formatDateText(selectedDate),
+      },
+      () => this.loadStudents()
+    );
+  },
 });
