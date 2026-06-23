@@ -29,6 +29,9 @@ npm-debug.log*
 # Testing
 coverage/
 
+# Database backups (server-local, never commit)
+db-backup-*.sql
+
 # Expo
 .expo/
 *.jks

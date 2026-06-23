@@ -46,11 +46,9 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:testpassword@localhost:5432/ideo_track_test
 
-      - name: Run seed
-        working-directory: api
-        run: npm run db:seed
-        env:
-          DATABASE_URL: postgres://postgres:testpassword@localhost:5432/ideo_track_test
+      # 注：不在此处 db:seed。每个测试文件都自建所需数据（带 TEST 前缀并在 setup 中清理），
+      # 全局 seed 只会注入无人使用的账号/名言/任务，留下噪音数据，且会让测试隐式依赖 seed 逻辑。
+      # 如需在生产灌初始数据，用手动 workflow "Seed Database"。
 
       - name: Build
         working-directory: api
@@ -111,8 +109,13 @@ jobs:
 
             # 首次切换数据库密码时，旧卷（用默认密码初始化）会导致 postgres 起不来。
             # 用标记文件保证只删一次：之后再部署永远走 up -d，不会丢数据。
+            # 保险：即便标记文件意外丢失触发 down -v，也先 pg_dump 出一份完整备份，避免无声丢库。
+            # 此处容器仍跑着旧密码初始化的卷，所以用默认账号导出（失败则跳过，不阻断部署）。
             if [ ! -f .db-password-set ]; then
-              echo "First deploy with managed password — resetting postgres volume..."
+              echo "First deploy with managed password — backing up then resetting postgres volume..."
+              docker compose exec -T postgres pg_dump -U postgres -d ideo_track \
+                > "/opt/IdeoTrack/db-backup-$(date +%Y%m%d-%H%M%S).sql" 2>/dev/null || \
+                echo "WARN: pg_dump skipped (container not up or default creds differ)"
               docker compose --profile with-caddy down -v --remove-orphans
               touch .db-password-set
             fi
