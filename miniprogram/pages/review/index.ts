@@ -1,4 +1,5 @@
 import { getPendingReviews, type PendingReviewItem } from '../../services/reviewApi';
+import { updateTabBarSelected } from '../../utils/tabBar';
 
 const PAGE_SIZE = 20;
 
@@ -22,6 +23,7 @@ Page({
   },
 
   onShow() {
+    updateTabBarSelected();
     this.setData({ page: 1, items: [], hasMore: true });
     this.loadReviews();
   },

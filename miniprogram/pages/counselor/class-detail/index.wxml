@@ -1,0 +1,59 @@
+<view class="detail-container">
+  <view class="header">
+    <view class="class-title">{{className}}</view>
+    <view class="date-text">{{date}}</view>
+  </view>
+
+  <!-- Filter tabs -->
+  <view class="filter-bar">
+    <view
+      wx:for="{{statusOptions}}"
+      wx:key="value"
+      class="filter-tab {{item.value === status ? 'active' : ''}}"
+      data-value="{{item.value}}"
+      bindtap="onStatusChange"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- Mini stats -->
+  <view class="mini-stats">
+    <view class="mini-stat">共 {{total}} 人</view>
+    <view class="mini-stat text-success">已打卡 {{checkedCount}} 人</view>
+    <view class="mini-stat text-error">未打卡 {{absentCount}} 人</view>
+  </view>
+
+  <view wx:if="{{errorMsg}}" class="error-tip">{{errorMsg}}</view>
+
+  <view wx:if="{{loading && students.length === 0}}" class="skeleton-list">
+    <view wx:for="{{[1,2,3,4]}}" wx:key="*this" class="skeleton student-skeleton"></view>
+  </view>
+
+  <block wx:if="{{students.length > 0}}">
+    <view
+      wx:for="{{students}}"
+      wx:key="student_id"
+      class="student-card {{item.checked_in ? 'checked-in' : 'absent'}}"
+    >
+      <view class="student-row">
+        <view class="student-id">{{item.student_school_id}}</view>
+        <view wx:if="{{item.checked_in}}" class="status-badge success">已打卡</view>
+        <view wx:else class="status-badge error">未打卡</view>
+      </view>
+
+      <view wx:if="{{item.checked_in && item.checkInTimeText}}" class="student-meta">
+        打卡时间：{{item.checkInTimeText}}
+      </view>
+
+      <view wx:if="{{item.reflection_content}}" class="reflection">
+        {{item.reflection_content}}
+      </view>
+    </view>
+  </block>
+
+  <view wx:if="{{!loading && students.length === 0 && !errorMsg}}" class="empty-state">
+    <view>暂无学生记录</view>
+    <view class="text-secondary">当前筛选条件下没有数据</view>
+  </view>
+</view>

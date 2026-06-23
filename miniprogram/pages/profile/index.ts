@@ -1,4 +1,5 @@
 import { logout, getUserRole } from '../../utils/auth';
+import { updateTabBarSelected } from '../../utils/tabBar';
 
 Page({
   data: {
@@ -7,6 +8,7 @@ Page({
   },
 
   onShow() {
+    updateTabBarSelected();
     const role = getUserRole();
     this.setData({
       role: role || '',

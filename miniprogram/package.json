@@ -1,7 +1,7 @@
 {
   "name": "ideotrack-miniprogram",
   "version": "1.0.0",
-  "description": "IdeoTrack 学生端微信小程序（仅学生端）",
+  "description": "IdeoTrack 微信小程序（学生端 + 辅导员端）",
   "private": true,
   "scripts": {
     "tsc": "tsc --noEmit"

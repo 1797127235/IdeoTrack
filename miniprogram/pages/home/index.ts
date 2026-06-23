@@ -1,6 +1,7 @@
 import { getDailyQuote, type Quote } from '../../services/quoteApi';
 import { listMyTasks, type StudentTask } from '../../services/taskApi';
 import { getUserRole } from '../../utils/auth';
+import { updateTabBarSelected } from '../../utils/tabBar';
 import { formatDeadline } from '../../utils/format';
 import { theme } from '../../theme';
 
@@ -67,6 +68,7 @@ Page({
   },
 
   onShow() {
+    updateTabBarSelected();
     this.setGreeting();
     this.loadData();
   },

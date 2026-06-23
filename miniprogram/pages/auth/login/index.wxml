@@ -6,18 +6,69 @@
   </view>
 
   <view class="login-card">
-    <button
-      class="btn-wechat"
-      bindtap="handleWechatLogin"
-      loading="{{loading}}"
-      disabled="{{loading}}"
-    >
-      {{loading ? '登录中...' : '微信一键登录'}}
-    </button>
-
-    <view class="hint">
-      首次登录需绑定学号验证身份
+    <!-- 登录方式切换 -->
+    <view class="mode-tabs">
+      <view
+        class="mode-tab {{mode === 'wechat' ? 'active' : ''}}"
+        data-mode="wechat"
+        bindtap="switchMode"
+      >微信登录</view>
+      <view
+        class="mode-tab {{mode === 'password' ? 'active' : ''}}"
+        data-mode="password"
+        bindtap="switchMode"
+      >账号登录</view>
     </view>
+
+    <!-- 微信登录 -->
+    <block wx:if="{{mode === 'wechat'}}">
+      <button
+        class="btn-wechat"
+        bindtap="handleWechatLogin"
+        loading="{{loading}}"
+        disabled="{{loading}}"
+      >
+        {{loading ? '登录中...' : '微信一键登录'}}
+      </button>
+      <view class="hint">
+        首次登录需绑定账号验证身份（学号 / 教师号 / 工号）
+      </view>
+    </block>
+
+    <!-- 账号密码登录 -->
+    <block wx:if="{{mode === 'password'}}">
+      <view class="form">
+        <view class="field">
+          <text class="label">账号</text>
+          <input
+            class="input"
+            placeholder="请输入学号 / 教师号 / 工号"
+            placeholder-class="placeholder"
+            value="{{account}}"
+            bindinput="onAccountInput"
+          />
+        </view>
+        <view class="field">
+          <text class="label">密码</text>
+          <input
+            class="input"
+            password
+            placeholder="请输入密码"
+            placeholder-class="placeholder"
+            value="{{password}}"
+            bindinput="onPasswordInput"
+          />
+        </view>
+        <button
+          class="btn-primary"
+          bindtap="handlePasswordLogin"
+          loading="{{loading}}"
+          disabled="{{loading}}"
+        >
+          {{loading ? '登录中...' : '登录'}}
+        </button>
+      </view>
+    </block>
 
     <view wx:if="{{errorMsg}}" class="error-msg">{{errorMsg}}</view>
   </view>

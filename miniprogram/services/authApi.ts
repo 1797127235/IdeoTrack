@@ -47,8 +47,26 @@ export async function wechatLogin(): Promise<WechatLoginResponse> {
 }
 
 /**
- * 绑定学号（Story 12.2/12.3）
- * - 用户输入学号 + 密码
+ * 账号密码登录（辅导员 / 管理员 / 未绑定微信的账号）
+ * - 直接请求后端 POST /api/auth/login
+ */
+export async function loginWithPassword(
+  schoolId: string,
+  password: string
+): Promise<BindResponse> {
+  const result = await post<BindResponse>('/api/auth/login', {
+    schoolId: schoolId.trim(),
+    password,
+  });
+  if (!result.success || !result.data) {
+    throw new Error(result.error?.message || '登录失败');
+  }
+  return result.data;
+}
+
+/**
+ * 绑定账号（Story 12.2/12.3）
+ * - 用户输入账号 + 密码
  * - 后端验证身份，把 openid 写入 users.wechat_openid
  * - 旧 openid 自动解绑
  */

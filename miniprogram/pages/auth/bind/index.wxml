@@ -1,15 +1,15 @@
 <view class="bind-page">
   <view class="header">
-    <view class="title">绑定学号</view>
-    <view class="subtitle">首次使用需验证你的学号身份，绑定后可免密登录</view>
+    <view class="title">绑定账号</view>
+    <view class="subtitle">首次使用需验证你的账号身份（学号 / 教师号 / 工号），绑定后可免密登录</view>
   </view>
 
   <view class="form">
     <view class="field">
-      <text class="label">学号</text>
+      <text class="label">账号</text>
       <input
         class="input"
-        placeholder="请输入学号"
+        placeholder="请输入学号 / 教师号 / 工号"
         placeholder-class="placeholder"
         value="{{schoolId}}"
         bindinput="onSchoolIdInput"

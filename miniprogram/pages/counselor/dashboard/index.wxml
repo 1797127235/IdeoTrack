@@ -1,0 +1,79 @@
+<view class="dashboard-container">
+  <!-- Header -->
+  <view class="header">
+    <view class="greeting">班级数据概览</view>
+    <view class="date-text">{{dateText}}</view>
+  </view>
+
+  <!-- Summary cards -->
+  <view class="summary-grid" wx:if="{{summary}}">
+    <view class="summary-card">
+      <view class="summary-value">{{summary.total_students}}</view>
+      <view class="summary-label">应打卡人数</view>
+    </view>
+    <view class="summary-card">
+      <view class="summary-value text-success">{{summary.checked_in_count}}</view>
+      <view class="summary-label">已打卡人数</view>
+    </view>
+    <view class="summary-card">
+      <view class="summary-value text-primary">{{summary.check_in_rate}}%</view>
+      <view class="summary-label">今日打卡率</view>
+    </view>
+  </view>
+
+  <!-- Error -->
+  <view wx:if="{{errorMsg}}" class="error-tip">{{errorMsg}}</view>
+
+  <!-- Class list -->
+  <view class="section-title">所辖班级</view>
+
+  <view wx:if="{{loading && classes.length === 0}}" class="skeleton-list">
+    <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton class-skeleton"></view>
+  </view>
+
+  <block wx:if="{{classes.length > 0}}">
+    <view
+      wx:for="{{classes}}"
+      wx:key="class_id"
+      class="class-card"
+      data-id="{{item.class_id}}"
+      data-name="{{item.class_name}}"
+      bindtap="goToClassDetail"
+    >
+      <view class="class-header">
+        <view class="class-title">{{item.class_name}}</view>
+        <view class="college-tag">{{item.college_name}}</view>
+      </view>
+
+      <view class="stats-row">
+        <view class="stat">
+          <view class="stat-value">{{item.total_students}}</view>
+          <view class="stat-label">应打卡</view>
+        </view>
+        <view class="stat">
+          <view class="stat-value text-success">{{item.checked_in_count}}</view>
+          <view class="stat-label">已打卡</view>
+        </view>
+        <view class="stat">
+          <view class="stat-value text-error">{{item.absent_count}}</view>
+          <view class="stat-label">未打卡</view>
+        </view>
+      </view>
+
+      <view class="rate-row">
+        <view class="rate-label">打卡率</view>
+        <view class="rate-bar-bg">
+          <view class="rate-bar-fill" style="width: {{item.check_in_rate}}%;"></view>
+        </view>
+        <view class="rate-value">{{item.check_in_rate}}%</view>
+      </view>
+
+      <view class="card-hint">点击查看学生名单</view>
+    </view>
+  </block>
+
+  <view wx:if="{{!loading && classes.length === 0 && !errorMsg}}" class="empty-state">
+    <view>暂无所辖班级</view>
+    <view class="text-secondary">当前账号未关联班级数据</view>
+  </view>
+</view>

@@ -12,7 +12,9 @@
     "pages/reflection/index",
     "pages/notifications/index",
     "pages/review/index",
-    "pages/review/detail/index"
+    "pages/review/detail/index",
+    "pages/counselor/dashboard/index",
+    "pages/counselor/class-detail/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -22,6 +24,7 @@
     "backgroundColor": "#ECFEFF"
   },
   "tabBar": {
+    "custom": true,
     "color": "#64748B",
     "selectedColor": "#0891B2",
     "backgroundColor": "#FFFFFF",
@@ -42,6 +45,14 @@
       {
         "pagePath": "pages/profile/index",
         "text": "我的"
+      },
+      {
+        "pagePath": "pages/counselor/dashboard/index",
+        "text": "班级"
+      },
+      {
+        "pagePath": "pages/review/index",
+        "text": "复核"
       }
     ]
   },

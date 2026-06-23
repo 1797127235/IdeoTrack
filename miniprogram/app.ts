@@ -1,10 +1,13 @@
 import { getToken } from './utils/token';
+import { getUserRole } from './utils/auth';
+
+type UserRole = 'student' | 'counselor' | 'admin' | null;
 
 interface AppData {
   /** 是否已登录 */
   loggedIn: boolean;
-  /** 当前用户角色（学生端固定为 student，预留） */
-  role: 'student' | null;
+  /** 当前用户角色 */
+  role: UserRole;
 }
 
 App<{
@@ -16,11 +19,11 @@ App<{
   },
 
   onLaunch() {
-    // 启动时检查登录状态
+    // 启动时从本地缓存恢复登录态与角色
     const token = getToken();
     if (token) {
       this.globalData.loggedIn = true;
-      this.globalData.role = 'student';
+      this.globalData.role = getUserRole();
     }
 
     // 捕获未处理的 Promise rejection

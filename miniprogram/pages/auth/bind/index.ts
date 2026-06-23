@@ -1,6 +1,10 @@
 import { bindStudent } from '../../../services/authApi';
 import { onLoginSuccess } from '../../../utils/auth';
 
+function getHomeUrl(role: string): string {
+  return role === 'counselor' ? '/pages/counselor/dashboard/index' : '/pages/home/index';
+}
+
 Page({
   data: {
     openid: '',
@@ -33,7 +37,7 @@ Page({
       return;
     }
     if (!schoolId.trim()) {
-      this.setData({ errorMsg: '请输入学号' });
+      this.setData({ errorMsg: '请输入账号' });
       return;
     }
     if (!password) {
@@ -46,8 +50,8 @@ Page({
       const res = await bindStudent(openid, schoolId.trim(), password);
       onLoginSuccess(res.token, res.user);
 
-      // 绑定成功 → 跳首页（reLaunch 清空登录页栈）
-      wx.reLaunch({ url: '/pages/home/index' });
+      // 绑定成功 → 按角色进首页（reLaunch 清空登录页栈）
+      wx.reLaunch({ url: getHomeUrl(res.user.role) });
     } catch (err) {
       this.setData({
         errorMsg: err instanceof Error ? err.message : '绑定失败',

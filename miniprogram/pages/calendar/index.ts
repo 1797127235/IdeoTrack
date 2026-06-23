@@ -1,4 +1,5 @@
 import { get } from '../../services/api';
+import { updateTabBarSelected } from '../../utils/tabBar';
 
 interface CalendarDayData {
   day: string;
@@ -92,6 +93,7 @@ Page({
   },
 
   onShow() {
+    updateTabBarSelected();
     const now = new Date();
     this.setData({ year: now.getFullYear(), month: now.getMonth() + 1 });
     this.loadCalendar(this.data.year, this.data.month);
