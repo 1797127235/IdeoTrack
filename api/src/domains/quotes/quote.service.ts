@@ -37,12 +37,12 @@ function simpleHash(input: string): number {
 export async function getDailyQuote(dateStr: string): Promise<QuoteResponse> {
   // 1. 检查是否已有当日记录
   const existingDaily = await queryOne<{
-    quote_id: string;
+    id: string;
     content: string;
     author: string;
     source: string;
   }>(
-    `SELECT dq.quote_id, q.content, q.author, q.source
+    `SELECT dq.quote_id AS id, q.content, q.author, q.source
      FROM daily_quotes dq
      JOIN quotes q ON dq.quote_id = q.id
      WHERE dq.date = $1
@@ -51,7 +51,7 @@ export async function getDailyQuote(dateStr: string): Promise<QuoteResponse> {
   );
 
   if (existingDaily) {
-    return toResponse(existingDaily as unknown as Quote);
+    return toResponse(existingDaily as Quote);
   }
 
   // 2. 获取启用名言列表

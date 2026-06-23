@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: api
-        run: npm ci
+        run: npm install
 
       - name: Run migrations
         working-directory: api
@@ -87,8 +87,16 @@ jobs:
             # 拉取最新代码
             git pull origin main
 
+            # 配置 API 域名，Caddy 会自动申请并续期 HTTPS 证书
+            cat > Caddyfile << 'EOF'
+            ideotrack.cc.cd {
+              reverse_proxy api:3000
+            }
+            EOF
+
             # 重新构建并启动
             docker compose --profile with-caddy up -d --build
+            docker compose restart caddy
 
             # 等待 API 服务就绪
             sleep 10
