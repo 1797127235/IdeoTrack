@@ -5,7 +5,8 @@ WORKDIR /app
 
 COPY package*.json ./
 # 跳过可选依赖，避免跨平台 lock 文件缺少特定架构的 native binding（如 rolldown/vitest）
-RUN npm ci --omit=optional
+# 用 npm install 而不是 npm ci，避免 Windows 生成的 lock 在 Linux 构建时不一致
+RUN npm install --omit=optional
 
 COPY . .
 RUN npm run build
@@ -18,7 +19,7 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 # 生产环境同样跳过可选依赖，避免 lock 文件跨平台缺失 native binding
-RUN npm ci --omit=dev --omit=optional
+RUN npm install --omit=dev --omit=optional
 
 COPY --from=builder /app/dist ./dist
 
