@@ -82,6 +82,10 @@ jobs:
           script: |
             cd /opt/IdeoTrack
 
+            # 确保服务器工作区干净，避免本地未提交修改阻塞 git pull
+            # 注意：这会丢弃对仓库跟踪文件的本地修改；后续会重新生成 .env / Caddyfile
+            git reset --hard HEAD
+
             # 拉取最新代码
             git pull origin main
 
