@@ -656,4 +656,65 @@ describe.skipIf(!DATABASE_URL)('CheckIns API', () => {
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
+
+  describe('GET /api/checkins/calendar', () => {
+    it('returns checked-in days for the requested month', async () => {
+      const task = await createTask({ title: 'TEST CHECKIN 日历任务' });
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const monthNum = today.getMonth() + 1;
+      const monthStr = String(monthNum).padStart(2, '0');
+      const year = today.getFullYear();
+      const dayString = `${year}-${monthStr}-${day}`;
+
+      await client.query(
+        `INSERT INTO check_ins (
+           task_id, user_id, status, latitude, longitude, checked_in_at,
+           reflection_content, reflection_modified
+         )
+         VALUES ($1, $2, 'approved', 31.2304, 121.4737, $3, $4, false)`,
+        [task.id, studentId, today.toISOString(), '今天的心得']
+      );
+
+      const res = await request(app)
+        .get(`/api/checkins/calendar?year=${year}&month=${monthNum}`)
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.year).toBe(year);
+      expect(res.body.data.month).toBe(monthNum);
+      const found = res.body.data.days.find((d: { day: string }) => d.day === dayString);
+      expect(found).toBeDefined();
+      expect(found.checked_in).toBe(true);
+      expect(found.status).toBe('approved');
+      expect(found.reflection_content).toBe('今天的心得');
+    });
+
+    it('rejects non-student roles', async () => {
+      const res = await request(app)
+        .get('/api/checkins/calendar?year=2026&month=6')
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('rejects missing year or month', async () => {
+      const res = await request(app)
+        .get('/api/checkins/calendar')
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns empty days for month without check-ins', async () => {
+      const res = await request(app)
+        .get('/api/checkins/calendar?year=2020&month=1')
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.days).toEqual([]);
+    });
+  });
 });

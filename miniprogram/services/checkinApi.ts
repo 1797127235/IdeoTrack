@@ -36,6 +36,20 @@ export interface CheckInResultSummary {
   earned_badge: '坚持一周' | '坚持一月' | null;
 }
 
+export interface CalendarDay {
+  day: string;
+  checked_in: boolean;
+  status?: string;
+  reflection_content?: string | null;
+  task_title?: string | null;
+}
+
+export interface CalendarMonth {
+  year: number;
+  month: number;
+  days: CalendarDay[];
+}
+
 export async function createCheckIn(data: CreateCheckInData) {
   return post<CheckInResponse>('/api/checkins', data);
 }
@@ -48,4 +62,8 @@ export async function submitReflection(checkInId: string, content: string) {
 
 export async function getCheckInResult(checkInId: string) {
   return get<CheckInResultSummary>(`/api/checkins/${checkInId}/result`);
+}
+
+export async function getStudentCalendar(year: number, month: number) {
+  return get<CalendarMonth>(`/api/checkins/calendar?year=${year}&month=${month}`);
 }

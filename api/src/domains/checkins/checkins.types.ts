@@ -62,3 +62,17 @@ export interface CheckInResultSummary {
   next_level_progress: number;
   earned_badge: '坚持一周' | '坚持一月' | null;
 }
+
+export interface CalendarDay {
+  day: string; // YYYY-MM-DD
+  checked_in: boolean;
+  status?: CheckInStatus;
+  reflection_content?: string | null;
+  task_title?: string | null;
+}
+
+export interface CalendarMonth {
+  year: number;
+  month: number;
+  days: CalendarDay[];
+}

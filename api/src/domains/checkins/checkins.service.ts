@@ -5,10 +5,13 @@ import { aiReviewReflection, getReviewReasonCode, saveAIReviewRecord } from '../
 import { assertTaskVisibleToStudent, fetchTaskById } from '../tasks/task.service.js';
 import type {
   CheckIn,
+  CheckInStatus,
   CheckInResponse,
   CheckInResultSummary,
   CreateCheckInInput,
   SubmitReflectionInput,
+  CalendarDay,
+  CalendarMonth,
 } from './checkins.types.js';
 import type { AIReviewResult } from '../reviews/reviews.types.js';
 
@@ -180,6 +183,59 @@ function isReflectionModifiableStatus(status: string): boolean {
 
 function isTerminalStatus(status: string): boolean {
   return status === 'approved' || status === 'rejected';
+}
+
+function toCalendarDay(row: {
+  day: string;
+  status: string;
+  reflection_content: string | null;
+  task_title: string | null;
+}): CalendarDay {
+  return {
+    day: row.day,
+    checked_in: true,
+    status: row.status as CheckInStatus,
+    reflection_content: row.reflection_content,
+    task_title: row.task_title,
+  };
+}
+
+export async function getStudentCalendar(
+  userId: string,
+  year: number,
+  month: number
+): Promise<CalendarMonth> {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    throw new AppError('VALIDATION_ERROR', '年份或月份无效', 400);
+  }
+
+  const start = `${year}-${String(month).padStart(2, '0')}-01`;
+  const end = new Date(year, month, 0).toISOString().slice(0, 10);
+
+  const rows = await query<{
+    day: string;
+    status: string;
+    reflection_content: string | null;
+    task_title: string | null;
+  }>(
+    `SELECT DISTINCT ON (DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai'))
+            DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai')::text AS day,
+            ci.status,
+            ci.reflection_content,
+            t.title AS task_title
+     FROM check_ins ci
+     JOIN tasks t ON ci.task_id = t.id
+     WHERE ci.user_id = $1
+       AND DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai') BETWEEN $2 AND $3
+     ORDER BY DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai'), ci.updated_at DESC`,
+    [userId, start, end]
+  );
+
+  return {
+    year,
+    month,
+    days: rows.map(toCalendarDay),
+  };
 }
 
 export async function submitReflection(

@@ -3,7 +3,7 @@ story_id: 6.4
 story_key: 6-4-ge-ren-da-ka-ri-li
 epic: 6
 epic_title: 激励机制
-status: ready-for-dev
+status: done
 priority: high
 points: 2
 baseline_commit: f36eb6203956e15114dd6a1a96bcb7c971e7baac
@@ -199,11 +199,14 @@ Kimi Code CLI (default)
 
 ### Completion Notes List
 
-- 待实现
+- 后端新增 `GET /api/checkins/calendar?year=&month=`，支持按北京时间聚合学生当月打卡记录
+- 小程序重写 `pages/calendar/index`，支持月份切换、已打卡绿色高亮、点击日期查看心得详情
+- API 测试 136 passed / 136，小程序 `tsc` 通过
 
 ## Change Log
 
 - 2026-06-24: Story 6.4 创建，定义个人打卡日历后端接口与小程序页面。
+- 2026-06-24: Story 6.4 实现完成，后端接口、小程序页面、测试全部通过。
 
 ## References
 

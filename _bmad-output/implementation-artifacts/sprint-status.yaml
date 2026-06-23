@@ -82,11 +82,11 @@ development_status:
   5-4-xue-sheng-cha-kan-fu-he-jie-guo: done  # student: task detail / checkin result
   5-5-yao-qiu-xiu-gai-hou-chong-xin-ti-jiao: done  # student: reflection edit 支持 requires_modification
   epic-5-retrospective: optional
-  epic-6: in-progress
+  epic-6: done  # MVP 范围 Story 6.4 完成；6.1/6.2/6.3 仍为 V2 deferred
   6-1-ji-fen-ji-suan: backlog  # V2 deferred
   6-2-deng-ji-jin-sheng: backlog  # V2 deferred
   6-3-xun-zhang-shou-yu: backlog  # V2 deferred
-  6-4-ge-ren-da-ka-ri-li: ready-for-dev
+  6-4-ge-ren-da-ka-ri-li: done
   epic-6-retrospective: optional
   epic-7: backlog  # V2 deferred
   7-1-ban-ji-da-ka-lv-pai-ming-zhan-shi: backlog  # V2 deferred
