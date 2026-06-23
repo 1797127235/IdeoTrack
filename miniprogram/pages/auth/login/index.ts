@@ -24,7 +24,7 @@ Page({
     try {
       const res = await get<{ userId: string; role: string }>('/api/auth/me');
       if (res.success && res.data) {
-        wx.reLaunch({ url: getHomeUrl(res.data.role) });
+        wx.switchTab({ url: getHomeUrl(res.data.role) });
         return;
       }
     } catch {
@@ -66,7 +66,7 @@ Page({
 
       if (res.token && res.user) {
         onLoginSuccess(res.token, res.user);
-        wx.reLaunch({ url: getHomeUrl(res.user.role) });
+        wx.switchTab({ url: getHomeUrl(res.user.role) });
         return;
       }
 
@@ -97,7 +97,7 @@ Page({
     try {
       const res = await loginWithPassword(account.trim(), password);
       onLoginSuccess(res.token, res.user);
-      wx.reLaunch({ url: getHomeUrl(res.user.role) });
+      wx.switchTab({ url: getHomeUrl(res.user.role) });
     } catch (err) {
       this.setData({
         errorMsg: err instanceof Error ? err.message : '登录失败',

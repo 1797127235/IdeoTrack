@@ -50,8 +50,8 @@ Page({
       const res = await bindStudent(openid, schoolId.trim(), password);
       onLoginSuccess(res.token, res.user);
 
-      // 绑定成功 → 按角色进首页（reLaunch 清空登录页栈）
-      wx.reLaunch({ url: getHomeUrl(res.user.role) });
+      // 绑定成功 → 按角色进首页（switchTab 进入 tabBar 页）
+      wx.switchTab({ url: getHomeUrl(res.user.role) });
     } catch (err) {
       this.setData({
         errorMsg: err instanceof Error ? err.message : '绑定失败',

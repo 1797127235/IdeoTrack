@@ -1,15 +1,19 @@
 import {
   getCounselorDashboard,
-  type ClassDashboardItem,
-  type DashboardSummary,
+  ClassDashboardItem,
+  DashboardSummary,
 } from '../../../services/counselorApi';
+
 import { updateTabBarSelected } from '../../../utils/tabBar';
 
 function toBeijingDateString(d = new Date()): string {
-  const s = d.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-  const [datePart] = s.split(' ');
-  const [year, month, day] = datePart.split('/');
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  // 手动计算北京时间，避免 iOS/Android 对 toLocaleString 返回格式不一致
+  const offsetMs = (d.getTimezoneOffset() + 480) * 60 * 1000;
+  const beijing = new Date(d.getTime() + offsetMs);
+  const year = beijing.getFullYear();
+  const month = String(beijing.getMonth() + 1).padStart(2, '0');
+  const day = String(beijing.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatDashboardDate(dateStr: string): string {
@@ -67,10 +71,18 @@ Page({
 
   goToClassDetail(event: WechatMiniprogram.BaseEvent) {
     const { id, name } = event.currentTarget.dataset as { id?: string; name?: string };
-    if (!id) return;
+    if (!id) {
+      wx.showToast({ title: '班级信息缺失', icon: 'none' });
+      return;
+    }
     const className = name || '班级详情';
+    const url = `/pages/counselor/class-detail/index?classId=${encodeURIComponent(id)}&className=${encodeURIComponent(className)}&date=${encodeURIComponent(this.data.date)}`;
     wx.navigateTo({
-      url: `/pages/counselor/class-detail/index?classId=${encodeURIComponent(id)}&className=${encodeURIComponent(className)}&date=${encodeURIComponent(this.data.date)}`,
+      url,
+      fail: (err) => {
+        console.error('[navigateTo fail]', err);
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      },
     });
   },
 });
