@@ -80,6 +80,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
+            set -euo pipefail
             cd /opt/IdeoTrack
 
             # 确保服务器工作区干净，避免本地未提交修改阻塞 git pull
