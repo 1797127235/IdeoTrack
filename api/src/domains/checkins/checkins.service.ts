@@ -14,8 +14,8 @@ function toCheckInResponse(checkIn: CheckIn): CheckInResponse {
     id: checkIn.id,
     task_id: checkIn.task_id,
     status: checkIn.status,
-    latitude: checkIn.latitude,
-    longitude: checkIn.longitude,
+    latitude: Number(checkIn.latitude),
+    longitude: Number(checkIn.longitude),
     address: checkIn.address,
     checked_in_at: checkIn.checked_in_at,
   };
