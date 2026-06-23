@@ -3,7 +3,7 @@ story_id: 8.2
 story_key: 8-2-wei-da-ka-xue-sheng-ming-dan
 epic: 8
 epic_title: 辅导员数据看板
-status: in-progress
+status: done
 priority: high
 points: 3
 baseline_commit: 7003eb58acb15d8e7d0c8abe7ecc424c29457f04
@@ -11,7 +11,7 @@ baseline_commit: 7003eb58acb15d8e7d0c8abe7ecc424c29457f04
 
 # Story 8.2: 未打卡学生名单
 
-Status: in-progress
+Status: done
 
 > Source: Epic 8 Story 8.2 / PRD §4.8 FR-22 / AD-5, AD-14, AD-17 / UX-4, UX-8, UX-10, UX-15, UX-16
 
