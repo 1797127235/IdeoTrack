@@ -1,14 +1,14 @@
 # IdeoTrack — 思政打卡 App
 
-面向高校大学生的思政学习打卡工具。学生通过微信小程序完成每日学习任务打卡，辅导员和管理员通过 App 管理和统计。
+面向高校大学生的思政学习打卡工具。学生和辅导员通过微信小程序完成打卡与管理，管理员通过 App 进行组织管理和数据统计。
 
 ## 仓库结构
 
 ```
 IdeoTrack/
 ├── api/            # 后端 API（Node.js + Express + TypeScript + PostgreSQL）
-├── mobile/         # 管理员/辅导员端 App（React Native + Expo）
-├── miniprogram/    # 学生端微信小程序（原生开发）
+├── mobile/         # 管理员端 App（React Native + Expo）
+├── miniprogram/    # 学生 + 辅导员端微信小程序（原生开发）
 ├── test/           # API 测试集（Bruno）
 └── project.config.json  # 微信开发者工具配置
 ```
@@ -32,19 +32,20 @@ npm run dev               # 启动服务，监听 localhost:3000
 
 详见 **[test/README.md](./test/README.md)** —— 用 Bruno 打开 `test/` 目录，19 个测试覆盖认证、名言、任务三大业务域。
 
-老师验收或从零拉取后跑全量测试，建议直接看 **[TESTING.md](./TESTING.md)**。里面包含后端自动化测试、小程序类型检查、Bruno GUI/CLI 的完整命令顺序。
+验收或从零拉取后跑全量测试，建议直接看 **[TESTING.md](./TESTING.md)**。里面包含后端自动化测试、小程序类型检查、Bruno GUI/CLI 的完整命令顺序。
 
 ### 3. 启动前端（按需）
 
-**管理员/辅导员 App**：
+**管理员端 App**：
 ```bash
 cd mobile
 npm install
 npm start                 # Expo 开发服务器
 ```
 
-**学生端微信小程序**：
-- 用微信开发者工具打开仓库根目录（会自动读取 `project.config.json`）
+**学生 + 辅导员端微信小程序**：
+- 用微信开发者工具打开 `miniprogram/` 目录
+- 学生通过微信登录，辅导员通过工号密码登录
 - 详见 miniprogram/ 目录
 
 ## 技术栈
@@ -55,7 +56,7 @@ npm start                 # Expo 开发服务器
 | 数据库 | PostgreSQL 17（支持 Supabase 托管或自托管）|
 | 认证 | JWT（账号密码）+ 微信登录（学生端）|
 | 管理端 | React Native 0.85 + Expo SDK 56 |
-| 学生端 | 微信小程序原生（基础库 3.x）|
+| 学生 + 辅导员端 | 微信小程序原生（基础库 3.x）|
 
 ## 测试账号（由 `npm run db:seed` 创建）
 
