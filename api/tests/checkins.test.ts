@@ -660,12 +660,11 @@ describe.skipIf(!DATABASE_URL)('CheckIns API', () => {
   describe('GET /api/checkins/calendar', () => {
     it('returns checked-in days for the requested month', async () => {
       const task = await createTask({ title: 'TEST CHECKIN 日历任务' });
-      const today = new Date();
-      const day = String(today.getDate()).padStart(2, '0');
-      const monthNum = today.getMonth() + 1;
-      const monthStr = String(monthNum).padStart(2, '0');
-      const year = today.getFullYear();
-      const dayString = `${year}-${monthStr}-${day}`;
+      // 使用固定北京时间，避免 CI 时区与 Asia/Shanghai 不一致导致日期对不上
+      const year = 2026;
+      const monthNum = 6;
+      const dayString = '2026-06-15';
+      const checkedInAt = '2026-06-15T12:00:00+08:00';
 
       await client.query(
         `INSERT INTO check_ins (
@@ -673,7 +672,7 @@ describe.skipIf(!DATABASE_URL)('CheckIns API', () => {
            reflection_content, reflection_modified
          )
          VALUES ($1, $2, 'approved', 31.2304, 121.4737, $3, $4, false)`,
-        [task.id, studentId, today.toISOString(), '今天的心得']
+        [task.id, studentId, checkedInAt, '今天的心得']
       );
 
       const res = await request(app)
