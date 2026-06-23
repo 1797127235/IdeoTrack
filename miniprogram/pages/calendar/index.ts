@@ -1,4 +1,4 @@
-import { getStudentCalendar } from '../../services/checkinApi';
+import { get } from '../../services/api';
 
 interface CalendarDayData {
   day: string;
@@ -6,6 +6,16 @@ interface CalendarDayData {
   status?: string;
   reflection_content?: string | null;
   task_title?: string | null;
+}
+
+interface CalendarMonth {
+  year: number;
+  month: number;
+  days: CalendarDayData[];
+}
+
+async function fetchStudentCalendar(year: number, month: number) {
+  return get<CalendarMonth>(`/api/checkins/calendar?year=${year}&month=${month}`);
 }
 
 interface CalendarCell {
@@ -90,7 +100,7 @@ Page({
   async loadCalendar(year: number, month: number) {
     this.setData({ loading: true, error: '', monthText: `${month}月` });
     try {
-      const res = await getStudentCalendar(year, month);
+      const res = await fetchStudentCalendar(year, month);
       if (res.success && res.data) {
         const checkedInMap: Record<string, CalendarDayData> = {};
         res.data.days.forEach((d) => {
