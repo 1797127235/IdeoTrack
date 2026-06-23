@@ -87,12 +87,35 @@ jobs:
             # 拉取最新代码
             git pull origin main
 
+            # 生成 /opt/IdeoTrack/.env（仅服务器本地，不进 git）
+            # 所有敏感配置来自 GitHub Secrets，compose 会自动读取这个文件
+            cat > .env << EOF
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            DATABASE_URL=postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/${{ secrets.POSTGRES_DB }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=7d
+            WECHAT_APP_ID=${{ secrets.WECHAT_APP_ID }}
+            WECHAT_APP_SECRET=${{ secrets.WECHAT_APP_SECRET }}
+            CLIENT_URL=*
+            EOF
+            chmod 600 .env
+
             # 配置 API 域名，Caddy 会自动申请并续期 HTTPS 证书
             cat > Caddyfile << 'EOF'
             ideotrack.cc.cd {
               reverse_proxy api:3000
             }
             EOF
+
+            # 首次切换数据库密码时，旧卷（用默认密码初始化）会导致 postgres 起不来。
+            # 用标记文件保证只删一次：之后再部署永远走 up -d，不会丢数据。
+            if [ ! -f .db-password-set ]; then
+              echo "First deploy with managed password — resetting postgres volume..."
+              docker compose --profile with-caddy down -v --remove-orphans
+              touch .db-password-set
+            fi
 
             # 重新构建并启动
             docker compose --profile with-caddy up -d --build
