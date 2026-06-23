@@ -1,0 +1,102 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: ideo_track_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Run migrations
+        working-directory: api
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: postgres://postgres:testpassword@localhost:5432/ideo_track_test
+
+      - name: Run seed
+        working-directory: api
+        run: npm run db:seed
+        env:
+          DATABASE_URL: postgres://postgres:testpassword@localhost:5432/ideo_track_test
+
+      - name: Build
+        working-directory: api
+        run: npm run build
+
+      - name: Run tests
+        working-directory: api
+        run: npm test
+        env:
+          DATABASE_URL: postgres://postgres:testpassword@localhost:5432/ideo_track_test
+          TEST_DATABASE_URL: postgres://postgres:testpassword@localhost:5432/ideo_track_test
+          JWT_SECRET: test-jwt-secret-key-for-ci-testing-min-32-chars
+          JWT_EXPIRES_IN: 7d
+
+  deploy:
+    name: Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd /opt/IdeoTrack
+
+            # 拉取最新代码
+            git pull origin main
+
+            # 重新构建并启动
+            docker compose --profile with-caddy up -d --build
+
+            # 等待 API 服务就绪
+            sleep 10
+
+            # 执行数据库迁移（生产镜像只包含 dist 和生产依赖）
+            docker compose exec -T api node dist/scripts/migrate.js
+
+            # 检查服务状态
+            docker compose ps
+
+            echo "Deploy completed successfully!"
