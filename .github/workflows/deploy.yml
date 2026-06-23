@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: api
-        run: npm ci
+        run: npm install
 
       - name: Run migrations
         working-directory: api
