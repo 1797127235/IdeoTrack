@@ -219,11 +219,12 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
 
   it('GET /api/counselor/classes/:id/students calculates consecutive_absent_days and name fallback', async () => {
     const taskA = await createTask(classIdA);
-    const today = new Date();
-    const fourDaysAgo = new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000);
-    const dateQuery = today.toISOString().slice(0, 10);
+    // 使用固定 UTC 中午，避免 CI 时区跨天导致北京日期不一致
+    const baseDate = new Date('2026-06-20T12:00:00.000Z');
+    const fourDaysAgo = new Date(baseDate.getTime() - 4 * 24 * 60 * 60 * 1000);
+    const dateQuery = '2026-06-20';
 
-    await createApprovedCheckIn(taskA, studentA1, today);
+    await createApprovedCheckIn(taskA, studentA1, baseDate);
     await createApprovedCheckIn(taskA, studentA2, fourDaysAgo);
 
     const res = await request(app)
