@@ -45,9 +45,9 @@ cp .env.example .env
 # 2. 启动服务
 docker compose up -d
 
-# 3. 执行数据库迁移和初始数据
-docker compose exec api npx tsx src/scripts/migrate.ts
-docker compose exec api npx tsx src/scripts/seed.ts
+# 3. 执行数据库迁移和初始数据（生产镜像使用编译后的 dist）
+docker compose exec api node dist/scripts/migrate.js
+docker compose exec api node dist/scripts/seed.js
 ```
 
 如需自动 HTTPS，使用 Caddy profile：
