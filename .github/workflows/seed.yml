@@ -1,0 +1,33 @@
+name: Seed Database
+
+# 手动触发：在服务器上执行种子脚本，创建测试学院/班级/学生账号/名言/示例任务。
+# 生产镜像已包含 dist/scripts/seed.js，依赖（bcryptjs/pg/dotenv）均为生产依赖。
+#
+# 触发方式：仓库 Actions 页 → 选 "Seed Database" → Run workflow
+# 幂等：seed 脚本先查后插，重复执行不会产生重复数据。
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    name: Seed
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd /opt/IdeoTrack
+
+            # 确认容器在运行
+            docker compose ps api
+
+            # 执行种子脚本（与 migrate 同样方式：在生产容器内用 node 跑编译产物）
+            docker compose exec -T api node dist/scripts/seed.js
+
+            echo "Seed completed successfully!"
