@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="header">
+    <view class="title">待复核心得</view>
+    <view class="subtitle">仅展示您所带班级的待复核打卡</view>
+  </view>
+
+  <view wx:if="{{errorMsg}}" class="error-tip">{{errorMsg}}</view>
+
+  <block wx:if="{{items.length > 0}}">
+    <view
+      wx:for="{{items}}"
+      wx:key="check_in_id"
+      class="review-card"
+      data-id="{{item.check_in_id}}"
+      bindtap="onItemTap"
+    >
+      <view class="review-header">
+        <view class="student">{{item.student_school_id}}</view>
+        <view class="class-tag">{{item.class_name}}</view>
+      </view>
+      <view class="task-title">{{item.task_title}}</view>
+      <view class="reflection">{{item.reflection_content || '（未填写心得）'}}</view>
+      <view class="review-footer">
+        <view class="reason-tag">
+          <text class="reason-dot" />{{formatReason(item)}}
+        </view>
+        <view class="time">{{item.submitted_at}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{loading && items.length > 0}}" class="load-more">加载中…</view>
+    <view wx:if="{{!hasMore && items.length > 0}}" class="load-more">没有更多了</view>
+  </block>
+
+  <view wx:if="{{!loading && items.length === 0}}" class="empty-state">
+    <view>暂无待复核心得</view>
+    <view class="text-secondary">当前没有 AI 初审未通过的学生打卡</view>
+  </view>
+</view>

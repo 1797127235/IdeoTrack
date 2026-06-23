@@ -1,0 +1,117 @@
+.info-card {
+  margin-bottom: var(--space-3);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1rpx solid var(--color-divider);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.value {
+  font-size: 28rpx;
+  color: var(--color-text);
+  text-align: right;
+  flex: 1;
+  margin-left: var(--space-3);
+  word-break: break-all;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-3);
+}
+
+.reflection-content {
+  font-size: 28rpx;
+  color: var(--color-text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.reason-card {
+  border-left: 8rpx solid var(--color-warning);
+}
+
+.reason-text {
+  font-size: 28rpx;
+  color: var(--color-warning);
+}
+
+.action-card {
+  margin-top: var(--space-3);
+}
+
+.decision-options {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.option {
+  flex: 1;
+  text-align: center;
+  padding: var(--space-3) 0;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: 28rpx;
+  border: 2rpx solid var(--color-border);
+}
+
+.option.active {
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.option.active.approve {
+  background-color: var(--color-success);
+}
+
+.option.active.reject {
+  background-color: var(--color-error);
+}
+
+.option.active.modify {
+  background-color: var(--color-warning);
+}
+
+.feedback-section {
+  margin-bottom: var(--space-4);
+}
+
+.feedback-input {
+  width: 100%;
+  min-height: 160rpx;
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  box-sizing: border-box;
+  font-size: 28rpx;
+  margin-top: var(--space-2);
+}
+
+.submit-btn {
+  margin-top: var(--space-2);
+}
+
+.error-tip {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  font-size: 28rpx;
+}

@@ -1,0 +1,94 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="empty-state">加载中…</view>
+  <view wx:if="{{errorMsg}}" class="error-tip">{{errorMsg}}</view>
+
+  <block wx:if="{{item && !loading}}">
+    <view class="card info-card">
+      <view class="info-row">
+        <view class="label">学生</view>
+        <view class="value">{{item.student_school_id}}</view>
+      </view>
+      <view class="info-row">
+        <view class="label">班级</view>
+        <view class="value">{{item.class_name}}</view>
+      </view>
+      <view class="info-row">
+        <view class="label">任务</view>
+        <view class="value">{{item.task_title}}</view>
+      </view>
+      <view class="info-row">
+        <view class="label">提交时间</view>
+        <view class="value text-secondary">{{item.submitted_at}}</view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">心得内容</view>
+      <view class="reflection-content">
+        {{item.reflection_content || '（未填写心得）'}}
+      </view>
+    </view>
+
+    <view class="card reason-card">
+      <view class="section-title">AI 初审结果</view>
+      <view class="reason-text">{{formatReason()}}</view>
+    </view>
+
+    <view class="card action-card">
+      <view class="section-title">复核决策</view>
+      <view class="decision-options">
+        <view
+          class="option {{decision === 'approve' ? 'active approve' : ''}}"
+          data-decision="approve"
+          bindtap="chooseDecision"
+        >
+          通过
+        </view>
+        <view
+          class="option {{decision === 'reject' ? 'active reject' : ''}}"
+          data-decision="reject"
+          bindtap="chooseDecision"
+        >
+          不通过
+        </view>
+        <view
+          class="option {{decision === 'require_modification' ? 'active modify' : ''}}"
+          data-decision="require_modification"
+          bindtap="chooseDecision"
+        >
+          要求修改
+        </view>
+      </view>
+
+      <view wx:if="{{showFeedback}}" class="feedback-section">
+        <view class="label">修改说明（必填）</view>
+        <textarea
+          class="feedback-input"
+          placeholder="请说明需要学生补充或修改的内容"
+          maxlength="500"
+          bindinput="onFeedbackInput"
+          value="{{feedback}}"
+        />
+      </view>
+
+      <view wx:if="{{decision === 'reject'}}" class="feedback-section">
+        <view class="label">不通过原因（选填）</view>
+        <textarea
+          class="feedback-input"
+          placeholder="可填写不通过原因，学生将在结果中查看"
+          maxlength="500"
+          bindinput="onFeedbackInput"
+          value="{{feedback}}"
+        />
+      </view>
+
+      <button
+        class="btn-primary submit-btn"
+        disabled="{{submitting || !decision}}"
+        bindtap="submit"
+      >
+        {{submitting ? '提交中…' : '确认复核'}}
+      </button>
+    </view>
+  </block>
+</view>

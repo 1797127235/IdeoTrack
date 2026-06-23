@@ -1,0 +1,156 @@
+<view class="container">
+  <block wx:if="{{taskLoading}}">
+    <view class="loading-wrap">
+      <view class="spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+  </block>
+
+  <block wx:elif="{{taskError}}">
+    <view class="error-wrap">
+      <text class="error-text">{{taskError}}</text>
+      <button class="retry-btn" bindtap="onRetryTask">重试</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <!-- 通过状态：AI 初审通过 / 辅导员审核通过 -->
+    <block wx:if="{{status === 'ai_approved' || status === 'approved'}}">
+      <view class="result-header">
+        <view class="icon-circle success">
+          <view class="checkmark"></view>
+        </view>
+        <text class="result-title">今日打卡完成！</text>
+        <text class="result-subtitle">
+          {{status === 'approved' ? '辅导员已复核通过' : '你的心得已通过 AI 初审'}}
+        </text>
+      </view>
+
+      <view class="info-card" wx:if="{{task}}">
+        <text class="info-label">任务</text>
+        <text class="info-title">{{task.title}}</text>
+        <view class="divider"></view>
+        <text class="info-label">心得摘要</text>
+        <text class="info-summary">{{reflectionSummary || '暂无心得摘要'}}</text>
+      </view>
+
+      <block wx:if="{{resultLoading}}">
+        <view class="stats-grid loading">
+          <view class="spinner"></view>
+          <text class="loading-text">正在计算打卡成就...</text>
+        </view>
+      </block>
+
+      <block wx:elif="{{resultError}}">
+        <view class="stats-grid error">
+          <text class="error-text">{{resultError}}</text>
+          <button class="retry-btn" bindtap="onRetryResult">重新加载</button>
+        </view>
+      </block>
+
+      <block wx:elif="{{result}}">
+        <view class="stats-grid">
+          <view class="stat-item">
+            <text class="stat-value">+{{result.base_points}}</text>
+            <text class="stat-label">积分</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-value">{{result.streak_days}}</text>
+            <text class="stat-label">连续天数</text>
+          </view>
+          <view class="stat-item wide">
+            <text class="stat-label">等级进度</text>
+            <view class="progress-track">
+              <view class="progress-fill" style="width: {{result.next_level_progress}}%;"></view>
+            </view>
+            <text class="stat-meta">{{result.next_level_progress}}%</text>
+          </view>
+        </view>
+
+        <view class="badge-card" wx:if="{{result.earned_badge}}">
+          <view class="badge-icon">🏅</view>
+          <view class="badge-content">
+            <text class="badge-title">获得勋章</text>
+            <text class="badge-name">{{result.earned_badge}}</text>
+          </view>
+        </view>
+      </block>
+
+      <view class="footer">
+        <button class="submit-btn" bindtap="onGoHome">返回首页</button>
+        <button class="secondary-btn" bindtap="onGoCalendar">查看日历</button>
+      </view>
+    </block>
+
+    <!-- 待复核 / 要求修改 -->
+    <block wx:if="{{status === 'pending_manual_review' || status === 'requires_modification'}}">
+      <view class="result-header">
+        <view class="icon-circle warning">
+          <view class="warning-mark"></view>
+        </view>
+        <text class="result-title">
+          {{status === 'requires_modification' ? '要求修改' : '需要复核'}}
+        </text>
+        <text class="result-subtitle">
+          {{status === 'requires_modification'
+            ? (task.review_feedback || '辅导员建议你补充内容后重新提交')
+            : (reviewReasonText || '心得可以再具体一点，说说你的真实感受吧')}}
+        </text>
+      </view>
+
+      <view class="info-card" wx:if="{{task}}">
+        <text class="info-label">任务</text>
+        <text class="info-title">{{task.title}}</text>
+        <view class="divider"></view>
+        <text class="info-label">心得摘要</text>
+        <text class="info-summary">{{reflectionSummary || '暂无心得摘要'}}</text>
+        <view class="divider" wx:if="{{task.review_feedback}}"></view>
+        <text class="info-label" wx:if="{{task.review_feedback}}">辅导员反馈</text>
+        <text class="info-summary feedback-text" wx:if="{{task.review_feedback}}">{{task.review_feedback}}</text>
+      </view>
+
+      <view class="notice-card">
+        <text class="notice-title">复核说明</text>
+        <text wx:if="{{status === 'requires_modification'}}" class="notice-item">1. 请根据辅导员反馈补充或修改内容后重新提交</text>
+        <text wx:else class="notice-item">1. 你可以补充内容后再次提交，或等待辅导员复核</text>
+        <text class="notice-item">2. 复核通常需要 1–2 个工作日</text>
+        <text class="notice-item">3. 通过后会自动发放积分并更新打卡状态</text>
+      </view>
+
+      <view class="footer">
+        <button wx:if="{{showModifyReflection}}" class="submit-btn" bindtap="onEditReflection">修改心得</button>
+        <button wx:else class="submit-btn" bindtap="onGoHome">返回首页</button>
+        <button class="secondary-btn" bindtap="onGoTaskDetail">查看任务详情</button>
+      </view>
+    </block>
+
+    <!-- 未通过 -->
+    <block wx:if="{{status === 'rejected'}}">
+      <view class="result-header">
+        <view class="icon-circle error">
+          <view class="error-mark"></view>
+        </view>
+        <text class="result-title">未通过复核</text>
+        <text class="result-subtitle">
+          {{task.review_feedback || '本次心得未通过复核，请联系辅导员了解详情'}}
+        </text>
+      </view>
+
+      <view class="info-card" wx:if="{{task}}">
+        <text class="info-label">任务</text>
+        <text class="info-title">{{task.title}}</text>
+        <view class="divider"></view>
+        <text class="info-label">心得摘要</text>
+        <text class="info-summary">{{reflectionSummary || '暂无心得摘要'}}</text>
+        <view class="divider" wx:if="{{task.review_feedback}}"></view>
+        <text class="info-label" wx:if="{{task.review_feedback}}">辅导员反馈</text>
+        <text class="info-summary feedback-text" wx:if="{{task.review_feedback}}">{{task.review_feedback}}</text>
+      </view>
+
+      <view class="footer">
+        <button class="submit-btn" bindtap="onGoHome">返回首页</button>
+        <button class="secondary-btn" bindtap="onGoTaskDetail">查看任务详情</button>
+      </view>
+    </block>
+  </block>
+</view>

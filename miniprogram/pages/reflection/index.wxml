@@ -1,0 +1,68 @@
+<view class="container">
+  <block wx:if="{{taskLoading}}">
+    <view class="loading-wrap">
+      <view class="loading">加载任务中...</view>
+    </view>
+  </block>
+
+  <block wx:elif="{{taskError}}">
+    <view class="error-wrap">
+      <text class="error-text">{{taskError}}</text>
+      <button class="retry-btn" bindtap="onRetryTask">重试</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="task-bar" wx:if="{{task}}">
+      <text class="task-title">{{task.title}}</text>
+      <text class="task-deadline">截止：{{task.deadline_at}}</text>
+    </view>
+
+    <view class="modify-notice {{editStatus === 'requires_modification' ? 'warning' : 'info'}}" wx:if="{{mode === 'edit'}}">
+      <text class="modify-notice-text" wx:if="{{editStatus === 'pending_manual_review'}}">AI 初审未通过，你还有 1 次修改机会</text>
+      <text class="modify-notice-text" wx:elif="{{editStatus === 'requires_modification'}}">辅导员建议你补充内容后重新提交</text>
+      <text class="modify-notice-text" wx:else>请修改你的心得内容后重新提交</text>
+      <text class="modify-notice-reason" wx:if="{{reviewReasonText}}">{{reviewReasonText}}</text>
+      <view class="counselor-feedback" wx:if="{{reviewFeedback}}">
+        <text class="feedback-label">辅导员反馈：</text>
+        <text class="feedback-text">{{reviewFeedback}}</text>
+      </view>
+    </view>
+
+    <view class="reflection-card">
+      <view class="card-header">
+        <text class="card-title">{{mode === 'edit' ? '修改心得' : '学习心得'}}</text>
+        <text class="word-count {{contentLength < 10 || contentLength > 500 ? 'error' : ''}}">{{contentLength}}/500</text>
+      </view>
+
+      <textarea
+        class="reflection-input {{contentError ? 'error' : ''}}"
+        placeholder="写下你的学习心得（最少 10 字）"
+        placeholder-class="reflection-placeholder"
+        bindinput="onContentInput"
+        value="{{content}}"
+        show-confirm-bar="{{false}}"
+      />
+
+      <text class="input-hint" wx:if="{{contentError}}">{{contentError}}</text>
+      <text class="input-hint default" wx:elif="{{contentLength === 0}}">建议结合任务内容写下真实感受，更容易通过审核哦</text>
+    </view>
+
+    <view class="tips-card" wx:if="{{mode !== 'edit'}}">
+      <text class="tips-title">提交说明</text>
+      <text class="tips-item">1. 心得字数需在 10–500 字之间</text>
+      <text class="tips-item">2. 请避免复制任务原文或写套话</text>
+      <text class="tips-item">3. 提交后系统将自动进行 AI 初审</text>
+    </view>
+
+    <view class="footer">
+      <button
+        class="submit-btn {{submitting || contentLength < 10 || contentLength > 500 ? 'disabled' : ''}}"
+        disabled="{{submitting || contentLength < 10 || contentLength > 500}}"
+        bindtap="onSubmit"
+      >
+        {{submitting ? (mode === 'edit' ? '保存中...' : '提交中...') : (mode === 'edit' ? '保存修改' : '提交心得')}}
+      </button>
+    </view>
+  </block>
+</view>

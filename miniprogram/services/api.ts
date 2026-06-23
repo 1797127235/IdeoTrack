@@ -11,7 +11,10 @@ import { getToken, clearToken } from '../utils/token';
  * 切换环境：修改 API_BASE_URL 常量即可。
  */
 
-const API_BASE_URL = 'http://localhost:3000';
+// 真机/线上：指向已部署的生产 API（Caddy 反代到 api 容器，已启用 HTTPS）。
+// 本地调试时如需连本地后端，临时改回 http://localhost:3000 并在开发者工具勾选
+// 「不校验合法域名」（project.config.json 已设 urlCheck: false）。
+const API_BASE_URL = 'https://ideotrack.cc.cd';
 const REQUEST_TIMEOUT_MS = 10000;
 
 export interface ApiResponse<T = unknown> {

@@ -4,5 +4,15 @@
     <view class="desc">积分 / 等级 / 勋章 / 个人信息将在这里展示</view>
     <view class="tag">待 Epic 6</view>
   </view>
+
+  <view wx:if="{{showReviewEntry}}" class="menu-card" bindtap="goToReviews">
+    <view class="menu-icon">📝</view>
+    <view class="menu-content">
+      <view class="menu-title">心得复核</view>
+      <view class="menu-desc">查看待复核的学生心得并处理</view>
+    </view>
+    <view class="menu-arrow">›</view>
+  </view>
+
   <button class="btn-logout" bindtap="handleLogout">退出登录</button>
 </view>

@@ -16,6 +16,10 @@ export interface CheckIn {
   longitude: number;
   address: string | null;
   checked_in_at: string;
+  reflection_content: string | null;
+  ai_review_reason: string | null;
+  review_feedback: string | null;
+  reflection_modified: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +32,11 @@ export interface CheckInResponse {
   longitude: number;
   address: string | null;
   checked_in_at: string;
+  reflection_content: string | null;
+  ai_review_reason: string | null;
+  ai_review_reason_code?: string;
+  review_feedback: string | null;
+  reflection_modified: boolean;
 }
 
 export interface CreateCheckInInput {
@@ -35,4 +44,21 @@ export interface CreateCheckInInput {
   latitude: number;
   longitude: number;
   address?: string;
+}
+
+export interface SubmitReflectionInput {
+  check_in_id: string;
+  content: string;
+}
+
+export interface CheckInResultSummary {
+  check_in_id: string;
+  task_id: string;
+  task_title: string;
+  status: CheckInStatus;
+  reflection_content: string | null;
+  base_points: number;
+  streak_days: number;
+  next_level_progress: number;
+  earned_badge: '坚持一周' | '坚持一月' | null;
 }

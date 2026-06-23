@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: '2026-06-22T07:04:25Z'
-last_updated: '2026-06-23T05:06:37Z'
+last_updated: '2026-06-24T05:00:00+08:00'
 project: IdeoTrack
 project_key: NOKEY
 tracking_system: file-system
@@ -71,16 +71,16 @@ development_status:
   epic-3-retrospective: optional
   epic-4: in-progress
   4-1-ding-wei-qian-dao: done
-  4-2-xin-de-ti-jiao: backlog
-  4-3-da-ka-jie-guo-fan-kui: backlog
-  4-4-xin-de-ti-jiao-hou-xiu-gai-1-ci: backlog
+  4-2-xin-de-ti-jiao: done
+  4-3-da-ka-jie-guo-fan-kui: done
+  4-4-xin-de-ti-jiao-hou-xiu-gai-1-ci: done
   epic-4-retrospective: optional
-  epic-5: backlog
-  5-1-ai-chu-shen-fu-wu: backlog
-  5-2-ai-chu-shen-chao-shi-shi-bai-dou-di: backlog
-  5-3-fu-dao-yuan-ren-gong-fu-he: backlog  # counselor: miniprogram
-  5-4-xue-sheng-cha-kan-fu-he-jie-guo: backlog
-  5-5-yao-qiu-xiu-gai-hou-chong-xin-ti-jiao: backlog
+  epic-5: in-progress  # 5.1/5.3 done；5.4/5.5 待 UI 收尾
+  5-1-ai-chu-shen-fu-wu: done
+  5-2-ai-chu-shen-chao-shi-shi-bai-dou-di: done  # 已在 5.1 中实现 LLM 超时降级
+  5-3-fu-dao-yuan-ren-gong-fu-he: done  # counselor: miniprogram
+  5-4-xue-sheng-cha-kan-fu-he-jie-guo: done  # student: task detail / checkin result
+  5-5-yao-qiu-xiu-gai-hou-chong-xin-ti-jiao: done  # student: reflection edit 支持 requires_modification
   epic-5-retrospective: optional
   epic-6: backlog
   6-1-ji-fen-ji-suan: backlog  # V2 deferred
@@ -99,25 +99,35 @@ development_status:
   8-4-fu-dao-yuan-shu-ju-dao-chu: backlog  # counselor: miniprogram, temp-link export
   epic-8-retrospective: optional
   epic-9: backlog
-  9-1-xue-yuan-guan-li: backlog  # admin: mobile
-  9-2-ban-ji-guan-li: backlog  # admin: mobile
-  9-3-dan-ge-yong-hu-chuang-jian: backlog  # admin: mobile
-  9-4-pi-liang-dao-ru-yong-hu: backlog  # admin: mobile
+  9-1-xue-yuan-guan-li: backlog  # admin: web (v2)
+  9-2-ban-ji-guan-li: backlog  # admin: web (v2)
+  9-3-dan-ge-yong-hu-chuang-jian: backlog  # admin: web (v2)
+  9-4-pi-liang-dao-ru-yong-hu: backlog  # admin: web (v2)
   epic-9-retrospective: optional
   epic-10: backlog
-  10-1-duo-wei-du-shu-ju-tong-ji: backlog  # admin: mobile
-  10-2-yi-chang-shu-ju-ti-shi: backlog  # admin: mobile
-  10-3-excel-bao-gao-dao-chu: backlog  # admin: mobile
-  10-4-pdf-bao-gao-dao-chu: backlog  # admin: mobile
+  10-1-duo-wei-du-shu-ju-tong-ji: backlog  # admin: web (v2)
+  10-2-yi-chang-shu-ju-ti-shi: backlog  # admin: web (v2)
+  10-3-excel-bao-gao-dao-chu: backlog  # admin: web (v2)
+  10-4-pdf-bao-gao-dao-chu: backlog  # admin: web (v2)
   epic-10-retrospective: optional
   epic-11: backlog
   11-1-mei-ri-da-ka-ti-xing: backlog
   11-2-fu-he-jie-guo-tong-zhi: backlog  # student: miniprogram
   11-3-xi-tong-tong-zhi-zhong-xin: backlog
   epic-11-retrospective: optional
-  epic-12: in-progress  # 已完成后端微信接口与学生登录；新增 Story 12.4 辅导员小程序登录与角色路由
+  epic-12: done  # 12.1-12.4 全部完成
   12-1-xiao-cheng-xu-gong-cheng-chu-shi-hua: done
   12-2-wei-xin-deng-lu-yu-bang-ding-liu-cheng: done
   12-3-hou-duan-wei-xin-deng-lu-jie-kou: done
-  12-4-fu-dao-yuan-xiao-cheng-xu-deng-lu-yu-jiao-se-lu-you: backlog  # 辅导员端 miniprogram
+  12-4-fu-dao-yuan-xiao-cheng-xu-deng-lu-yu-jiao-se-lu-you: done  # 辅导员端 miniprogram
   epic-12-retrospective: optional
+  epic-13: backlog  # 运维可见性与数据保护 (sprint-change-proposal-2026-06-24)
+  13-1-shu-ju-ku-mei-ri-bei-fen: backlog  # MVP 必做 (NFR-10) cron+pg_dump
+  13-2-ri-zhi-lun-zhuan-yu-sheng-chan-luo-pan: backlog  # MVP 必做 (NFR-8) docker logging + 卷挂载
+  13-3-hou-duan-yun-wei-api: backlog  # admin-only ops 域
+  13-4-guan-li-yuan-yun-wei-yi-biao-pan: backlog  # 管理员 Web 仪表盘 (归属改 web, 见 v2)
+  epic-13-retrospective: optional
+  epic-14: in-progress  # Web 后台基础设施 (sprint-change-proposal-2026-06-24-v2) 管理员端转 Next.js Web
+  14-1-nextjs-gong-cheng-chu-shi-hua: done  # web/ 骨架 + 鉴权 + CORS (client: web)
+  14-2-web-hou-tai-bu-ju-yu-dao-hang: backlog  # 侧边栏/顶栏布局 (client: web)
+  epic-14-retrospective: optional

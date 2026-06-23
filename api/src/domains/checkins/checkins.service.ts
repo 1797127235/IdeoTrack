@@ -1,12 +1,115 @@
-import { query } from '../../lib/db.js';
+import { query, queryOne, withTransaction } from '../../lib/db.js';
+import { logger } from '../../lib/logger.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { aiReviewReflection, getReviewReasonCode, saveAIReviewRecord } from '../reviews/reviews.service.js';
 import { assertTaskVisibleToStudent, fetchTaskById } from '../tasks/task.service.js';
-import type { CheckIn, CheckInResponse, CreateCheckInInput } from './checkins.types.js';
+import type {
+  CheckIn,
+  CheckInResponse,
+  CheckInResultSummary,
+  CreateCheckInInput,
+  SubmitReflectionInput,
+} from './checkins.types.js';
+import type { AIReviewResult } from '../reviews/reviews.types.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
+}
+
+function formatChinaDate(date: Date): string {
+  const chinaTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  return chinaTime.toISOString().slice(0, 10);
+}
+
+function computeStreakDays(days: string[]): number {
+  if (days.length === 0) return 0;
+  const dateSet = new Set(days);
+  const sortedDesc = [...days].sort((a, b) => b.localeCompare(a));
+  let cursor = new Date(sortedDesc[0] + 'T00:00:00.000Z');
+  let count = 0;
+  const maxLookback = 365;
+  for (let i = 0; i < maxLookback; i++) {
+    const cursorStr = cursor.toISOString().slice(0, 10);
+    if (dateSet.has(cursorStr)) {
+      count++;
+    } else {
+      break;
+    }
+    cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
+  }
+  return count;
+}
+
+function computeLevelProgress(streakDays: number): number {
+  if (streakDays < 7) {
+    return Math.min(100, Math.round((streakDays / 7) * 100));
+  }
+  if (streakDays < 30) {
+    return Math.min(100, Math.round((streakDays / 30) * 100));
+  }
+  return 100;
+}
+
+function computeEarnedBadge(streakDays: number): '坚持一周' | '坚持一月' | null {
+  if (streakDays >= 30) return '坚持一月';
+  if (streakDays >= 7) return '坚持一周';
+  return null;
+}
+
+export async function getCheckInResult(
+  userId: string,
+  checkInId: string
+): Promise<CheckInResultSummary> {
+  if (!isUuid(checkInId)) {
+    throw new AppError('VALIDATION_ERROR', '打卡记录 ID 无效', 400);
+  }
+
+  const checkIn = await queryOne<{
+    check_in_id: string;
+    task_id: string;
+    task_title: string;
+    status: string;
+    reflection_content: string | null;
+  }>(
+    `SELECT ci.id AS check_in_id,
+            ci.task_id,
+            t.title AS task_title,
+            ci.status,
+            ci.reflection_content
+     FROM check_ins ci
+     JOIN tasks t ON ci.task_id = t.id
+     WHERE ci.id = $1 AND ci.user_id = $2
+     LIMIT 1`,
+    [checkInId, userId]
+  );
+
+  if (!checkIn) {
+    throw new AppError('CHECKIN_NOT_FOUND', '打卡记录不存在', 404);
+  }
+
+  const daysRows = await query<{ day: string }>(
+    `SELECT DISTINCT DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai')::text AS day
+     FROM check_ins
+     WHERE user_id = $1 AND status IN ('approved', 'ai_approved')
+     ORDER BY day DESC`,
+    [userId]
+  );
+  const days = daysRows.map((row) => row.day);
+  const streakDays = computeStreakDays(days);
+
+  return {
+    check_in_id: checkIn.check_in_id,
+    task_id: checkIn.task_id,
+    task_title: checkIn.task_title,
+    status: checkIn.status as CheckInResultSummary['status'],
+    reflection_content: checkIn.reflection_content,
+    base_points: 10,
+    streak_days: streakDays,
+    next_level_progress: computeLevelProgress(streakDays),
+    earned_badge: computeEarnedBadge(streakDays),
+  };
 }
 
 function toCheckInResponse(checkIn: CheckIn): CheckInResponse {
@@ -18,6 +121,11 @@ function toCheckInResponse(checkIn: CheckIn): CheckInResponse {
     longitude: Number(checkIn.longitude),
     address: checkIn.address,
     checked_in_at: checkIn.checked_in_at,
+    reflection_content: checkIn.reflection_content,
+    ai_review_reason: checkIn.ai_review_reason,
+    ai_review_reason_code: getReviewReasonCode(checkIn.ai_review_reason ?? undefined),
+    review_feedback: checkIn.review_feedback,
+    reflection_modified: checkIn.reflection_modified,
   };
 }
 
@@ -60,4 +168,143 @@ export async function createOrUpdateCheckIn(
   }
 
   return toCheckInResponse(rows[0]);
+}
+
+function isReflectionEditableStatus(status: string): boolean {
+  return status === 'submitted' || status === 'ai_reviewing';
+}
+
+function isReflectionModifiableStatus(status: string): boolean {
+  return status === 'pending_manual_review' || status === 'requires_modification';
+}
+
+function isTerminalStatus(status: string): boolean {
+  return status === 'approved' || status === 'rejected';
+}
+
+export async function submitReflection(
+  userId: string,
+  input: SubmitReflectionInput
+): Promise<CheckInResponse> {
+  const { check_in_id, content } = input;
+
+  if (!check_in_id || !isUuid(check_in_id)) {
+    throw new AppError('VALIDATION_ERROR', '打卡记录 ID 无效', 400);
+  }
+
+  // 在事务中锁定并更新打卡记录，防止并发提交突破修改次数限制
+  const { checkIn, task } = await withTransaction(async (client) => {
+    const checkInResult = await client.query<CheckIn>(
+      `SELECT * FROM check_ins WHERE id = $1 AND user_id = $2 LIMIT 1 FOR UPDATE`,
+      [check_in_id, userId]
+    );
+
+    if (checkInResult.rows.length === 0) {
+      throw new AppError('CHECKIN_NOT_FOUND', '打卡记录不存在', 404);
+    }
+
+    const checkIn = checkInResult.rows[0];
+
+    // 校验任务未截止且对学生可见
+    const task = await fetchTaskById(checkIn.task_id);
+    await assertTaskVisibleToStudent(task, userId);
+
+    if (isTerminalStatus(checkIn.status)) {
+      throw new AppError('CHECKIN_ALREADY_REVIEWED', '打卡已完成审核，无法修改心得', 409);
+    }
+
+    const isFirstSubmission = isReflectionEditableStatus(checkIn.status);
+    const isModification = isReflectionModifiableStatus(checkIn.status);
+
+    if (!isFirstSubmission && !isModification) {
+      throw new AppError('CHECKIN_INVALID_STATUS', '当前状态不允许提交心得', 409);
+    }
+
+    // 除辅导员要求修改（requires_modification）外，其余流程均受 reflection_modified 一次限制
+    const limitedByModifiedFlag = checkIn.status !== 'requires_modification';
+    if (limitedByModifiedFlag && checkIn.reflection_modified) {
+      throw new AppError(
+        'CHECKIN_REFLECTION_ALREADY_MODIFIED',
+        '你已经修改过一次心得，无法再次修改',
+        409
+      );
+    }
+
+    // 首次提交：只有已经存在内容时才算修改；修改流程一律标记为 true
+    const reflectionModified = isModification ? true : !!checkIn.reflection_content;
+
+    const updateResult = await client.query<CheckIn>(
+      `UPDATE check_ins
+       SET reflection_content = $1,
+           reflection_modified = $2,
+           status = 'ai_reviewing',
+           ai_review_reason = NULL,
+           updated_at = NOW()
+       WHERE id = $3
+         AND status = ANY($4)
+       RETURNING *`,
+      [content, reflectionModified, checkIn.id, [checkIn.status]]
+    );
+
+    if (updateResult.rows.length === 0) {
+      throw new AppError('CHECKIN_CANNOT_MODIFY_REFLECTION', '当前状态不允许修改心得', 409);
+    }
+
+    return { checkIn: updateResult.rows[0], task };
+  });
+
+  // AI 审核在事务外执行，避免长时间占用连接；aiReviewReflection 内部已实现 3 秒超时
+  let reviewResult: AIReviewResult;
+  try {
+    reviewResult = await aiReviewReflection({
+      reflectionContent: content,
+      taskContent: task.content,
+    });
+  } catch (error) {
+    // AI 审核异常/超时时降级到 pending_manual_review，不阻塞用户流程
+    logger.warn(
+      { err: error instanceof Error ? { message: error.message } : { message: String(error) } },
+      'AI review failed, falling back to manual review'
+    );
+    reviewResult = {
+      status: 'pending_manual_review',
+      reason: 'AI 审核异常，转人工复核',
+      reason_code: 'ai_review_error',
+    };
+  }
+
+  // 保存 AI 初审记录，支持审计与调优（Story 5.1 / NFR-8）
+  try {
+    await saveAIReviewRecord({
+      checkInId: checkIn.id,
+      taskId: task.id,
+      userId,
+      reflectionContent: content,
+      taskContent: task.content,
+      status: reviewResult.status,
+      reason: reviewResult.reason,
+      reasonCode: reviewResult.reason_code,
+    });
+  } catch (recordError) {
+    logger.warn(
+      { err: recordError instanceof Error ? { message: recordError.message } : { message: String(recordError) } },
+      'Failed to save AI review record'
+    );
+  }
+
+  const finalRows = await query<CheckIn>(
+    `UPDATE check_ins
+     SET status = $1,
+         ai_review_reason = $2,
+         updated_at = NOW()
+     WHERE id = $3
+     RETURNING *`,
+    [reviewResult.status, reviewResult.reason ?? null, checkIn.id]
+  );
+
+  if (finalRows.length === 0) {
+    throw new AppError('CHECKIN_SERVICE_ERROR', '心得状态更新失败', 500);
+  }
+
+  return toCheckInResponse(finalRows[0]);
 }

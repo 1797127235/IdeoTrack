@@ -183,6 +183,8 @@ inputDocuments:
 10. Epic 10：全校统计与报告
 11. Epic 11：通知与提醒
 12. Epic 12：微信小程序基础设施（学生端）
+13. Epic 13：运维可见性与数据保护
+14. Epic 14：Web 后台基础设施（管理员端）
 
 ---
 
@@ -1121,6 +1123,142 @@ inputDocuments:
 
 ---
 
+## Epic 13：运维可见性与数据保护
+
+**目标**：保障 MVP 上线后的数据安全（每日备份）与运维可见性，让管理员无需登录服务器即可掌握系统健康、备份、资源与错误日志状态。
+
+**覆盖需求**：NFR-8（日志审计）、NFR-10（每日备份）、新增 FR-32（运维仪表盘）、AD-18
+**归属端**：后端（`api/src/domains/ops`）+ 管理员 Expo App（`mobile/`）+ 基础设施（`docker-compose` / cron）
+
+**范围说明**：
+- Story 13.1（每日备份）、13.2（日志轮转落盘）为 **MVP 必做**，对应 NFR-10/NFR-8（此前 PRD 已要求但无 story 承接，本 Epic 闭合该漏洞）。
+- Story 13.3（运维 API）、13.4（仪表盘）为 **MVP 前增强**，不阻塞核心打卡链路。
+
+### Story 13.1：数据库每日备份（MVP 必做）
+
+作为一名项目维护者，
+我想要系统每日自动备份数据库，
+以便在数据丢失或损坏时能恢复。
+
+**验收标准：**
+
+- **Given** 服务器已部署
+- **When** 到达每日凌晨 3:00（cron 触发）
+- **Then** 执行 `pg_dump` 导出到 `/opt/IdeoTrack/backups/db-backup-YYYYMMDD-HHMMSS.sql`
+- **And** 保留最近 14 天的备份，超出自动删除
+- **And** 备份脚本幂等，可手动重跑
+- **And** 备份不依赖后端进程（走系统 cron），API 挂了备份照跑
+- **And** 异地备份（对象存储 / 另一台机器）留待 V2
+
+**归属端**：基础设施（`scripts/backup-db.sh` + 服务器 cron）
+
+### Story 13.2：日志轮转与生产落盘（MVP 必做）
+
+作为一名项目维护者，
+我想要生产日志持久化落盘并自动轮转，
+以便排查问题时有历史日志且不会写满磁盘。
+
+**验收标准：**
+
+- **Given** 生产容器运行中
+- **When** 日志产生时
+- **Then** 三容器（postgres / api / caddy）均配置 `json-file` 日志驱动，`max-size 10m / max-file 3`
+- **And** api 容器挂载 `./logs:/app/logs` 卷，并设 `LOG_FILE_DIR=/app/logs`
+- **And** pino 同时写 stdout 和 `/app/logs/app.log`，落盘到宿主机持久化
+- **And** 容器重建后宿主机日志文件不丢失
+
+**归属端**：基础设施（`docker-compose.yml`）
+
+### Story 13.3：后端运维 API（ops 域，admin-only）
+
+作为一名管理员，
+我想要通过 API 读取系统运维状态，
+以便运维仪表盘展示数据。
+
+**验收标准：**
+
+- **Given** 新增 `api/src/domains/ops` 域
+- **When** 实现以下端点（全部 `authenticate` + `requireRoles('admin')`）
+- **Then** 提供：
+  - `GET /api/ops/health` —— API 进程存活 + Postgres 连通性（`SELECT 1`）+ 运行时长
+  - `GET /api/ops/backups` —— 列 `/app/backups` 下备份文件（文件名 / 大小 / 时间 / 是否成功）
+  - `GET /api/ops/system` —— 磁盘使用率 + Node 进程内存 + 容器运行时长
+  - `GET /api/ops/logs?limit=50&level=error` —— 读 `app.log` 尾部 N 行按 level 过滤
+- **And** 所有路径硬编码到挂载点，不接受用户输入拼路径（防目录穿越）
+- **And** fs / DB 读取失败时返回降级数据（null），不让运维页搞挂后端
+
+**归属端**：后端（`api/src/domains/ops/`）
+
+### Story 13.4：管理员运维仪表盘（App）
+
+作为一名管理员，
+我想要在 App 内查看系统运维状态，
+以便不登录服务器也能掌握系统健康。
+
+**验收标准：**
+
+- **Given** 管理员进入「系统状态」页
+- **When** 页面加载或下拉刷新
+- **Then** 展示四区：
+  1. 服务健康：API✅ / Postgres✅ + 运行时长
+  2. 系统资源：磁盘进度条、内存占用
+  3. 备份记录：最近备份列表（时间 / 大小 / 状态），最近一次距今多久高亮
+  4. 错误日志：最近 N 条 error 日志（时间 + 消息），可展开详情
+- **And** 管理员首页网格新增「🛠️ 系统状态」卡片入口
+- **And** 不新增 Tab；样式复用 theme tokens
+
+**归属端**：管理员 Expo App（`mobile/app/(admin)/system-status.tsx` + `mobile/services/systemOpsApi.ts`）
+
+---
+
+## Epic 14：Web 后台基础设施（管理员端）
+
+**目标**：搭建 Next.js Web 后台工程骨架，为 Epic 2.3、3（管理员侧）、9、10、13.4 的管理员功能提供运行基础。本 Epic 提前执行原 V2 Web 后台计划（sprint-change-proposal-2026-06-24-v2，重定义 AD-17）。
+
+**覆盖需求**：AD-17（重写）、AD-19、NFR-11、NFR-13
+**归属端**：Web（`web/`）+ 后端 `auth` / CORS
+
+**说明**：Expo App（`mobile/`）管理员功能标记废弃，仅作参考保留；管理员新功能一律在 `web/` 实现。学生 / 辅导员端不受影响。
+
+### Story 14.1：Next.js 工程初始化与鉴权
+
+作为一名开发者，
+我想要初始化 Next.js Web 后台工程骨架并接入鉴权，
+以便管理员 Web 功能能运行。
+
+**验收标准：**
+
+- **Given** 仓库根目录
+- **When** 创建 `web/`（Next.js App Router + TypeScript）
+- **Then** 包含登录页、API 客户端封装（JWT 注入、统一错误处理、超时，对应 `mobile/services/api.ts`）
+- **And** 管理员登录后 JWT 存 httpOnly cookie（首选）或 localStorage，角色守卫仅允许 admin
+- **And** 后端 CORS 通过 `CLIENT_URL` 加白 Web 域名（已支持逗号分隔，零结构改动）
+- **And** Caddy 反代 Web origin（或独立部署）
+- **And** 能在浏览器登录管理员账号、访问受保护页
+
+**覆盖需求**：FR-1（管理员登录）、AD-4、AD-17、AD-19
+**归属端**：Web（`web/`）+ 后端 `auth` / CORS
+
+### Story 14.2：Web 后台布局与导航
+
+作为一名管理员，
+我想要 Web 后台有清晰的桌面布局和导航，
+以便在各个管理模块间切换。
+
+**验收标准：**
+
+- **Given** 管理员登录 Web 后台
+- **When** 进入主界面
+- **Then** 桌面布局：侧边栏导航 + 主内容区（非移动 Tab）
+- **And** 侧边栏入口：概览 / 任务 / 名言 / 组织 / 用户 / 报表 / 运维
+- **And** 管理员首页概览展示模块卡片入口
+- **And** 提供退出登录
+- **And** 响应式布局，以桌面大屏为主要验证端
+
+**归属端**：Web（`web/`）
+
+---
+
 ## 跨 Epic 通用实现任务
 
 以下技术任务未单独列为 Story，但应在各 Epic 实施过程中统一落地：
@@ -1151,4 +1289,6 @@ inputDocuments:
 | 1.0 | 2026-06-22 | 初始版本，拆分 11 个 Epic、40 个 Story，覆盖 31 条 FR、17 条 NFR、16 条 AD、16 条 UX 需求 |
 | 1.1 | 2026-06-23 | 应用 sprint-change-proposal-2026-06-23：新增 Story 1.6（学生微信登录与学号绑定）、新增 Epic 12（微信小程序基础设施）、Epic 11 补分端实现说明、AD 清单补 AD-17。现共 12 个 Epic、43 个 Story。 |
 | 1.2 | 2026-06-23 | 应用 sprint-change-proposal-2026-06-23-v2：辅导员端迁入小程序，管理员端保留 Expo App + Web V2；Epic 12 扩展为学生 + 辅导员小程序基础设施；新增 Story 12.4（辅导员小程序登录与角色路由）。现共 12 个 Epic、44 个 Story。 |
+| 1.3 | 2026-06-24 | 应用 sprint-change-proposal-2026-06-24：新增 Epic 13（运维可见性与数据保护）含 Story 13.1–13.4，闭合 NFR-8/NFR-10 承接漏洞，新增 FR-32 与 AD-18。现共 13 个 Epic、48 个 Story。 |
+| 1.4 | 2026-06-24 | 应用 sprint-change-proposal-2026-06-24-v2：管理员端从 V1 Expo App 提前迁移至 Next.js Web 后台；新增 Epic 14（Web 后台基础设施）含 Story 14.1–14.2；Epic 9/10、Story 2.3、3.1/3.2（管理员侧）、13.4 归属端改 Web；Expo App 管理员功能标记废弃。重写 AD-17，新增 AD-19。现共 14 个 Epic、50 个 Story。 |
 

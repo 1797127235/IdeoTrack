@@ -140,11 +140,49 @@ ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8) NOT NULL 
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8) NOT NULL DEFAULT 0;
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS address TEXT;
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS reflection_content TEXT;
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS ai_review_reason TEXT;
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS reflection_modified BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS review_feedback TEXT;
+
+-- 积分记录表（Epic 5.3 / AD-13）：打卡通过时原子发放积分
+CREATE TABLE IF NOT EXISTS point_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  check_in_id UUID NOT NULL REFERENCES check_ins(id) ON DELETE CASCADE,
+  points INTEGER NOT NULL CHECK (points > 0),
+  reason TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (check_in_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_point_records_user_id ON point_records(user_id);
+
+-- AI 初审记录表（Epic 5.1）：保存每次 AI 审核输入、结果与原因，支持审计与调优
+CREATE TABLE IF NOT EXISTS ai_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  check_in_id UUID NOT NULL REFERENCES check_ins(id) ON DELETE CASCADE,
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reflection_content TEXT NOT NULL,
+  task_content TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ai_approved', 'pending_manual_review')),
+  reason TEXT,
+  reason_code TEXT,
+  reviewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_reviews_check_in_id ON ai_reviews(check_in_id);
+CREATE INDEX IF NOT EXISTS idx_ai_reviews_user_id ON ai_reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_reviews_status ON ai_reviews(status);
 
 -- 为历史数据兼容设置默认值；新记录必须由 API 提供真实坐标。
 -- V2 数据清理后可移除默认值：
 -- ALTER TABLE check_ins ALTER COLUMN latitude DROP DEFAULT;
 -- ALTER TABLE check_ins ALTER COLUMN longitude DROP DEFAULT;
+
+CREATE INDEX IF NOT EXISTS idx_check_ins_reflection_status ON check_ins(status, reflection_modified);
 
 CREATE INDEX IF NOT EXISTS idx_tasks_status_deadline ON tasks(status, deadline_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_published_at ON tasks(published_at);

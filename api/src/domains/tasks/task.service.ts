@@ -1,5 +1,6 @@
 import { query, queryOne, queryCount } from '../../lib/db.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { getReviewReasonCode } from '../reviews/reviews.service.js';
 import type {
   Task,
   TaskResponse,
@@ -129,16 +130,44 @@ export async function fetchTaskById(taskId: string): Promise<Task> {
 
 async function fetchUserCheckIns(userId: string, taskIds: string[]) {
   if (taskIds.length === 0) return {};
-  const rows = await query<{ task_id: string; status: CheckInStatus; created_at: string }>(
-    `SELECT task_id, status, created_at
+  const rows = await query<{
+    task_id: string;
+    id: string;
+    status: CheckInStatus;
+    created_at: string;
+    reflection_content: string | null;
+    ai_review_reason: string | null;
+    reflection_modified: boolean;
+    review_feedback: string | null;
+  }>(
+    `SELECT task_id, id, status, created_at, reflection_content, ai_review_reason, reflection_modified, review_feedback
      FROM check_ins
      WHERE user_id = $1 AND task_id = ANY($2)`,
     [userId, taskIds]
   );
 
-  const map: Record<string, { status: CheckInStatus; created_at: string }> = {};
+  const map: Record<
+    string,
+    {
+      id: string;
+      status: CheckInStatus;
+      created_at: string;
+      reflection_content: string | null;
+      ai_review_reason: string | null;
+      reflection_modified: boolean;
+      review_feedback: string | null;
+    }
+  > = {};
   rows.forEach((row) => {
-    map[row.task_id] = { status: row.status, created_at: row.created_at };
+    map[row.task_id] = {
+      id: row.id,
+      status: row.status,
+      created_at: row.created_at,
+      reflection_content: row.reflection_content,
+      ai_review_reason: row.ai_review_reason,
+      reflection_modified: row.reflection_modified,
+      review_feedback: row.review_feedback,
+    };
   });
   return map;
 }
@@ -520,7 +549,13 @@ export async function getMyTaskDetail(userId: string, taskId: string): Promise<T
     published_at: task.published_at,
     deadline_at: task.deadline_at,
     status,
+    check_in_id: checkIn?.id,
     check_in_status: checkIn?.status,
+    reflection_content: checkIn?.reflection_content ?? undefined,
+    ai_review_reason: checkIn?.ai_review_reason ?? undefined,
+    ai_review_reason_code: getReviewReasonCode(checkIn?.ai_review_reason ?? undefined),
+    reflection_modified: checkIn?.reflection_modified,
+    review_feedback: checkIn?.review_feedback ?? undefined,
     completed_at: status === 'completed' ? checkIn?.created_at : undefined,
   };
 }

@@ -41,8 +41,13 @@ export interface StudentTask {
 }
 
 export interface TaskDetail extends StudentTask {
+  check_in_id?: string;
   check_in_status?: CheckInStatus;
   reflection_content?: string;
+  ai_review_reason?: string;
+  ai_review_reason_code?: string;
+  reflection_modified?: boolean;
+  review_feedback?: string;
 }
 
 export interface TaskWithStats extends TaskResponse {

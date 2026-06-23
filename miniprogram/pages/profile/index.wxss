@@ -1,17 +1,20 @@
 .page-placeholder {
   padding: var(--space-4);
 }
+
 .title {
   font-size: 40rpx;
   font-weight: 700;
   color: var(--color-primary-dark);
   margin-bottom: var(--space-2);
 }
+
 .desc {
   font-size: 28rpx;
   color: var(--color-text-secondary);
   margin-bottom: var(--space-3);
 }
+
 .tag {
   display: inline-block;
   font-size: 22rpx;
@@ -20,6 +23,42 @@
   padding: 6rpx 16rpx;
   border-radius: 999rpx;
 }
+
+.menu-card {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.menu-icon {
+  font-size: 44rpx;
+  margin-right: var(--space-3);
+}
+
+.menu-content {
+  flex: 1;
+}
+
+.menu-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-1);
+}
+
+.menu-desc {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+
+.menu-arrow {
+  font-size: 40rpx;
+  color: var(--color-text-disabled);
+}
+
 .btn-logout {
   margin-top: var(--space-6);
   background-color: var(--color-surface);

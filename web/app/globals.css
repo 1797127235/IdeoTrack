@@ -1,0 +1,38 @@
+:root {
+  /* 与 lib/theme.ts 对齐，供 CSS Modules / 内联样式复用 */
+  --color-primary: #0891b2;
+  --color-primary-light: #22d3ee;
+  --color-primary-dark: #164e63;
+  --color-cta: #22c55e;
+  --color-background: #ecfeff;
+  --color-surface: #ffffff;
+  --color-text: #164e63;
+  --color-text-light: #64748b;
+  --color-error: #ef4444;
+  --color-success: #22c55e;
+  --color-border: #e2e8f0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--color-text);
+  background: var(--color-background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

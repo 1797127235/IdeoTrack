@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "待复核列表",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "backgroundColor": "#ECFEFF"
+}

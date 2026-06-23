@@ -101,6 +101,12 @@ jobs:
             chmod 600 .env
 
             # 配置 API 域名，Caddy 会自动申请并续期 HTTPS 证书
+            # 注：管理员 Web 后台 (Story 14.x) 计划用 admin.ideotrack.cc.cd，
+            # 由独立的 Web 部署（Next.js standalone 或独立容器）承载，届时在此追加：
+            #   admin.ideotrack.cc.cd {
+            #     reverse_proxy <web-host>:<web-port>
+            #   }
+            # 并把 CLIENT_URL 从 * 收紧为 ideotrack.cc.cd,https://admin.ideotrack.cc.cd
             cat > Caddyfile << 'EOF'
             ideotrack.cc.cd {
               reverse_proxy api:3000

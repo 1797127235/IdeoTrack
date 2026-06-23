@@ -27,7 +27,7 @@ Page({
 
       // 已绑定 → 直接登录成功
       if (res.token) {
-        onLoginSuccess(res.token);
+        onLoginSuccess(res.token, res.user);
         wx.reLaunch({ url: '/pages/home/index' });
         return;
       }

@@ -44,7 +44,7 @@ Page({
     this.setData({ loading: true, errorMsg: '' });
     try {
       const res = await bindStudent(openid, schoolId.trim(), password);
-      onLoginSuccess(res.token);
+      onLoginSuccess(res.token, res.user);
 
       // 绑定成功 → 跳首页（reLaunch 清空登录页栈）
       wx.reLaunch({ url: '/pages/home/index' });

@@ -248,9 +248,9 @@ export async function bindWechat(input: WechatBindInput): Promise<LoginResponse>
     throw new AppError('AUTH_INVALID_CREDENTIALS', '学号或密码错误', 401);
   }
 
-  // 仅学生角色可绑定（辅导员/管理员走 App，AD-17）
-  if (user.role !== 'student') {
-    throw new AppError('AUTH_WECHAT_ROLE_NOT_ALLOWED', '仅学生账号支持微信登录', 403);
+  // 允许学生、辅导员、管理员通过微信小程序登录（Story 5.3 辅导员需在小程序复核）
+  if (!['student', 'counselor', 'admin'].includes(user.role)) {
+    throw new AppError('AUTH_WECHAT_ROLE_NOT_ALLOWED', '当前角色不支持微信登录', 403);
   }
 
   // 先解绑占用该 openid 的旧账号（同一 openid 只能绑一个用户）

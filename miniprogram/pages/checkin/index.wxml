@@ -15,7 +15,7 @@
   <block wx:else>
     <view class="task-bar" wx:if="{{task}}">
       <text class="task-title">{{task.title}}</text>
-      <text class="task-deadline">{{task.deadline_at}}</text>
+      <text class="task-deadline">{{deadlineText}}</text>
     </view>
 
     <view class="location-card">

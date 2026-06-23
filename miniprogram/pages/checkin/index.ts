@@ -1,13 +1,13 @@
 import { createCheckIn } from '../../services/checkinApi';
 import { getMyTaskDetail, type Task } from '../../services/taskApi';
-
-let successNavigateTimer: number | undefined;
+import { formatDeadline } from '../../utils/format';
 
 Page({
   data: {
     taskId: '',
     taskTitle: '定位签到',
     task: null as Task | null,
+    deadlineText: '',
     taskLoading: true,
     taskError: '',
     latitude: 0,
@@ -33,13 +33,6 @@ Page({
     this.loadLocation();
   },
 
-  onUnload() {
-    if (successNavigateTimer) {
-      clearTimeout(successNavigateTimer);
-      successNavigateTimer = undefined;
-    }
-  },
-
   async loadTaskDetail(taskId: string) {
     this.setData({ taskLoading: true, taskError: '' });
     try {
@@ -47,7 +40,7 @@ Page({
       if (res.success && res.data) {
         const task = res.data;
         wx.setNavigationBarTitle({ title: task.title });
-        this.setData({ task, taskTitle: task.title, taskLoading: false });
+        this.setData({ task, taskTitle: task.title, deadlineText: formatDeadline(task.deadline_at), taskLoading: false });
       } else {
         this.setData({
           taskError: res.error?.message || '获取任务详情失败',
@@ -130,12 +123,14 @@ Page({
       const res = await createCheckIn({ task_id: taskId, latitude, longitude, address });
       if (res.success && res.data) {
         wx.showToast({ title: '签到成功', icon: 'success' });
-        // Story 4.2：跳转到心得提交页
-        // 当前用 navigateBack 回到任务详情，待 4.2 实现后替换
-        successNavigateTimer = setTimeout(() => {
-          successNavigateTimer = undefined;
-          wx.navigateBack();
-        }, 1200) as unknown as number;
+        const checkInId = res.data.id;
+        wx.redirectTo({
+          url: `/pages/reflection/index?checkInId=${checkInId}&taskId=${taskId}&mode=create`,
+          fail: () => {
+            wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+            this.setData({ submitting: false });
+          },
+        });
       } else {
         wx.showToast({
           title: res.error?.message || '签到失败',
