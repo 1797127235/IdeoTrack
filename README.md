@@ -6,7 +6,7 @@
 
 ```
 IdeoTrack/
-├── api/            # 后端 API（Node.js + Express + TypeScript + Supabase）
+├── api/            # 后端 API（Node.js + Express + TypeScript + PostgreSQL）
 ├── mobile/         # 管理员/辅导员端 App（React Native + Expo）
 ├── miniprogram/    # 学生端微信小程序（原生开发）
 ├── test/           # API 测试集（Bruno）
@@ -19,7 +19,7 @@ IdeoTrack/
 
 ```bash
 cd api
-cp .env.example .env      # 然后编辑 .env 填入真实的 Supabase/JWT 凭证
+cp .env.example .env      # 然后编辑 .env 填入真实的 PostgreSQL/JWT 凭证
 npm install
 npm run db:migrate        # 创建数据库表
 npm run db:seed           # 填充测试数据（学生/管理员账号 + 示例名言 + 任务）
@@ -52,7 +52,7 @@ npm start                 # Expo 开发服务器
 | 层 | 技术 |
 |---|---|
 | 后端 | Node.js 24 + Express 5 + TypeScript 6 |
-| 数据库/存储 | Supabase（PostgreSQL + Storage）|
+| 数据库 | PostgreSQL 17（支持 Supabase 托管或自托管）|
 | 认证 | JWT（账号密码）+ 微信登录（学生端）|
 | 管理端 | React Native 0.85 + Expo SDK 56 |
 | 学生端 | 微信小程序原生（基础库 3.x）|

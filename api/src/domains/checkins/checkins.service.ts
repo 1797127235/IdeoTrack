@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase.js';
+import { query } from '../../lib/db.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { assertTaskVisibleToStudent, fetchTaskById } from '../tasks/task.service.js';
 import type { CheckIn, CheckInResponse, CreateCheckInInput } from './checkins.types.js';
@@ -39,26 +39,25 @@ export async function createOrUpdateCheckIn(
   const task = await fetchTaskById(task_id);
   await assertTaskVisibleToStudent(task, userId);
 
-  const { data, error } = await supabase
-    .from('check_ins')
-    .upsert(
-      {
-        task_id,
-        user_id: userId,
-        status: 'submitted',
-        latitude,
-        longitude,
-        address: address ?? null,
-        checked_in_at: new Date().toISOString(),
-      },
-      { onConflict: 'task_id,user_id' }
-    )
-    .select()
-    .single();
+  const rows = await query<CheckIn>(
+    `INSERT INTO check_ins (
+      task_id, user_id, status, latitude, longitude, address, checked_in_at
+    ) VALUES ($1, $2, 'submitted', $3, $4, $5, $6)
+    ON CONFLICT (task_id, user_id)
+    DO UPDATE SET
+      status = EXCLUDED.status,
+      latitude = EXCLUDED.latitude,
+      longitude = EXCLUDED.longitude,
+      address = EXCLUDED.address,
+      checked_in_at = EXCLUDED.checked_in_at,
+      updated_at = NOW()
+    RETURNING *`,
+    [task_id, userId, latitude, longitude, address ?? null, new Date().toISOString()]
+  );
 
-  if (error || !data) {
+  if (rows.length === 0) {
     throw new AppError('CHECKIN_SERVICE_ERROR', '签到失败', 500);
   }
 
-  return toCheckInResponse(data as CheckIn);
+  return toCheckInResponse(rows[0]);
 }

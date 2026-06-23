@@ -9,7 +9,7 @@
 - Node.js 24 或兼容版本
 - npm
 - Bruno 桌面端（如果使用图形界面跑接口测试）
-- 一个可用的 Supabase 项目，并在 `api/.env` 中配置好 `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`DATABASE_URL`、`JWT_SECRET`
+- 一个可用的 PostgreSQL 数据库，并在 `api/.env` 中配置好 `DATABASE_URL`、`JWT_SECRET`
 
 `api/.env` 最少需要：
 
@@ -17,11 +17,9 @@
 PORT=3000
 NODE_ENV=development
 CLIENT_URL=*
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxxxx
-DATABASE_URL=postgresql://postgres:password@db.xxxxx.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres:password@localhost:5432/ideo_track
 # 可选：自动化集成测试专用数据库。未配置时 npm test 会跳过破坏性 DB 测试。
-TEST_DATABASE_URL=postgresql://postgres:password@db.xxxxx.supabase.co:5432/postgres
+TEST_DATABASE_URL=postgresql://postgres:password@localhost:5432/ideo_track_test
 JWT_SECRET=dev-jwt-secret-key-must-be-at-least-32-characters-long
 JWT_EXPIRES_IN=7d
 ```

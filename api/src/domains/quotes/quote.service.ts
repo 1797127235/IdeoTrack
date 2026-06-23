@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase.js';
+import { query, queryOne } from '../../lib/db.js';
 import { AppError } from '../../middleware/error-handler.js';
 import type {
   Quote,
@@ -36,32 +36,32 @@ function simpleHash(input: string): number {
 
 export async function getDailyQuote(dateStr: string): Promise<QuoteResponse> {
   // 1. 检查是否已有当日记录
-  const { data: existingDaily, error: dailyError } = await supabase
-    .from('daily_quotes')
-    .select('quote_id, quotes(*)')
-    .eq('date', dateStr)
-    .single();
+  const existingDaily = await queryOne<{
+    quote_id: string;
+    content: string;
+    author: string;
+    source: string;
+  }>(
+    `SELECT dq.quote_id, q.content, q.author, q.source
+     FROM daily_quotes dq
+     JOIN quotes q ON dq.quote_id = q.id
+     WHERE dq.date = $1
+     LIMIT 1`,
+    [dateStr]
+  );
 
-  if (dailyError && dailyError.code !== 'PGRST116') {
-    throw new AppError('QUOTE_SERVICE_ERROR', '获取每日名言失败', 500);
-  }
-
-  if (existingDaily?.quotes) {
-    return toResponse(existingDaily.quotes as unknown as Quote);
+  if (existingDaily) {
+    return toResponse(existingDaily as unknown as Quote);
   }
 
   // 2. 获取启用名言列表
-  const { data: enabledQuotes, error: quotesError } = await supabase
-    .from('quotes')
-    .select('*')
-    .eq('is_enabled', true)
-    .order('display_order', { ascending: true });
+  const enabledQuotes = await query<Quote>(
+    `SELECT * FROM quotes
+     WHERE is_enabled = true
+     ORDER BY display_order ASC`
+  );
 
-  if (quotesError) {
-    throw new AppError('QUOTE_SERVICE_ERROR', '获取名言库失败', 500);
-  }
-
-  if (!enabledQuotes || enabledQuotes.length === 0) {
+  if (enabledQuotes.length === 0) {
     return FALLBACK_QUOTE;
   }
 
@@ -70,111 +70,135 @@ export async function getDailyQuote(dateStr: string): Promise<QuoteResponse> {
   const selectedQuote = enabledQuotes[selectedIndex];
 
   // 4. 尝试写入当日记录；若已存在则忽略冲突
-  await supabase
-    .from('daily_quotes')
-    .insert({ quote_id: selectedQuote.id, date: dateStr })
-    .select()
-    .single();
+  await query(
+    `INSERT INTO daily_quotes (quote_id, date)
+     VALUES ($1, $2)
+     ON CONFLICT (date) DO NOTHING`,
+    [selectedQuote.id, dateStr]
+  );
 
   return toResponse(selectedQuote);
 }
 
 export async function listQuotes(filters: QuoteFilters = {}): Promise<Quote[]> {
-  let query = supabase.from('quotes').select('*').order('display_order', { ascending: true });
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 1;
 
   if (typeof filters.is_enabled === 'boolean') {
-    query = query.eq('is_enabled', filters.is_enabled);
+    conditions.push(`is_enabled = $${paramIndex}`);
+    params.push(filters.is_enabled);
+    paramIndex++;
   }
 
-  const { data, error } = await query;
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  if (error) {
-    throw new AppError('QUOTE_SERVICE_ERROR', '获取名言列表失败', 500);
-  }
-
-  return (data || []) as Quote[];
+  return query<Quote>(
+    `SELECT * FROM quotes
+     ${whereClause}
+     ORDER BY display_order ASC`,
+    params
+  );
 }
 
 export async function createQuote(input: CreateQuoteInput): Promise<Quote> {
-  const { data: maxOrderData, error: maxOrderError } = await supabase
-    .from('quotes')
-    .select('display_order')
-    .order('display_order', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (maxOrderError && maxOrderError.code !== 'PGRST116') {
-    throw new AppError('QUOTE_SERVICE_ERROR', '获取名言排序失败', 500);
-  }
+  const maxOrderRow = await queryOne<{ display_order: number }>(
+    `SELECT display_order FROM quotes
+     ORDER BY display_order DESC
+     LIMIT 1`
+  );
 
   const displayOrder =
     typeof input.display_order === 'number'
       ? input.display_order
-      : (maxOrderData?.display_order ?? -1) + 1;
+      : (maxOrderRow?.display_order ?? -1) + 1;
 
-  const { data, error } = await supabase
-    .from('quotes')
-    .insert({
-      content: input.content,
-      author: input.author ?? null,
-      source: input.source ?? null,
-      is_enabled: input.is_enabled ?? true,
-      display_order: displayOrder,
-    })
-    .select()
-    .single();
+  const rows = await query<Quote>(
+    `INSERT INTO quotes (content, author, source, is_enabled, display_order)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING *`,
+    [
+      input.content,
+      input.author ?? null,
+      input.source ?? null,
+      input.is_enabled ?? true,
+      displayOrder,
+    ]
+  );
 
-  if (error || !data) {
+  if (rows.length === 0) {
     throw new AppError('QUOTE_SERVICE_ERROR', '创建名言失败', 500);
   }
 
-  return data as Quote;
+  return rows[0];
 }
 
 export async function updateQuote(id: string, input: UpdateQuoteInput): Promise<Quote> {
-  const { data: existing } = await supabase.from('quotes').select('id').eq('id', id).single();
+  const existing = await queryOne<{ id: string }>(
+    'SELECT id FROM quotes WHERE id = $1 LIMIT 1',
+    [id]
+  );
 
   if (!existing) {
     throw new AppError('QUOTE_NOT_FOUND', '名言不存在', 404);
   }
 
-  const updatePayload: Record<string, unknown> = {};
+  const updates: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 1;
 
-  if (input.content !== undefined) updatePayload.content = input.content;
-  if (input.author !== undefined) updatePayload.author = input.author;
-  if (input.source !== undefined) updatePayload.source = input.source;
-  if (input.is_enabled !== undefined) updatePayload.is_enabled = input.is_enabled;
-  if (input.display_order !== undefined) updatePayload.display_order = input.display_order;
+  function addSet(column: string, value: unknown) {
+    updates.push(`${column} = $${paramIndex}`);
+    params.push(value);
+    paramIndex++;
+  }
 
-  const { data, error } = await supabase
-    .from('quotes')
-    .update(updatePayload)
-    .eq('id', id)
-    .select()
-    .single();
+  if (input.content !== undefined) addSet('content', input.content);
+  if (input.author !== undefined) addSet('author', input.author);
+  if (input.source !== undefined) addSet('source', input.source);
+  if (input.is_enabled !== undefined) addSet('is_enabled', input.is_enabled);
+  if (input.display_order !== undefined) addSet('display_order', input.display_order);
 
-  if (error || !data) {
+  if (updates.length === 0) {
+    const quote = await queryOne<Quote>('SELECT * FROM quotes WHERE id = $1 LIMIT 1', [id]);
+    if (!quote) {
+      throw new AppError('QUOTE_NOT_FOUND', '名言不存在', 404);
+    }
+    return quote;
+  }
+
+  params.push(id);
+  const rows = await query<Quote>(
+    `UPDATE quotes
+     SET ${updates.join(', ')}
+     WHERE id = $${paramIndex}
+     RETURNING *`,
+    params
+  );
+
+  if (rows.length === 0) {
     throw new AppError('QUOTE_SERVICE_ERROR', '更新名言失败', 500);
   }
 
-  return data as Quote;
+  return rows[0];
 }
 
 export async function deleteQuote(id: string): Promise<void> {
-  const { data: existing } = await supabase.from('quotes').select('id').eq('id', id).single();
+  const existing = await queryOne<{ id: string }>(
+    'SELECT id FROM quotes WHERE id = $1 LIMIT 1',
+    [id]
+  );
 
   if (!existing) {
     throw new AppError('QUOTE_NOT_FOUND', '名言不存在', 404);
   }
 
-  const { data: references } = await supabase
-    .from('daily_quotes')
-    .select('id')
-    .eq('quote_id', id)
-    .limit(1)
-    .single();
+  const reference = await queryOne<{ id: string }>(
+    'SELECT id FROM daily_quotes WHERE quote_id = $1 LIMIT 1',
+    [id]
+  );
 
-  if (references) {
+  if (reference) {
     throw new AppError(
       'QUOTE_IN_USE',
       '该名言已被用于历史每日记录，无法删除。建议先禁用它。',
@@ -182,9 +206,5 @@ export async function deleteQuote(id: string): Promise<void> {
     );
   }
 
-  const { error } = await supabase.from('quotes').delete().eq('id', id);
-
-  if (error) {
-    throw new AppError('QUOTE_SERVICE_ERROR', '删除名言失败', 500);
-  }
+  await query('DELETE FROM quotes WHERE id = $1', [id]);
 }

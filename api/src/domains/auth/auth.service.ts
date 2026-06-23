@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { supabase } from '../../lib/supabase.js';
+import { query, queryOne } from '../../lib/db.js';
 import { config } from '../../config/index.js';
 import { AppError } from '../../middleware/error-handler.js';
 import type {
@@ -24,18 +24,10 @@ const BCRYPT_SALT_ROUNDS = 10;
 export async function login(input: LoginInput): Promise<LoginResponse> {
   const normalizedSchoolId = input.schoolId.trim();
 
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('school_id', normalizedSchoolId)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      throw new AppError('AUTH_INVALID_CREDENTIALS', '账号或密码错误', 401);
-    }
-    throw new AppError('AUTH_SERVICE_ERROR', '登录服务异常，请稍后重试', 500);
-  }
+  const user = await queryOne<User>(
+    'SELECT * FROM users WHERE school_id = $1 LIMIT 1',
+    [normalizedSchoolId]
+  );
 
   if (!user) {
     throw new AppError('AUTH_INVALID_CREDENTIALS', '账号或密码错误', 401);
@@ -62,42 +54,29 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
     const newFailedAttempts = user.failed_login_attempts + 1;
     const shouldLock = newFailedAttempts >= MAX_FAILED_ATTEMPTS;
 
-    const updatePayload: {
-      failed_login_attempts: number;
-      locked_until?: string;
-    } = {
-      failed_login_attempts: newFailedAttempts,
-    };
+    const lockedUntilIso = shouldLock
+      ? new Date(now.getTime() + LOCK_DURATION_MINUTES * 60 * 1000).toISOString()
+      : null;
 
-    if (shouldLock) {
-      const lockUntil = new Date(now.getTime() + LOCK_DURATION_MINUTES * 60 * 1000);
-      updatePayload.locked_until = lockUntil.toISOString();
-    }
-
-    const { error: updateError } = await supabase
-      .from('users')
-      .update(updatePayload)
-      .eq('id', user.id);
-
-    if (updateError) {
-      throw new AppError('AUTH_SERVICE_ERROR', '登录服务异常，请稍后重试', 500);
-    }
+    await query(
+      `UPDATE users
+       SET failed_login_attempts = $1,
+           locked_until = $2
+       WHERE id = $3`,
+      [newFailedAttempts, lockedUntilIso, user.id]
+    );
 
     throw new AppError('AUTH_INVALID_CREDENTIALS', '账号或密码错误', 401);
   }
 
   // Reset failed attempts and lock status on successful login
-  const { error: resetError } = await supabase
-    .from('users')
-    .update({
-      failed_login_attempts: 0,
-      locked_until: null,
-    })
-    .eq('id', user.id);
-
-  if (resetError) {
-    throw new AppError('AUTH_SERVICE_ERROR', '登录服务异常，请稍后重试', 500);
-  }
+  await query(
+    `UPDATE users
+     SET failed_login_attempts = 0,
+         locked_until = NULL
+     WHERE id = $1`,
+    [user.id]
+  );
 
   const token = jwt.sign(
     { userId: user.id, role: user.role as UserRole },
@@ -134,13 +113,12 @@ export async function changePassword(
     throw new AppError('AUTH_SAME_PASSWORD', '新密码不能与当前密码相同', 400);
   }
 
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('password_hash')
-    .eq('id', userId)
-    .single();
+  const user = await queryOne<{ password_hash: string }>(
+    'SELECT password_hash FROM users WHERE id = $1 LIMIT 1',
+    [userId]
+  );
 
-  if (error || !user) {
+  if (!user) {
     throw new AppError('AUTH_SERVICE_ERROR', '用户查询失败', 500);
   }
 
@@ -155,16 +133,16 @@ export async function changePassword(
 
   const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
 
-  const { data: updatedUsers, error: updateError } = await supabase
-    .from('users')
-    .update({
-      password_hash: newPasswordHash,
-      is_initial_password: false,
-    })
-    .eq('id', userId)
-    .select('id');
+  const result = await query(
+    `UPDATE users
+     SET password_hash = $1,
+         is_initial_password = false
+     WHERE id = $2
+     RETURNING id`,
+    [newPasswordHash, userId]
+  );
 
-  if (updateError || !updatedUsers || updatedUsers.length === 0) {
+  if (result.length === 0) {
     throw new AppError('AUTH_SERVICE_ERROR', '密码更新失败', 500);
   }
 }
@@ -217,25 +195,25 @@ export async function wechatLogin(input: WechatLoginInput): Promise<WechatLoginR
 
   const openid = await code2session(input.code.trim());
 
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('id, role, is_initial_password, wechat_openid')
-    .eq('wechat_openid', openid)
-    .maybeSingle();
-
-  if (error) {
-    throw new AppError('AUTH_SERVICE_ERROR', '登录服务异常，请稍后重试', 500);
-  }
+  const user = await queryOne<{
+    id: string;
+    role: UserRole;
+    is_initial_password: boolean;
+    wechat_openid: string;
+  }>(
+    'SELECT id, role, is_initial_password, wechat_openid FROM users WHERE wechat_openid = $1 LIMIT 1',
+    [openid]
+  );
 
   // 已绑定 → 直接签发 JWT
   if (user && user.wechat_openid === openid) {
-    const token = signToken({ id: user.id, role: user.role as UserRole });
+    const token = signToken({ id: user.id, role: user.role });
     return {
       needBind: false,
       token,
       user: {
         id: user.id,
-        role: user.role as UserRole,
+        role: user.role,
         isInitialPassword: user.is_initial_password,
       },
     };
@@ -255,18 +233,10 @@ export async function bindWechat(input: WechatBindInput): Promise<LoginResponse>
   }
 
   // 查用户（按学号）
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('school_id', schoolId)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      throw new AppError('AUTH_INVALID_CREDENTIALS', '学号或密码错误', 401);
-    }
-    throw new AppError('AUTH_SERVICE_ERROR', '登录服务异常，请稍后重试', 500);
-  }
+  const user = await queryOne<User>(
+    'SELECT * FROM users WHERE school_id = $1 LIMIT 1',
+    [schoolId]
+  );
 
   if (!user || typeof user.password_hash !== 'string' || !user.password_hash) {
     throw new AppError('AUTH_INVALID_CREDENTIALS', '学号或密码错误', 401);
@@ -284,31 +254,23 @@ export async function bindWechat(input: WechatBindInput): Promise<LoginResponse>
   }
 
   // 先解绑占用该 openid 的旧账号（同一 openid 只能绑一个用户）
-  const { error: unbindError } = await supabase
-    .from('users')
-    .update({ wechat_openid: null })
-    .eq('wechat_openid', openid);
-
-  if (unbindError) {
-    throw new AppError('AUTH_SERVICE_ERROR', '绑定服务异常，请稍后重试', 500);
-  }
+  await query(
+    'UPDATE users SET wechat_openid = NULL WHERE wechat_openid = $1',
+    [openid]
+  );
 
   // 绑定到当前用户
-  const { error: bindError } = await supabase
-    .from('users')
-    .update({ wechat_openid: openid })
-    .eq('id', user.id);
+  await query(
+    'UPDATE users SET wechat_openid = $1 WHERE id = $2',
+    [openid, user.id]
+  );
 
-  if (bindError) {
-    throw new AppError('AUTH_SERVICE_ERROR', '绑定失败，请稍后重试', 500);
-  }
-
-  const token = signToken({ id: user.id, role: user.role as UserRole });
+  const token = signToken({ id: user.id, role: user.role });
   return {
     token,
     user: {
       id: user.id,
-      role: user.role as UserRole,
+      role: user.role,
       isInitialPassword: user.is_initial_password,
     },
   };

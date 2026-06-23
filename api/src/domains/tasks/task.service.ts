@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase.js';
+import { query, queryOne, queryCount } from '../../lib/db.js';
 import { AppError } from '../../middleware/error-handler.js';
 import type {
   Task,
@@ -48,19 +48,25 @@ function computeStudentTaskStatus(deadlineAt: string, checkInStatus?: CheckInSta
 }
 
 async function getUserScope(userId: string): Promise<UserScope> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('class_id, classes!left(college_id)')
-    .eq('id', userId)
-    .single();
+  const data = await queryOne<{
+    class_id: string | null;
+    college_id: string | null;
+  }>(
+    `SELECT u.class_id, c.college_id
+     FROM users u
+     LEFT JOIN classes c ON u.class_id = c.id
+     WHERE u.id = $1
+     LIMIT 1`,
+    [userId]
+  );
 
-  if (error || !data) {
+  if (!data) {
     throw new AppError('USER_NOT_FOUND', '用户不存在', 404);
   }
 
   return {
     class_id: data.class_id,
-    college_id: (data.classes as { college_id?: string } | null)?.college_id,
+    college_id: data.college_id,
   };
 }
 
@@ -88,14 +94,14 @@ async function assertScopePermission(
     if (scopeType !== 'class' || !targetClassId) {
       throw new AppError('ACCESS_DENIED', '辅导员只能发布到自己所带班级', 403);
     }
-    const { data, error } = await supabase
-      .from('counselor_classes')
-      .select('id')
-      .eq('counselor_id', userId)
-      .eq('class_id', targetClassId)
-      .maybeSingle();
+    const relation = await queryOne<{ id: string }>(
+      `SELECT id FROM counselor_classes
+       WHERE counselor_id = $1 AND class_id = $2
+       LIMIT 1`,
+      [userId, targetClassId]
+    );
 
-    if (error || !data) {
+    if (!relation) {
       throw new AppError('ACCESS_DENIED', '您没有该班级的发布权限', 403);
     }
     return;
@@ -114,57 +120,59 @@ async function assertTaskEditable(task: Task, userId: string): Promise<void> {
 }
 
 export async function fetchTaskById(taskId: string): Promise<Task> {
-  const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).single();
-  if (error || !data) {
+  const data = await queryOne<Task>('SELECT * FROM tasks WHERE id = $1 LIMIT 1', [taskId]);
+  if (!data) {
     throw new AppError('TASK_NOT_FOUND', '任务不存在', 404);
   }
-  return data as Task;
+  return data;
 }
 
 async function fetchUserCheckIns(userId: string, taskIds: string[]) {
   if (taskIds.length === 0) return {};
-  const { data, error } = await supabase
-    .from('check_ins')
-    .select('task_id, status, created_at')
-    .eq('user_id', userId)
-    .in('task_id', taskIds);
-
-  if (error) {
-    throw new AppError('TASK_SERVICE_ERROR', '获取打卡记录失败', 500);
-  }
+  const rows = await query<{ task_id: string; status: CheckInStatus; created_at: string }>(
+    `SELECT task_id, status, created_at
+     FROM check_ins
+     WHERE user_id = $1 AND task_id = ANY($2)`,
+    [userId, taskIds]
+  );
 
   const map: Record<string, { status: CheckInStatus; created_at: string }> = {};
-  (data || []).forEach((row) => {
-    map[row.task_id] = { status: row.status as CheckInStatus, created_at: row.created_at };
+  rows.forEach((row) => {
+    map[row.task_id] = { status: row.status, created_at: row.created_at };
   });
   return map;
 }
 
-function buildVisibleTasksQuery(scope: UserScope) {
-  const now = new Date().toISOString();
-  let query = supabase
-    .from('tasks')
-    .select('*')
-    .eq('status', 'published')
-    .lte('published_at', now);
-
-  // P4: 显式 UUID 校验后再拼接 PostgREST OR，杜绝过滤器注入。
-  // scope 值来自数据库，正常情况必为 UUID；此处防御非 UUID 异常数据。
-  const orConditions: string[] = ['scope_type.eq.school'];
-  if (scope.college_id && isUuid(scope.college_id)) {
-    orConditions.push(`and(scope_type.eq.college,target_college_id.eq.${scope.college_id})`);
-  }
-  if (scope.class_id && isUuid(scope.class_id)) {
-    orConditions.push(`and(scope_type.eq.class,target_class_id.eq.${scope.class_id})`);
-  }
-  query = query.or(orConditions.join(','));
-  return query;
-}
-
-// P4: 简单 UUID v4 形式校验，防止非法值进入 PostgREST 过滤器字符串
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
+}
+
+async function listVisibleTaskIds(scope: UserScope): Promise<Task[]> {
+  const now = new Date().toISOString();
+  const orConditions: string[] = ["scope_type = 'school'"];
+  const params: (string | null)[] = [now];
+  let paramIndex = 2;
+
+  if (scope.college_id && isUuid(scope.college_id)) {
+    orConditions.push(`(scope_type = 'college' AND target_college_id = $${paramIndex})`);
+    params.push(scope.college_id);
+    paramIndex++;
+  }
+  if (scope.class_id && isUuid(scope.class_id)) {
+    orConditions.push(`(scope_type = 'class' AND target_class_id = $${paramIndex})`);
+    params.push(scope.class_id);
+    paramIndex++;
+  }
+
+  return query<Task>(
+    `SELECT * FROM tasks
+     WHERE status = 'published'
+       AND published_at <= $1
+       AND (${orConditions.join(' OR ')})
+     ORDER BY deadline_at DESC`,
+    params
+  );
 }
 
 export async function createTask(
@@ -178,26 +186,29 @@ export async function createTask(
     throw new AppError('VALIDATION_ERROR', '截止时间必须晚于发布时间', 400);
   }
 
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert({
-      title: input.title,
-      content: input.content,
-      scope_type: input.scope_type,
-      target_college_id: input.target_college_id ?? null,
-      target_class_id: input.target_class_id ?? null,
-      created_by: userId,
-      published_at: input.published_at,
-      deadline_at: input.deadline_at,
-    })
-    .select()
-    .single();
+  const rows = await query<Task>(
+    `INSERT INTO tasks (
+      title, content, scope_type, target_college_id, target_class_id,
+      created_by, published_at, deadline_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *`,
+    [
+      input.title,
+      input.content,
+      input.scope_type,
+      input.target_college_id ?? null,
+      input.target_class_id ?? null,
+      userId,
+      input.published_at,
+      input.deadline_at,
+    ]
+  );
 
-  if (error || !data) {
+  if (rows.length === 0) {
     throw new AppError('TASK_SERVICE_ERROR', '创建任务失败', 500);
   }
 
-  return toTaskResponse(data as Task);
+  return toTaskResponse(rows[0]);
 }
 
 export async function listTasks(
@@ -211,37 +222,42 @@ export async function listTasks(
   const safeLimit = Math.min(50, Math.max(1, limit));
   const safePage = Math.max(1, page);
 
-  let countQuery = supabase.from('tasks').select('*', { count: 'exact', head: true });
-  let query = supabase.from('tasks').select('*');
+  const whereConditions: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 1;
 
   if (role !== 'admin') {
-    countQuery = countQuery.eq('created_by', userId);
-    query = query.eq('created_by', userId);
+    whereConditions.push(`created_by = $${paramIndex}`);
+    params.push(userId);
+    paramIndex++;
   }
   if (filters.status) {
-    countQuery = countQuery.eq('status', filters.status);
-    query = query.eq('status', filters.status);
+    whereConditions.push(`status = $${paramIndex}`);
+    params.push(filters.status);
+    paramIndex++;
   }
   if (filters.scopeType) {
-    countQuery = countQuery.eq('scope_type', filters.scopeType);
-    query = query.eq('scope_type', filters.scopeType);
+    whereConditions.push(`scope_type = $${paramIndex}`);
+    params.push(filters.scopeType);
+    paramIndex++;
   }
 
-  const { count, error: countError } = await countQuery;
-  if (countError) {
-    throw new AppError('TASK_SERVICE_ERROR', '统计任务总数失败', 500);
-  }
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-  query = query
-    .order('deadline_at', { ascending: false })
-    .range((safePage - 1) * safeLimit, safePage * safeLimit - 1);
+  const count = await queryCount(
+    `SELECT COUNT(*) FROM tasks ${whereClause}`,
+    params
+  );
 
-  const { data, error } = await query;
-  if (error) {
-    throw new AppError('TASK_SERVICE_ERROR', '获取任务列表失败', 500);
-  }
+  const offset = (safePage - 1) * safeLimit;
+  const tasks = await query<Task>(
+    `SELECT * FROM tasks
+     ${whereClause}
+     ORDER BY deadline_at DESC
+     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    [...params, safeLimit, offset]
+  );
 
-  const tasks = (data || []) as Task[];
   // P2: 批量计算统计，消除 N+1
   const statsMap = await batchTaskStats(tasks);
 
@@ -255,31 +271,29 @@ export async function listTasks(
     };
   });
 
-  return { items, total: count || 0, page: safePage, limit: safeLimit };
+  return { items, total: count, page: safePage, limit: safeLimit };
 }
 
 // P2: 批量统计多任务的覆盖人数与完成人数。
-// 按作用域类型分组，每组一次 count 查询；完成数一次 GROUP BY 查询。
 async function batchTaskStats(
   tasks: Task[]
 ): Promise<Record<string, { total: number; completed: number }>> {
   const result: Record<string, { total: number; completed: number }> = {};
   if (tasks.length === 0) return result;
 
-  // 完成数：一次性 GROUP BY task_id，status='approved'
   const taskIds = tasks.map((t) => t.id);
-  const { data: completedRows, error: completedError } = await supabase
-    .from('check_ins')
-    .select('task_id')
-    .eq('status', 'approved')
-    .in('task_id', taskIds);
 
-  if (completedError) {
-    throw new AppError('TASK_SERVICE_ERROR', '统计完成人数失败', 500);
-  }
+  // 完成数：一次性 GROUP BY task_id，status='approved'
+  const completedRows = await query<{ task_id: string; count: string }>(
+    `SELECT task_id, COUNT(*) AS count
+     FROM check_ins
+     WHERE status = 'approved' AND task_id = ANY($1)
+     GROUP BY task_id`,
+    [taskIds]
+  );
   const completedMap: Record<string, number> = {};
-  (completedRows || []).forEach((row: { task_id: string }) => {
-    completedMap[row.task_id] = (completedMap[row.task_id] || 0) + 1;
+  completedRows.forEach((row) => {
+    completedMap[row.task_id] = parseInt(row.count, 10);
   });
 
   // 覆盖人数：按作用域分组分别 count（school / college / class）
@@ -287,43 +301,32 @@ async function batchTaskStats(
   const collegeTasks = tasks.filter((t) => t.scope_type === 'college' && t.target_college_id);
   const classTasks = tasks.filter((t) => t.scope_type === 'class' && t.target_class_id);
 
-  // school 作用域：全校学生数（所有 school 任务共享）
+  // school 作用域：全校学生数
   let schoolTotal = 0;
   if (schoolTasks.length > 0) {
-    const { count, error } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('role', 'student');
-    if (error) {
-      throw new AppError('TASK_SERVICE_ERROR', '统计全校学生数失败', 500);
-    }
-    schoolTotal = count || 0;
+    schoolTotal = await queryCount(
+      "SELECT COUNT(*) FROM users WHERE role = 'student'"
+    );
   }
 
   // college 作用域：每个学院一次 count
   for (const task of collegeTasks) {
-    const { count, error } = await supabase
-      .from('users')
-      .select('*, classes!inner(college_id)', { count: 'exact', head: true })
-      .eq('role', 'student')
-      .eq('classes.college_id', task.target_college_id as string);
-    if (error) {
-      throw new AppError('TASK_SERVICE_ERROR', '统计学院学生数失败', 500);
-    }
-    result[task.id] = { total: count || 0, completed: completedMap[task.id] || 0 };
+    const count = await queryCount(
+      `SELECT COUNT(*) FROM users u
+       JOIN classes c ON u.class_id = c.id
+       WHERE u.role = 'student' AND c.college_id = $1`,
+      [task.target_college_id as string]
+    );
+    result[task.id] = { total: count, completed: completedMap[task.id] || 0 };
   }
 
   // class 作用域：每个班级一次 count
   for (const task of classTasks) {
-    const { count, error } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('role', 'student')
-      .eq('class_id', task.target_class_id as string);
-    if (error) {
-      throw new AppError('TASK_SERVICE_ERROR', '统计班级学生数失败', 500);
-    }
-    result[task.id] = { total: count || 0, completed: completedMap[task.id] || 0 };
+    const count = await queryCount(
+      "SELECT COUNT(*) FROM users WHERE role = 'student' AND class_id = $1",
+      [task.target_class_id as string]
+    );
+    result[task.id] = { total: count, completed: completedMap[task.id] || 0 };
   }
 
   // school 作用域共享同一个总数
@@ -355,28 +358,49 @@ export async function updateTask(
     throw new AppError('VALIDATION_ERROR', '截止时间必须晚于发布时间', 400);
   }
 
-  const updatePayload: Record<string, unknown> = {};
-  if (input.title !== undefined) updatePayload.title = input.title;
-  if (input.content !== undefined) updatePayload.content = input.content;
-  if (input.scope_type !== undefined) {
-    updatePayload.scope_type = input.scope_type;
-    // scope 变化时强制带上清理后的 target id，保持 valid_task_scope 约束
-    updatePayload.target_college_id = targetCollegeId;
-    updatePayload.target_class_id = targetClassId;
-  } else {
-    if (input.target_college_id !== undefined) updatePayload.target_college_id = input.target_college_id;
-    if (input.target_class_id !== undefined) updatePayload.target_class_id = input.target_class_id;
-  }
-  if (input.published_at !== undefined) updatePayload.published_at = input.published_at;
-  if (input.deadline_at !== undefined) updatePayload.deadline_at = input.deadline_at;
-  if (input.status !== undefined) updatePayload.status = input.status;
+  const updates: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 1;
 
-  const { data, error } = await supabase.from('tasks').update(updatePayload).eq('id', taskId).select().single();
-  if (error || !data) {
+  function addSet(column: string, value: unknown) {
+    updates.push(`${column} = $${paramIndex}`);
+    params.push(value);
+    paramIndex++;
+  }
+
+  if (input.title !== undefined) addSet('title', input.title);
+  if (input.content !== undefined) addSet('content', input.content);
+  if (input.scope_type !== undefined) {
+    addSet('scope_type', input.scope_type);
+    // scope 变化时强制带上清理后的 target id，保持 valid_task_scope 约束
+    addSet('target_college_id', targetCollegeId);
+    addSet('target_class_id', targetClassId);
+  } else {
+    if (input.target_college_id !== undefined) addSet('target_college_id', input.target_college_id);
+    if (input.target_class_id !== undefined) addSet('target_class_id', input.target_class_id);
+  }
+  if (input.published_at !== undefined) addSet('published_at', input.published_at);
+  if (input.deadline_at !== undefined) addSet('deadline_at', input.deadline_at);
+  if (input.status !== undefined) addSet('status', input.status);
+
+  if (updates.length === 0) {
+    return toTaskResponse(task);
+  }
+
+  params.push(taskId);
+  const rows = await query<Task>(
+    `UPDATE tasks
+     SET ${updates.join(', ')}
+     WHERE id = $${paramIndex}
+     RETURNING *`,
+    params
+  );
+
+  if (rows.length === 0) {
     throw new AppError('TASK_SERVICE_ERROR', '更新任务失败', 500);
   }
 
-  return toTaskResponse(data as Task);
+  return toTaskResponse(rows[0]);
 }
 
 // P8: 按 scope_type 归零无关字段；只允许 college 携带 college_id、class 携带 class_id
@@ -403,7 +427,6 @@ function resolveTargetClassId(
 }
 
 // P1: 下架独立于编辑。admin 可下架任意任务；发布人可下架自己的。
-// 不再受截止时间限制（下架是「立即隐藏」，不是编辑内容）。
 export async function delistTask(userId: string, role: string, taskId: string): Promise<TaskResponse> {
   const task = await fetchTaskById(taskId);
 
@@ -414,17 +437,15 @@ export async function delistTask(userId: string, role: string, taskId: string): 
     throw new AppError('TASK_ALREADY_DELISTED', '任务已下架', 409);
   }
 
-  const { data, error } = await supabase
-    .from('tasks')
-    .update({ status: 'delisted' })
-    .eq('id', taskId)
-    .select()
-    .single();
-  if (error || !data) {
+  const rows = await query<Task>(
+    `UPDATE tasks SET status = 'delisted' WHERE id = $1 RETURNING *`,
+    [taskId]
+  );
+  if (rows.length === 0) {
     throw new AppError('TASK_SERVICE_ERROR', '下架任务失败', 500);
   }
 
-  return toTaskResponse(data as Task);
+  return toTaskResponse(rows[0]);
 }
 
 export async function listMyTasks(
@@ -437,20 +458,17 @@ export async function listMyTasks(
     return [];
   }
 
-  const query = buildVisibleTasksQuery(scope)
-    .order('deadline_at', { ascending: false })
-    .range((page - 1) * limit, page * limit - 1);
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(50, Math.max(1, limit));
+  const offset = (safePage - 1) * safeLimit;
 
-  const { data, error } = await query;
-  if (error) {
-    throw new AppError('TASK_SERVICE_ERROR', '获取任务列表失败', 500);
-  }
+  const tasks = await listVisibleTaskIds(scope);
+  const paginated = tasks.slice(offset, offset + safeLimit);
 
-  const tasks = (data || []) as Task[];
-  const taskIds = tasks.map((t) => t.id);
+  const taskIds = paginated.map((t) => t.id);
   const checkIns = await fetchUserCheckIns(userId, taskIds);
 
-  return tasks.map((task) => {
+  return paginated.map((task) => {
     const checkIn = checkIns[task.id];
     const status = computeStudentTaskStatus(task.deadline_at, checkIn?.status);
     return {

@@ -4,11 +4,11 @@ type: architecture-spine
 purpose: build-substrate
 altitude: initiative
 paradigm: layered-api-client
-scope: 思政打卡 App V1 全系统架构（学生端微信小程序 + 辅导员/管理员端 Expo App + Node.js API + Supabase 后端服务）
+scope: 思政打卡 App V1 全系统架构（学生端微信小程序 + 辅导员小程序 + 管理员端 Expo App + Node.js API + PostgreSQL）
 status: draft
 created: 2026-06-22
 updated: 2026-06-23
-changelog: 2026-06-23 应用 sprint-change-proposal-2026-06-23，新增 AD-17 客户端按角色分端，更新 Stack 表与 Structural Seed；2026-06-23 应用 sprint-change-proposal-2026-06-23-v2，辅导员端迁入小程序，管理员端保留 App + Web V2
+changelog: 2026-06-23 应用 sprint-change-proposal-2026-06-23，新增 AD-17 客户端按角色分端，更新 Stack 表与 Structural Seed；2026-06-23 应用 sprint-change-proposal-2026-06-23-v2，辅导员端迁入小程序，管理员端保留 App + Web V2；2026-06-23 后端从 Supabase 迁移到自托管 PostgreSQL
 binds:
   - FR-1..FR-31
   - UJ-1..UJ-3
@@ -27,9 +27,9 @@ companions: []
 
 **分层 API-客户端架构（Layered API-Client）。**
 
-- 移动端（React Native + Expo）只通过 HTTPS 调用后端 REST API，不直接访问数据库或 Supabase 服务端功能。
+- 移动端（React Native + Expo）和小程序只通过 HTTPS 调用后端 REST API，不直接访问数据库。
 - 后端 API（Node.js + Express + TypeScript）承载业务逻辑、权限控制、AI 审核编排、报表生成。
-- Supabase 作为托管基础设施：PostgreSQL 数据库、Storage 文件存储、Auth 仅作为用户/密码哈希的备用（JWT 为应用层认证）。
+- PostgreSQL 承载持久化；文件存储（导出报告）在 V1 使用后端本地临时文件或 S3 兼容对象存储，由后端统一管理。
 
 ```mermaid
 flowchart TB
@@ -43,9 +43,9 @@ flowchart TB
         LLM[AI Review Adapter]
         Jobs[Report Generator]
     end
-    subgraph Infra["Managed Infrastructure (Supabase)"]
+    subgraph Infra["Managed Infrastructure"]
         PG[(PostgreSQL)]
-        S3[Supabase Storage]
+        S3[File / Object Storage]
     end
     UI -->|HTTPS / JSON| Routes
     Routes --> Services
@@ -63,11 +63,11 @@ flowchart TB
 - **Prevents:** Business logic leaking into the app, inconsistent validation across platforms
 - **Rule:** The React Native app performs no business-rule decisions beyond client-side UX validation (e.g., required fields, max length). All state mutations run through the backend API.
 
-### AD-2 — Supabase hosts persistence and files
+### AD-2 — PostgreSQL hosts persistence; files are handled by the API
 
 - **Binds:** Database schema, file storage, deployment
 - **Prevents:** Splitting data between self-hosted and managed services, backup drift
-- **Rule:** PostgreSQL database and all file storage (avatars, exported reports) live in Supabase. The API connects to Supabase via official client libraries; no direct mobile access to Supabase is allowed.
+- **Rule:** PostgreSQL database is the single source of persistence. File storage for exported reports is handled by the API layer (local temporary files or S3-compatible object storage). The API connects to PostgreSQL via the official `pg` driver; clients never access the database directly.
 
 ### AD-3 — LLM provider is abstracted and swappable [ADOPTED]
 
@@ -93,11 +93,11 @@ flowchart TB
 - **Prevents:** Indefinite blocking, orphaned check-ins, user confusion
 - **Rule:** Reflections are submitted to the LLM adapter synchronously with a 3-second timeout. If the adapter fails or times out, the system marks the reflection for manual counselor review and still records the check-in as "pending review" rather than failing the request.
 
-### AD-7 — Reports are generated server-side and stored in Supabase Storage
+### AD-7 — Reports are generated server-side and returned via time-limited links
 
 - **Binds:** Report export feature, file lifecycle
 - **Prevents:** Mobile generating large PDFs/Excel, inconsistent templates, stale data
-- **Rule:** PDF and Excel reports are generated in the API using templates/libraries, uploaded to a private Supabase Storage bucket, and a time-limited signed URL is returned to the client. Exported files expire after 24 hours.
+- **Rule:** PDF and Excel reports are generated in the API using templates/libraries, stored as temporary files (or in an S3-compatible bucket), and a time-limited download URL/token is returned to the client. Exported files expire after 24 hours.
 
 ### AD-8 — Single-tenant, single-school deployment
 
@@ -109,7 +109,7 @@ flowchart TB
 
 - **Binds:** CI/CD, server deployment, local development
 - **Prevents:** "Works on my machine", inconsistent runtime environments
-- **Rule:** The backend API and any background workers run in Docker containers. Local development uses `docker-compose` with a Supabase project. Production deploys the same image to a cloud server with environment-specific config.
+- **Rule:** The backend API and any background workers run in Docker containers. Local development uses `docker-compose` with a PostgreSQL service. Production deploys the same image to a cloud server with environment-specific config.
 
 ### AD-10 — Domain boundaries mirror PRD feature groups
 
@@ -207,9 +207,8 @@ stateDiagram-v2
 | Node.js | 24 LTS |
 | Express | 5.2.x |
 | TypeScript | 6.0.x |
-| Supabase Client (JS) | 2.108.x |
-| Supabase PostgreSQL | Managed (17) |
-| Supabase Storage | Managed |
+| PostgreSQL | 17 (via Docker or managed service) |
+| pg (node-postgres) | 8.15.x |
 | LLM API | Via `LLMProvider` adapter; DeepSeek model ID configured externally |
 | JSON Web Tokens | `jsonwebtoken` 9.0.3 |
 | PDF/Excel generation | `pdfkit` 0.19+ / `exceljs` 4.4+ / `puppeteer` 25+ |
@@ -316,7 +315,7 @@ erDiagram
 | 积分与等级 | `api/src/domains/points` | AD-1, AD-10, AD-13 |
 | 班级排行榜 | `api/src/domains/points` (on-demand aggregate) | AD-5, AD-10, AD-16 |
 | 全校统计报表 | `api/src/domains/reports` | AD-2, AD-7, AD-10 |
-| 文件存储（头像/报告） | Supabase Storage via `api/src/lib/storage` | AD-2, AD-7 |
+| 文件存储（报告） | `api/src/lib/storage`（本地临时文件 / S3 兼容对象存储） | AD-2, AD-7 |
 | 每日名言 | `api/src/domains/quotes` | AD-1, AD-10 |
 
 ## Deployment & Environments
@@ -325,16 +324,16 @@ erDiagram
 flowchart LR
     subgraph Dev["Local Dev"]
         DC[docker-compose]<-->API[api container]
-        API<-->SupabaseDev[Supabase project dev]
+        API<-->PostgresDev[(PostgreSQL)]
     end
     subgraph Prod["Production"]
         Server[Cloud Server]<-->APIP[api container]
-        APIP<-->SupabaseProd[Supabase project prod]
+        APIP<-->PostgresProd[(PostgreSQL)]
     end
 ```
 
-- **Local**: `docker-compose up` runs the API container; database and storage use a dedicated Supabase project (or local Supabase CLI).
-- **Production**: Same Docker image deployed to a cloud server (e.g., Alibaba Cloud / Tencent Cloud ECS); connects to production Supabase project via environment variables.
+- **Local**: `docker-compose up` runs the API and PostgreSQL containers; storage uses local temporary files.
+- **Production**: Same Docker image deployed to a cloud server (e.g., Alibaba Cloud / Tencent Cloud ECS / AWS / GCP); connects to a PostgreSQL instance and object storage via environment variables.
 - **CI/CD**: GitHub Actions builds and pushes Docker image; server pulls latest image and restarts.
 
 ## Deferred

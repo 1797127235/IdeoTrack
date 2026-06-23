@@ -6,8 +6,11 @@ function requireEnv(key: string): string {
   const value = process.env[key];
   if (!value) {
     if (process.env.NODE_ENV === 'test') {
-      if (key === 'SUPABASE_URL') return 'http://localhost:54321';
-      if (key === 'SUPABASE_SERVICE_ROLE_KEY') return 'test-service-role-key';
+      if (key === 'DATABASE_URL') {
+        const testUrl = process.env.TEST_DATABASE_URL;
+        if (testUrl) return testUrl;
+        return 'postgresql://postgres:postgres@localhost:5432/ideo_track_test';
+      }
       if (key === 'JWT_SECRET') return 'test-jwt-secret-at-least-32-characters-long';
       if (key === 'CLIENT_URL') return '*';
       return `test-${key.toLowerCase()}`;
@@ -34,8 +37,7 @@ export const config = {
   port: parsePort(process.env.PORT),
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: requireEnv('CLIENT_URL'),
-  supabaseUrl: requireEnv('SUPABASE_URL'),
-  supabaseServiceKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+  databaseUrl: requireEnv('DATABASE_URL'),
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   // 微信小程序（AD-17 学生端登录）。开发期可不配，配了才支持微信登录。
