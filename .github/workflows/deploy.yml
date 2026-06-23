@@ -96,6 +96,7 @@ jobs:
 
             # 重新构建并启动
             docker compose --profile with-caddy up -d --build
+            docker compose restart caddy
 
             # 等待 API 服务就绪
             sleep 10
