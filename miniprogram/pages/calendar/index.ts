@@ -1,4 +1,12 @@
-import { getStudentCalendar, type CalendarDay } from '../../services/checkinApi';
+import { getStudentCalendar } from '../../services/checkinApi';
+
+interface CalendarDayData {
+  day: string;
+  checked_in: boolean;
+  status?: string;
+  reflection_content?: string | null;
+  task_title?: string | null;
+}
 
 interface CalendarCell {
   day: number;
@@ -19,7 +27,7 @@ function formatDateString(year: number, month: number, day: number): string {
 function generateCalendarDays(
   year: number,
   month: number,
-  checkedInMap: Record<string, CalendarDay>
+  checkedInMap: Record<string, CalendarDayData>
 ): CalendarCell[] {
   const firstDay = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -84,7 +92,7 @@ Page({
     try {
       const res = await getStudentCalendar(year, month);
       if (res.success && res.data) {
-        const checkedInMap: Record<string, CalendarDay> = {};
+        const checkedInMap: Record<string, CalendarDayData> = {};
         res.data.days.forEach((d) => {
           checkedInMap[d.day] = d;
         });
