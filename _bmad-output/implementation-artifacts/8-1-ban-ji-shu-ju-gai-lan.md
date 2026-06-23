@@ -3,7 +3,7 @@ story_id: 8.1
 story_key: 8-1-ban-ji-shu-ju-gai-lan
 epic: 8
 epic_title: 辅导员数据看板
-status: ready-for-dev
+status: done
 priority: high
 points: 3
 baseline_commit: 39211fea4ac83dee9db622d9718eb7679c14d4e7
@@ -11,7 +11,7 @@ baseline_commit: 39211fea4ac83dee9db622d9718eb7679c14d4e7
 
 # Story 8.1: 班级数据概览
 
-Status: ready-for-dev
+Status: done
 
 > 来源：Epic 8 Story 8.1 / PRD §4.8 FR-21 / AD-5、AD-14、AD-17 / UX-4、UX-8、UX-10、UX-15、UX-16
 
@@ -62,44 +62,44 @@ Status: ready-for-dev
 
 ### 后端
 
-- [ ] T1: 新增 `counselor` 领域骨架（AC-3）
-  - [ ] T1.1 创建 `api/src/domains/counselor/counselor.types.ts`
-  - [ ] T1.2 创建 `api/src/domains/counselor/counselor.service.ts`
-  - [ ] T1.3 创建 `api/src/domains/counselor/counselor.controller.ts`
-  - [ ] T1.4 创建 `api/src/domains/counselor/counselor.routes.ts`
-  - [ ] T1.5 在 `api/src/index.ts` 注册 `/api/counselor` 路由
-- [ ] T2: 实现 `GET /api/counselor/dashboard`（AC-1）
-  - [ ] T2.1 默认查询今日（北京时间）数据；支持 `?date=YYYY-MM-DD`
-  - [ ] T2.2 通过 `counselor_classes` 过滤班级，按 `users.class_id` 统计应打卡人数
-  - [ ] T2.3 通过 `check_ins` 统计状态为 `approved` 的已打卡人数
-  - [ ] T2.4 计算打卡率（已打卡 / 应打卡，保留整数）
-  - [ ] T2.5 （可选）加 5 分钟内存缓存，key 为 `counselor_id:date`
-- [ ] T3: 实现 `GET /api/counselor/classes/:id/students?date=`（AC-2）
-  - [ ] T3.1 校验班级属于当前辅导员
-  - [ ] T3.2 返回班级学生列表及当日打卡状态
-  - [ ] T3.3 已打卡展示 `checked_in_at`、`status`、`reflection_content`
-  - [ ] T3.4 未打卡展示 `consecutive_absent_days`（V1 可暂为 0）
-- [ ] T4: 测试（AC-1、AC-2、AC-3）
-  - [ ] T4.1 为两个接口编写集成测试，覆盖跨班级越权返回 404
-  - [ ] T4.2 覆盖多班级统计、无班级空状态、日期参数
+- [x] T1: 新增 `counselor` 领域骨架（AC-3）
+  - [x] T1.1 创建 `api/src/domains/counselor/counselor.types.ts`
+  - [x] T1.2 创建 `api/src/domains/counselor/counselor.service.ts`
+  - [x] T1.3 创建 `api/src/domains/counselor/counselor.controller.ts`
+  - [x] T1.4 创建 `api/src/domains/counselor/counselor.routes.ts`
+  - [x] T1.5 在 `api/src/index.ts` 注册 `/api/counselor` 路由
+- [x] T2: 实现 `GET /api/counselor/dashboard`（AC-1）
+  - [x] T2.1 默认查询今日（北京时间）数据；支持 `?date=YYYY-MM-DD`
+  - [x] T2.2 通过 `counselor_classes` 过滤班级，按 `users.class_id` 统计应打卡人数
+  - [x] T2.3 通过 `check_ins` 统计状态为 `approved` 的已打卡人数
+  - [x] T2.4 计算打卡率（已打卡 / 应打卡，保留整数）
+  - [x] T2.5 （可选）加 5 分钟内存缓存，key 为 `counselor_id:date`
+- [x] T3: 实现 `GET /api/counselor/classes/:id/students?date=`（AC-2）
+  - [x] T3.1 校验班级属于当前辅导员
+  - [x] T3.2 返回班级学生列表及当日打卡状态
+  - [x] T3.3 已打卡展示 `checked_in_at`、`status`、`reflection_content`
+  - [x] T3.4 未打卡展示 `consecutive_absent_days`（V1 可暂为 0）
+- [x] T4: 测试（AC-1、AC-2、AC-3）
+  - [x] T4.1 为两个接口编写集成测试，覆盖跨班级越权返回 404
+  - [x] T4.2 覆盖多班级统计、无班级空状态、日期参数
 
 ### 小程序
 
-- [ ] T5: 新增辅导员看板页面（AC-1、AC-4）
-  - [ ] T5.1 创建 `miniprogram/pages/counselor/dashboard/index.ts|wxml|wxss|json`
-  - [ ] T5.2 创建 `miniprogram/services/counselorApi.ts` 封装看板接口
-  - [ ] T5.3 页面 `onShow` 加载班级概览，支持下拉刷新
-  - [ ] T5.4 空状态按 UX-16 提供友好引导文案
-- [ ] T6: 新增班级详情页面（AC-2）
-  - [ ] T6.1 创建 `miniprogram/pages/counselor/class-detail/index.ts|wxml|wxss|json`
-  - [ ] T6.2 接收 `class_id` 参数，调用班级学生名单接口
-  - [ ] T6.3 实现「全部 / 已打卡 / 未打卡」筛选 Tab
-  - [ ] T6.4 未打卡连续天数 ≥ 3 标红并提示「重点关注」（为 Story 8.2 做准备，V1 可先按字段展示）
-- [ ] T7: 辅导员入口与导航
-  - [ ] T7.1 在 `miniprogram/app.json` 注册新页面路径
-  - [ ] T7.2 决策并实施辅导员 tabBar：当前 `app.json` 为学生 4 Tab，辅导员需 3 Tab（看板 / 复核 / 我的）
-  - [ ] T7.3 在 `miniprogram/app.ts` 中根据登录角色选择首页：学生 → `pages/home/index`，辅导员 → `pages/counselor/dashboard/index`
-  - [ ] T7.4 登录页按角色跳转（若尚未实现）
+- [x] T5: 新增辅导员看板页面（AC-1、AC-4）
+  - [x] T5.1 创建 `miniprogram/pages/counselor/dashboard/index.ts|wxml|wxss|json`
+  - [x] T5.2 创建 `miniprogram/services/counselorApi.ts` 封装看板接口
+  - [x] T5.3 页面 `onShow` 加载班级概览，支持下拉刷新
+  - [x] T5.4 空状态按 UX-16 提供友好引导文案
+- [x] T6: 新增班级详情页面（AC-2）
+  - [x] T6.1 创建 `miniprogram/pages/counselor/class-detail/index.ts|wxml|wxss|json`
+  - [x] T6.2 接收 `class_id` 参数，调用班级学生名单接口
+  - [x] T6.3 实现「全部 / 已打卡 / 未打卡」筛选 Tab
+  - [x] T6.4 未打卡连续天数 ≥ 3 标红并提示「重点关注」（为 Story 8.2 做准备，V1 可先按字段展示）
+- [x] T7: 辅导员入口与导航
+  - [x] T7.1 在 `miniprogram/app.json` 注册新页面路径
+  - [x] T7.2 决策并实施辅导员 tabBar：当前 `app.json` 为学生 4 Tab，辅导员需 3 Tab（看板 / 复核 / 我的）
+  - [x] T7.3 在 `miniprogram/app.ts` 中根据登录角色选择首页：学生 → `pages/home/index`，辅导员 → `pages/counselor/dashboard/index`
+  - [x] T7.4 登录页按角色跳转（若尚未实现）
 
 ## Dev Notes
 
