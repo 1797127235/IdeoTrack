@@ -69,24 +69,24 @@ development_status:
   3-4-ren-wu-xiang-qing-cha-kan: done
   3-5-ren-wu-zhuang-tai-ji-suan-yu-zhan-shi: done
   epic-3-retrospective: optional
-  epic-4: in-progress
+  epic-4: done
   4-1-ding-wei-qian-dao: done
   4-2-xin-de-ti-jiao: done
   4-3-da-ka-jie-guo-fan-kui: done
   4-4-xin-de-ti-jiao-hou-xiu-gai-1-ci: done
   epic-4-retrospective: optional
-  epic-5: in-progress  # 5.1/5.3 done；5.4/5.5 待 UI 收尾
+  epic-5: done
   5-1-ai-chu-shen-fu-wu: done
   5-2-ai-chu-shen-chao-shi-shi-bai-dou-di: done  # 已在 5.1 中实现 LLM 超时降级
   5-3-fu-dao-yuan-ren-gong-fu-he: done  # counselor: miniprogram
   5-4-xue-sheng-cha-kan-fu-he-jie-guo: done  # student: task detail / checkin result
   5-5-yao-qiu-xiu-gai-hou-chong-xin-ti-jiao: done  # student: reflection edit 支持 requires_modification
   epic-5-retrospective: optional
-  epic-6: backlog
+  epic-6: in-progress
   6-1-ji-fen-ji-suan: backlog  # V2 deferred
   6-2-deng-ji-jin-sheng: backlog  # V2 deferred
   6-3-xun-zhang-shou-yu: backlog  # V2 deferred
-  6-4-ge-ren-da-ka-ri-li: backlog
+  6-4-ge-ren-da-ka-ri-li: ready-for-dev
   epic-6-retrospective: optional
   epic-7: backlog  # V2 deferred
   7-1-ban-ji-da-ka-lv-pai-ming-zhan-shi: backlog  # V2 deferred
