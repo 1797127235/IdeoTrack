@@ -1,0 +1,39 @@
+# Web
+web/node_modules
+web/.next
+web/dist
+web/.env
+web/.env.local
+web/.env.*.local
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+
+# API
+api/node_modules
+api/dist
+api/logs
+api/.env
+api/.env.*
+api/npm-debug.log*
+
+# Miniprogram
+miniprogram/node_modules
+
+# Mobile
+mobile/node_modules
+mobile/.expo
+mobile/dist
+
+# Tools
+.tools/node_modules
+
+# Git / IDE
+.git
+.github
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
