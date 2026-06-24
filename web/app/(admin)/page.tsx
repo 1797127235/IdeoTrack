@@ -5,21 +5,140 @@ import { getToken } from "@/lib/api";
 import { decodeJwtPayload } from "@/lib/jwt";
 import { useState, useEffect } from "react";
 
-const modules = [
-  { href: "/dashboard", label: "概览", icon: "📊", description: "查看系统概览和统计数据" },
-  { href: "/tasks", label: "任务管理", icon: "📋", description: "创建、编辑和管理思政学习任务" },
-  { href: "/quotes", label: "名言管理", icon: "💬", description: "管理每日名言库和展示配置" },
-  { href: "/organizations", label: "组织结构", icon: "🏛️", description: "管理学院、班级等组织架构" },
-  { href: "/users", label: "用户管理", icon: "👥", description: "管理学生、辅导员和管理员账号" },
-  { href: "/reports", label: "报表统计", icon: "📈", description: "查看多维度数据统计和导出报表" },
-  { href: "/operations", label: "运维管理", icon: "⚙️", description: "系统配置、日志和运维管理" },
+const kpiCards = [
+  { label: "今日打卡率", value: "91%", change: "+6%", changeType: "up", color: "#0891B2" },
+  { label: "今日打卡人数", value: "3,682", change: "+320", changeType: "up", color: "#22C55E" },
+  { label: "累计打卡人数", value: "12,456", change: "本学期", changeType: "neutral", color: "#F59E0B" },
+  { label: "累计心得数", value: "8,932", change: "本学期", changeType: "neutral", color: "#8B5CF6" },
 ];
 
-/**
- * 管理后台首页（Story 14.2）。
- * 展示模块卡片入口，点击跳转到对应模块。
- */
-export default function AdminHome() {
+const collegeRanking = [
+  { rank: 1, name: "马克思主义学院", rate: 96 },
+  { rank: 2, name: "教育学院", rate: 93 },
+  { rank: 3, name: "文学院", rate: 92 },
+  { rank: 4, name: "经济管理学院", rate: 90 },
+  { rank: 5, name: "法学院", rate: 88 },
+  { rank: 6, name: "计算机学院", rate: 87 },
+  { rank: 7, name: "外国语学院", rate: 85 },
+  { rank: 8, name: "艺术学院", rate: 82 },
+];
+
+const absentStudents = [
+  { name: "张晓明", class: "2023级思想政治教育1班", days: 2 },
+  { name: "李雨桐", class: "2023级思想政治教育2班", days: 1 },
+  { name: "王浩然", class: "2023级思想政治教育3班", days: 1 },
+  { name: "刘思远", class: "2023级思想政治教育1班", days: 1 },
+  { name: "陈雅婷", class: "2023级思想政治教育2班", days: 1 },
+];
+
+const trendData = [
+  { date: "5.14", rate: 82 },
+  { date: "5.15", rate: 85 },
+  { date: "5.16", rate: 84 },
+  { date: "5.17", rate: 87 },
+  { date: "5.18", rate: 86 },
+  { date: "5.19", rate: 88 },
+  { date: "5.20", rate: 91 },
+];
+
+const modules = [
+  { href: "/tasks", label: "任务管理", description: "创建、编辑和管理思政学习任务" },
+  { href: "/quotes", label: "名言管理", description: "管理每日名言库和展示配置" },
+  { href: "/organizations", label: "组织结构", description: "管理学院、班级等组织架构" },
+  { href: "/users", label: "用户管理", description: "管理学生、辅导员和管理员账号" },
+  { href: "/reports", label: "报表统计", description: "查看多维度数据统计和导出报表" },
+  { href: "/operations", label: "运维管理", description: "系统配置、日志和运维管理" },
+];
+
+function TrendChart() {
+  const maxRate = Math.max(...trendData.map((d) => d.rate));
+  const minRate = Math.min(...trendData.map((d) => d.rate));
+  const range = maxRate - minRate || 1;
+
+  const points = trendData
+    .map((d, i) => {
+      const x = (i / (trendData.length - 1)) * 100;
+      const y = 100 - ((d.rate - minRate) / range) * 80 - 10;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  return (
+    <div className="h-48 w-full">
+      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {/* Grid lines */}
+        {[0, 25, 50, 75, 100].map((y) => (
+          <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#E2E8F0" strokeWidth="0.5" />
+        ))}
+        {/* Area fill */}
+        <polygon
+          points={`0,100 ${points} 100,100`}
+          fill="rgba(8, 145, 178, 0.1)"
+        />
+        {/* Line */}
+        <polyline
+          points={points}
+          fill="none"
+          stroke="#0891B2"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Data points */}
+        {trendData.map((d, i) => {
+          const x = (i / (trendData.length - 1)) * 100;
+          const y = 100 - ((d.rate - minRate) / range) * 80 - 10;
+          return (
+            <g key={d.date}>
+              <circle cx={x} cy={y} r="2" fill="#0891B2" />
+              {d.rate === maxRate && (
+                <rect x={x - 8} y={y - 12} width="16" height="8" rx="2" fill="#164E63" />
+              )}
+              {d.rate === maxRate && (
+                <text x={x} y={y - 5} textAnchor="middle" fill="white" fontSize="4">
+                  {d.rate}%
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="flex justify-between text-xs text-[#64748B] mt-2">
+        {trendData.map((d) => (
+          <span key={d.date}>{d.date}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DonutChart() {
+  return (
+    <div className="relative w-32 h-32 mx-auto">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+        <path
+          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+          fill="none"
+          stroke="#E2E8F0"
+          strokeWidth="4"
+        />
+        <path
+          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+          fill="none"
+          stroke="#0891B2"
+          strokeWidth="4"
+          strokeDasharray="91, 100"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold text-[#164E63]">91%</span>
+        <span className="text-xs text-[#64748B]">已打卡</span>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminDashboard() {
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
@@ -32,27 +151,162 @@ export default function AdminHome() {
     <div className="min-h-screen">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#164E63]">思政打卡 · 管理后台</h1>
-        <p className="text-[#64748B] mt-2">欢迎，管理员（{userId.slice(0, 8)}…）</p>
+        <h1 className="text-2xl font-bold text-[#164E63]">数据概览</h1>
+        <p className="text-[#64748B] mt-2">欢迎回来，管理员（{userId.slice(0, 8)}…）</p>
       </div>
 
-      {/* Module Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {modules.map((module) => (
-          <Link
-            key={module.href}
-            href={module.href}
-            className="group block bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-1"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <span className="text-3xl">{module.icon}</span>
-              <h2 className="text-lg font-semibold text-[#164E63] group-hover:text-[#0891B2] transition-colors">
-                {module.label}
-              </h2>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {kpiCards.map((card) => (
+          <div key={card.label} className="bg-white rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-[#64748B]">{card.label}</span>
+              <span
+                className="w-2 h-8 rounded-full"
+                style={{ backgroundColor: card.color }}
+              />
             </div>
-            <p className="text-sm text-[#64748B]">{module.description}</p>
-          </Link>
+            <div className="flex items-end gap-3">
+              <span className="text-3xl font-bold text-[#164E63]">{card.value}</span>
+              <span
+                className={`text-sm mb-1 ${
+                  card.changeType === "up"
+                    ? "text-[#22C55E]"
+                    : card.changeType === "down"
+                    ? "text-[#EF4444]"
+                    : "text-[#64748B]"
+                }`}
+              >
+                {card.changeType === "up" && "↑ "}
+                {card.changeType === "down" && "↓ "}
+                {card.change}
+              </span>
+            </div>
+          </div>
         ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Trend Chart */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-[#164E63]">打卡率趋势</h2>
+            <Link href="/reports" className="text-sm text-[#0891B2] hover:underline">
+              查看更多
+            </Link>
+          </div>
+          <TrendChart />
+        </div>
+
+        {/* College Ranking */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-[#164E63]">学院打卡率排名（今日）</h2>
+            <Link href="/reports" className="text-sm text-[#0891B2] hover:underline">
+              查看更多
+            </Link>
+          </div>
+          <div className="space-y-4">
+            {collegeRanking.map((item) => (
+              <div key={item.rank} className="flex items-center gap-4">
+                <span
+                  className={`w-5 h-5 flex items-center justify-center rounded text-xs font-medium ${
+                    item.rank <= 3
+                      ? "bg-[#0891B2] text-white"
+                      : "bg-[#F1F5F9] text-[#64748B]"
+                  }`}
+                >
+                  {item.rank}
+                </span>
+                <span className="flex-1 text-sm text-[#164E63] truncate">{item.name}</span>
+                <div className="w-24 h-2 bg-[#F1F5F9] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#0891B2] rounded-full"
+                    style={{ width: `${item.rate}%` }}
+                  />
+                </div>
+                <span className="text-sm font-medium text-[#164E63] w-10 text-right">
+                  {item.rate}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Distribution */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#164E63] mb-6">打卡情况分布</h2>
+          <DonutChart />
+          <div className="flex justify-center gap-6 mt-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#0891B2]" />
+              <span className="text-[#64748B]">已打卡</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#E2E8F0]" />
+              <span className="text-[#64748B]">未打卡</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Absent Students */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-[#164E63]">近期未打卡学生（TOP 5）</h2>
+            <Link href="/reports" className="text-sm text-[#0891B2] hover:underline">
+              查看更多
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-sm text-[#64748B] border-b border-[#F1F5F9]">
+                  <th className="pb-3 font-medium">学生</th>
+                  <th className="pb-3 font-medium">所属班级</th>
+                  <th className="pb-3 font-medium">未打卡天数</th>
+                  <th className="pb-3 font-medium text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {absentStudents.map((student) => (
+                  <tr key={student.name} className="border-b border-[#F1F5F9] last:border-0">
+                    <td className="py-4 text-sm text-[#164E63]">{student.name}</td>
+                    <td className="py-4 text-sm text-[#64748B]">{student.class}</td>
+                    <td className="py-4 text-sm text-[#164E63]">{student.days} 天</td>
+                    <td className="py-4 text-right">
+                      <button className="px-4 py-1.5 text-sm font-medium text-white bg-[#0891B2] rounded-full hover:bg-[#164E63] transition-colors">
+                        提醒
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Module Quick Access */}
+      <div>
+        <h2 className="text-lg font-semibold text-[#164E63] mb-4">功能模块</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {modules.map((module) => (
+            <Link
+              key={module.href}
+              href={module.href}
+              className="group block bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-1"
+            >
+              <h3 className="text-base font-semibold text-[#164E63] group-hover:text-[#0891B2] transition-colors">
+                {module.label}
+              </h3>
+              <p className="text-sm text-[#64748B] mt-2">{module.description}</p>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

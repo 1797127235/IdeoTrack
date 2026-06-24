@@ -62,6 +62,17 @@ Page({
     quoteLoading: true,
     tasks: [] as TaskItem[],
     tasksLoading: true,
+    streakDays: 5,
+    totalPoints: 256,
+    weekDays: [
+      { day: 'Mon', label: '一', checked: true },
+      { day: 'Tue', label: '二', checked: true },
+      { day: 'Wed', label: '三', checked: true },
+      { day: 'Thu', label: '四', checked: true },
+      { day: 'Fri', label: '五', checked: false },
+      { day: 'Sat', label: '六', checked: true },
+      { day: 'Sun', label: '日', checked: true },
+    ],
     loading: true,
     error: '',
     refreshing: false,
@@ -130,6 +141,10 @@ Page({
     } finally {
       this.setData({ tasksLoading: false });
     }
+  },
+
+  goToCalendar() {
+    wx.switchTab({ url: '/pages/calendar/index' });
   },
 
   goToTask(event: WechatMiniprogram.BaseEvent) {

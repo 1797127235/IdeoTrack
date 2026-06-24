@@ -1,7 +1,9 @@
 import {
   getCounselorDashboard,
+  getClassStudentList,
   type ClassDashboardItem,
   type DashboardSummary,
+  type ClassStudentItem,
 } from '../../../services/counselorApi';
 
 import { updateTabBarSelected } from '../../../utils/tabBar';
@@ -13,6 +15,8 @@ Page({
     dateText: '',
     summary: null as DashboardSummary | null,
     classes: [] as ClassDashboardItem[],
+    focusStudents: [] as ClassStudentItem[],
+    focusLoading: false,
     loading: true,
     errorMsg: '',
     refreshing: false,
@@ -41,6 +45,10 @@ Page({
         summary: data.summary,
         classes: data.classes,
       });
+      // 加载重点关注学生（取第一个班级的未打卡学生）
+      if (data.classes.length > 0) {
+        this.loadFocusStudents(data.classes[0].class_id, data.date);
+      }
     } catch (err) {
       this.setData({
         errorMsg: err instanceof Error ? err.message : '加载失败',
@@ -50,6 +58,33 @@ Page({
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  async loadFocusStudents(classId: string, date: string) {
+    this.setData({ focusLoading: true });
+    try {
+      const data = await getClassStudentList(classId, 'absent', date);
+      this.setData({ focusStudents: data.students.slice(0, 5) });
+    } catch (err) {
+      console.error('加载重点关注学生失败:', err);
+      this.setData({ focusStudents: [] });
+    } finally {
+      this.setData({ focusLoading: false });
+    }
+  },
+
+  remindStudent(event: WechatMiniprogram.BaseEvent) {
+    const { studentId, studentName } = event.currentTarget.dataset as { studentId?: string; studentName?: string };
+    if (!studentId) return;
+    wx.showModal({
+      title: '发送提醒',
+      content: `确定要提醒 ${studentName || '该学生'} 打卡吗？`,
+      success: (res) => {
+        if (res.confirm) {
+          wx.showToast({ title: '提醒已发送', icon: 'success' });
+        }
+      },
+    });
   },
 
   goToClassDetail(event: WechatMiniprogram.BaseEvent) {

@@ -9,34 +9,43 @@
   </view>
 
   <!-- 每日名言 -->
-  <view class="card quote-card">
-    <view class="section-title">
-      <text class="section-icon">✨</text>
-      <text>每日名言</text>
+  <view class="quote-card">
+    <view class="quote-content-wrap">
+      <block wx:if="{{quoteLoading}}">
+        <view class="skeleton quote-skeleton"></view>
+      </block>
+      <block wx:elif="{{quote}}">
+        <text class="quote-content">{{quote.content}}</text>
+        <text class="quote-source" wx:if="{{quote.author || quote.source}}">
+          —— {{quote.author}}<text wx:if="{{quote.source}}"> {{quote.source}}</text>
+        </text>
+      </block>
+      <block wx:else>
+        <text class="empty-hint">暂无今日名言</text>
+      </block>
     </view>
-    <block wx:if="{{quoteLoading}}">
-      <view class="skeleton quote-skeleton"></view>
-    </block>
-    <block wx:elif="{{quote}}">
-      <view class="quote-content">{{quote.content}}</view>
-      <view class="quote-source" wx:if="{{quote.author || quote.source}}">
-        <text wx:if="{{quote.author}}">—— {{quote.author}}</text>
-        <text wx:if="{{quote.source}}"> {{quote.source}}</text>
+  </view>
+
+  <!-- 连续打卡激励 -->
+  <view class="streak-card">
+    <view class="streak-main">
+      <view class="streak-label">连续打卡</view>
+      <view class="streak-value">{{streakDays}}<text class="streak-unit">天</text></view>
+      <view class="streak-sub">累计积分 {{totalPoints}} 分</view>
+    </view>
+    <view class="streak-week">
+      <view class="week-day {{item.checked ? 'checked' : ''}}" wx:for="{{weekDays}}" wx:key="day">
+        <text class="week-day-label">{{item.label}}</text>
+        <view class="week-day-dot"></view>
       </view>
-    </block>
-    <block wx:else>
-      <view class="empty-hint">暂无今日名言</view>
-    </block>
+    </view>
   </view>
 
   <!-- 今日任务 -->
   <view class="tasks-section">
     <view class="section-header">
-      <view class="section-title">
-        <text class="section-icon">📝</text>
-        <text>今日任务</text>
-        <view class="count-badge" wx:if="{{tasks.length > 0}}">{{tasks.length}}</view>
-      </view>
+      <text class="section-title">今日任务</text>
+      <text class="section-meta" wx:if="{{tasks.length > 0}}">共 {{tasks.length}} 个</text>
     </view>
 
     <view class="loading-state" wx:if="{{tasksLoading}}">
@@ -44,7 +53,7 @@
     </view>
 
     <block wx:elif="{{tasks.length > 0}}">
-      <view class="card task-card" wx:for="{{tasks}}" wx:key="id" data-id="{{item.id}}" bindtap="goToTask">
+      <view class="task-card" wx:for="{{tasks}}" wx:key="id" data-id="{{item.id}}" bindtap="goToTask">
         <view class="task-main">
           <view class="task-title-row">
             <text class="task-title">{{item.title}}</text>
@@ -53,6 +62,7 @@
             </view>
           </view>
           <text class="task-deadline">{{item.deadlineText}}</text>
+          <text class="task-summary" wx:if="{{item.content}}">{{item.content}}</text>
         </view>
         <view class="task-action" wx:if="{{item.status === 'in_progress'}}" catchtap="goToCheckIn" data-id="{{item.id}}">
           <button class="btn-mini">去打卡</button>

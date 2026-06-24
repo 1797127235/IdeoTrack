@@ -495,9 +495,11 @@ export async function updateTask(
   }
 
   const scopeType = input.scope_type ?? task.scope_type;
+  // AD-21/AD-22: 统一使用 scope_id，同时兼容 target_college_id/target_class_id
+  const scopeId = input.scope_id !== undefined ? input.scope_id : task.scope_id;
   // P8: scope 切换时主动清理无关 target id，避免 DB CHECK 约束 500
-  const targetCollegeId = resolveTargetCollegeId(scopeType, input.target_college_id, task.target_college_id);
-  const targetClassId = resolveTargetClassId(scopeType, input.target_class_id, task.target_class_id);
+  const targetCollegeId = resolveTargetCollegeId(scopeType, input.target_college_id, task.target_college_id, scopeId);
+  const targetClassId = resolveTargetClassId(scopeType, input.target_class_id, task.target_class_id, scopeId);
   // P3: 跳过派发实例的范围检查（辅导员编辑 deadline_at 时）
   if (!(task.source_task_id && role === 'counselor')) {
     await assertScopePermission(userId, role, scopeType, targetCollegeId, targetClassId);
@@ -535,7 +537,7 @@ export async function updateTask(
   }
 
   // P12: 派发实例不允许修改范围
-  if (task.source_task_id && (input.scope_type || input.target_college_id || input.target_class_id)) {
+  if (task.source_task_id && (input.scope_type || input.scope_id !== undefined || input.target_college_id || input.target_class_id)) {
     throw new AppError('VALIDATION_ERROR', '派发实例不允许修改发布范围', 400);
   }
 
@@ -547,14 +549,15 @@ export async function updateTask(
   }
   if (input.source_url !== undefined) addSet('source_url', input.source_url ?? null);
   if (input.video_url !== undefined) addSet('video_url', input.video_url ?? null);
-  if (input.scope_type !== undefined) {
-    addSet('scope_type', input.scope_type);
+  if (input.scope_type !== undefined || input.scope_id !== undefined) {
+    if (input.scope_type !== undefined) addSet('scope_type', input.scope_type);
+    if (input.scope_id !== undefined) addSet('scope_id', scopeId);
     // scope 变化时强制带上清理后的 target id，保持 valid_task_scope 约束
     addSet('target_college_id', targetCollegeId);
     addSet('target_class_id', targetClassId);
   } else {
-    if (input.target_college_id !== undefined) addSet('target_college_id', input.target_college_id);
-    if (input.target_class_id !== undefined) addSet('target_class_id', input.target_class_id);
+    if (input.target_college_id !== undefined) addSet('target_college_id', targetCollegeId);
+    if (input.target_class_id !== undefined) addSet('target_class_id', targetClassId);
   }
   if (input.published_at !== undefined) addSet('published_at', input.published_at);
   if (input.deadline_at !== undefined) addSet('deadline_at', input.deadline_at);
@@ -584,10 +587,11 @@ export async function updateTask(
 function resolveTargetCollegeId(
   scopeType: TaskScopeType,
   incoming: string | null | undefined,
-  current: string | null
+  current: string | null,
+  scopeId: string | null
 ): string | null {
   if (scopeType === 'college') {
-    return incoming !== undefined ? (incoming ?? null) : current;
+    return incoming !== undefined ? (incoming ?? null) : (scopeId ?? current);
   }
   return null;
 }
@@ -595,10 +599,11 @@ function resolveTargetCollegeId(
 function resolveTargetClassId(
   scopeType: TaskScopeType,
   incoming: string | null | undefined,
-  current: string | null
+  current: string | null,
+  scopeId: string | null
 ): string | null {
   if (scopeType === 'class') {
-    return incoming !== undefined ? (incoming ?? null) : current;
+    return incoming !== undefined ? (incoming ?? null) : (scopeId ?? current);
   }
   return null;
 }
