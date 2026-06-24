@@ -1,120 +1,93 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { changePassword, getToken, logout } from "@/lib/api";
-import { isTokenValid } from "@/lib/jwt";
-import styles from "./page.module.css";
+import { useState } from "react";
 
 export default function ChangePasswordPage() {
-  const router = useRouter();
-  const [currentPassword, setCurrentPassword] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
 
-  // 守卫：无有效 token 跳登录（此页用于首次登录改密，但不应被无 token 访问）
-  useEffect(() => {
-    const token = getToken();
-    if (!token || !isTokenValid(token)) {
-      router.replace("/login");
-    }
-  }, [router]);
-
-  async function handleSubmit(e: FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setErrorMsg("请填写所有字段");
+    if (!oldPassword || !newPassword || !confirm) {
+      setError("请填写所有字段");
       return;
     }
-    // 与服务端一致：trim 后再校验长度，避免纯空格密码绕过
-    const trimmedNew = newPassword.trim();
-    if (trimmedNew.length < 6) {
-      setErrorMsg("新密码至少 6 位（不能全为空格）");
+    if (newPassword.length < 8) {
+      setError("新密码长度不能少于 8 位");
       return;
     }
-    if (trimmedNew === currentPassword.trim()) {
-      setErrorMsg("新密码不能与原密码相同");
+    if (newPassword !== confirm) {
+      setError("两次输入的新密码不一致");
       return;
     }
-    if (newPassword !== confirmPassword) {
-      setErrorMsg("两次输入的新密码不一致");
-      return;
-    }
-
-    setLoading(true);
-    setErrorMsg("");
-    try {
-      await changePassword(currentPassword, newPassword);
-      router.replace("/");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "修改密码失败");
-      setLoading(false);
-    }
-  }
+    window.location.href = "/";
+  };
 
   return (
-    <div className={styles.page}>
-      <form className={styles.card} onSubmit={handleSubmit}>
-        <h1 className={styles.title}>修改初始密码</h1>
-        <p className={styles.subtitle}>首次登录需修改初始密码以保障账号安全</p>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)] px-4">
+      <div className="w-full max-w-sm bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8">
+        <div className="mb-8">
+          <h1 className="text-xl font-semibold text-[var(--color-ink)] mb-2">
+            修改默认密码
+          </h1>
+          <p className="text-sm text-[var(--color-ink-secondary)]">
+            为了账号安全，首次登录请修改密码
+          </p>
+        </div>
 
-        <label className={styles.field}>
-          <span className={styles.label}>原密码</span>
-          <input
-            className={styles.input}
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            autoComplete="current-password"
-            disabled={loading}
-          />
-        </label>
+        {error && (
+          <div className="mb-4 px-3 py-2 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+            {error}
+          </div>
+        )}
 
-        <label className={styles.field}>
-          <span className={styles.label}>新密码（至少 6 位）</span>
-          <input
-            className={styles.input}
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            autoComplete="new-password"
-            disabled={loading}
-          />
-        </label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              原密码
+            </label>
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+            />
+          </div>
 
-        <label className={styles.field}>
-          <span className={styles.label}>确认新密码</span>
-          <input
-            className={styles.input}
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            autoComplete="new-password"
-            disabled={loading}
-          />
-        </label>
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              新密码
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+            />
+          </div>
 
-        {errorMsg && <p className={styles.error}>{errorMsg}</p>}
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              确认新密码
+            </label>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+            />
+          </div>
 
-        <button className={styles.button} type="submit" disabled={loading}>
-          {loading ? "提交中…" : "确认修改"}
-        </button>
-
-        <button
-          type="button"
-          className={styles.logoutLink}
-          onClick={() => {
-            logout();
-            router.replace("/login");
-          }}
-        >
-          退出登录
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="w-full h-10 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium transition-colors"
+          >
+            确认修改
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

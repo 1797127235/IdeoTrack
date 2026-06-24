@@ -1,82 +1,178 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-
-interface Quote {
-  id: string;
-  content: string;
-  source: string;
-  displayOrder: number;
-  isEnabled: boolean;
-}
-
-const mockQuotes: Quote[] = [
-  { id: '1', content: '青年有理想，国家有力量。', source: '人民日报', displayOrder: 1, isEnabled: true },
-  { id: '2', content: '功崇惟志，业广惟勤。', source: '尚书', displayOrder: 2, isEnabled: true },
-  { id: '3', content: '空谈误国，实干兴邦。', source: '尚书', displayOrder: 3, isEnabled: false },
-  { id: '4', content: '苟利国家生死以，岂因祸福避趋之。', source: '林则徐', displayOrder: 4, isEnabled: true },
-  { id: '5', content: '为中华之崛起而读书。', source: '周恩来', displayOrder: 5, isEnabled: true },
-];
+import { useEffect, useState } from "react";
+import {
+  listQuotes,
+  createQuote,
+  updateQuote,
+  deleteQuote,
+  type Quote,
+} from "@/lib/quotes";
 
 export default function QuotesPage() {
-  const [quotes] = useState<Quote[]>(mockQuotes);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const handleAdd = () => {
-    alert('演示功能：新增名言暂未接入后端');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
+  const [content, setContent] = useState("");
+  const [author, setAuthor] = useState("");
+
+  const loadData = () => {
+    listQuotes()
+      .then((data) => {
+        setQuotes(data);
+        setError("");
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "加载失败");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
-  const handleToggle = (id: string) => {
-    alert(`演示功能：切换名言 ${id} 状态暂未接入后端`);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const resetForm = () => {
+    setContent("");
+    setAuthor("");
+    setEditingQuote(null);
+    setIsFormOpen(false);
   };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+
+    const action = editingQuote
+      ? updateQuote(editingQuote.id, { content: content.trim(), author: author.trim() || undefined })
+      : createQuote({ content: content.trim(), author: author.trim() || undefined });
+
+    action
+      .then(() => {
+        resetForm();
+        loadData();
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "保存失败");
+      });
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm("确定删除该名言？")) return;
+    deleteQuote(id)
+      .then(() => loadData())
+      .catch((err) => setError(err instanceof Error ? err.message : "删除失败"));
+  };
+
+  if (loading) {
+    return <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>;
+  }
 
   return (
-    <div className='min-h-screen'>
-      <div className='mb-8 flex items-center justify-between'>
-        <div>
-          <h1 className='text-2xl font-bold text-[#164E63]'>名言管理</h1>
-          <p className='text-[#64748B] mt-2'>管理每日名言库和展示配置</p>
+    <div className="space-y-5">
+      {error && (
+        <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+          {error}
         </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-[var(--color-ink)]">名言管理</h2>
         <button
-          onClick={handleAdd}
-          className='px-4 py-2 bg-[#0891B2] text-white rounded-lg text-sm font-medium hover:bg-[#0E7490] transition-colors'
+          onClick={() => setIsFormOpen(true)}
+          className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
         >
           新增名言
         </button>
       </div>
-      <div className='bg-white rounded-2xl shadow-sm overflow-hidden'>
-        <table className='w-full text-sm text-left'>
-          <thead className='bg-[#F1F5F9] text-[#64748B]'>
-            <tr>
-              <th className='px-6 py-4 font-medium'>排序</th>
-              <th className='px-6 py-4 font-medium'>名言内容</th>
-              <th className='px-6 py-4 font-medium'>作者/来源</th>
-              <th className='px-6 py-4 font-medium'>状态</th>
-              <th className='px-6 py-4 font-medium text-right'>操作</th>
+
+      {isFormOpen && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+          <h3 className="text-base font-medium text-[var(--color-ink)] mb-4">
+            {editingQuote ? "编辑名言" : "新增名言"}
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="名言内容"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            />
+            <input
+              type="text"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="作者"
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            />
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+              >
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
+              >
+                取消
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--color-border)]">
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">名言内容</th>
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">作者</th>
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
+              <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
             </tr>
           </thead>
-          <tbody className='divide-y divide-[#E2E8F0]'>
+          <tbody>
             {quotes.map((quote) => (
-              <tr key={quote.id} className='hover:bg-[#F8FAFC]'>
-                <td className='px-6 py-4 text-[#164E63] font-medium'>{quote.displayOrder}</td>
-                <td className='px-6 py-4 text-[#334155] max-w-md truncate'>{quote.content}</td>
-                <td className='px-6 py-4 text-[#64748B]'>{quote.source}</td>
-                <td className='px-6 py-4'>
+              <tr key={quote.id} className="border-b border-[var(--color-border)] last:border-0">
+                <td className="py-3 text-[var(--color-ink)] max-w-md truncate">{quote.content}</td>
+                <td className="py-3 text-[var(--color-ink-secondary)]">{quote.author || "-"}</td>
+                <td className="py-3">
                   <span
-                    className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                      quote.isEnabled
-                        ? 'bg-[#DCFCE7] text-[#166534]'
-                        : 'bg-[#F1F5F9] text-[#64748B]'
+                    className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                      quote.is_enabled
+                        ? "bg-[var(--color-success-subtle)] text-[var(--color-success)]"
+                        : "bg-[var(--color-danger-subtle)] text-[var(--color-danger)]"
                     }`}
                   >
-                    {quote.isEnabled ? '已启用' : '已停用'}
+                    {quote.is_enabled ? "启用" : "禁用"}
                   </span>
                 </td>
-                <td className='px-6 py-4 text-right'>
+                <td className="py-3 text-right space-x-3">
                   <button
-                    onClick={() => handleToggle(quote.id)}
-                    className='text-[#0891B2] hover:text-[#0E7490] font-medium'
+                    onClick={() => {
+                      setEditingQuote(quote);
+                      setContent(quote.content);
+                      setAuthor(quote.author || "");
+                      setIsFormOpen(true);
+                    }}
+                    className="text-[var(--color-accent)] hover:underline"
                   >
-                    {quote.isEnabled ? '停用' : '启用'}
+                    编辑
+                  </button>
+                  <button
+                    onClick={() => handleDelete(quote.id)}
+                    className="text-[var(--color-danger)] hover:underline"
+                  >
+                    删除
                   </button>
                 </td>
               </tr>

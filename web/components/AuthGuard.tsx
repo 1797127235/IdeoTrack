@@ -1,62 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { clearToken, getToken, logout } from "@/lib/api";
-import { decodeJwtPayload, isTokenValid } from "@/lib/jwt";
+import { useAuth } from "./AuthProvider";
+import { isAuthenticated } from "@/lib/auth";
 
-/**
- * 管理员守卫 —— 镜像 mobile/components/RoleGuard.tsx。
- * 由 app/(admin)/layout.tsx 包裹，保护整个 admin 路由组。
- *
- * 行为：
- * - 无 token / 过期 → 清 token + 跳 /login
- * - role !== 'admin' → 清 token + 显示无权限页（含登出入口）
- */
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
+interface AuthGuardProps {
+  children: React.ReactNode;
+}
+
+export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const [state, setState] = useState<"loading" | "ok" | "forbidden">("loading");
+  const { user, loading, error } = useAuth();
 
   useEffect(() => {
-    const token = getToken();
-    if (!token || !isTokenValid(token)) {
-      clearToken();
+    if (!isAuthenticated()) {
       router.replace("/login");
-      return;
     }
-
-    const payload = decodeJwtPayload(token);
-    if (payload?.role !== "admin") {
-      // 非管理员：清掉错误角色的 token，避免 /login 又跳回造成死循环
-      clearToken();
-      setState("forbidden");
-      return;
-    }
-
-    setState("ok");
   }, [router]);
 
-  if (state === "loading") {
+  if (loading) {
     return (
-      <div className="loading">
-        <p>加载中…</p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>
       </div>
     );
   }
 
-  if (state === "forbidden") {
+  if (error || !user) {
     return (
-      <div className="forbidden">
-        <h1>无权访问</h1>
-        <p>当前账号不是管理员，无法进入管理后台。</p>
-        <button
-          onClick={() => {
-            logout();
-            router.replace("/login");
-          }}
-        >
-          返回登录
-        </button>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="text-center">
+          <div className="text-sm text-[var(--color-danger)] mb-4">{error}</div>
+          <a
+            href="/login"
+            className="text-sm text-[var(--color-accent)] hover:underline"
+          >
+            返回登录
+          </a>
+        </div>
       </div>
     );
   }

@@ -7,6 +7,9 @@ import taskRoutes from './domains/tasks/task.routes.js';
 import checkinRoutes from './domains/checkins/checkins.routes.js';
 import reviewRoutes from './domains/reviews/reviews.routes.js';
 import counselorRoutes from './domains/counselor/counselor.routes.js';
+import userRoutes from './domains/users/users.routes.js';
+import reportRoutes from './domains/reports/reports.routes.js';
+import geofenceRoutes from './domains/geofences/geofences.routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { config } from './config/index.js';
@@ -34,6 +37,9 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/checkins', checkinRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/counselor', counselorRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/geofences', geofenceRoutes);
 
 // 导出文件下载端点（AD-7：签名 token 自校验，不经过 JWT authenticate）
 app.get('/api/exports/:token', async (req, res, next) => {

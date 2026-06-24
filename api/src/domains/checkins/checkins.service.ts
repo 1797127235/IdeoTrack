@@ -3,6 +3,7 @@ import { logger } from '../../lib/logger.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { aiReviewReflection, getReviewReasonCode, saveAIReviewRecord } from '../reviews/reviews.service.js';
 import { assertTaskVisibleToStudent, fetchTaskById } from '../tasks/task.service.js';
+import { checkGeofence } from '../geofences/geofences.service.js';
 import type {
   CheckIn,
   CheckInStatus,
@@ -149,6 +150,16 @@ export async function createOrUpdateCheckIn(
 
   const task = await fetchTaskById(task_id);
   await assertTaskVisibleToStudent(task, userId);
+
+  // AD-20: 地理围栏校验（后端集中判定）
+  const student = await queryOne<{ class_id: string | null }>(
+    'SELECT class_id FROM users WHERE id = $1 LIMIT 1',
+    [userId]
+  );
+  const geofenceResult = await checkGeofence(latitude, longitude, student?.class_id ?? undefined);
+  if (!geofenceResult.allowed) {
+    throw new AppError('CHECKIN_OUTSIDE_GEOFENCE', geofenceResult.message || '当前不在签到范围内', 403);
+  }
 
   const rows = await query<CheckIn>(
     `INSERT INTO check_ins (

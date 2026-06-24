@@ -1,4 +1,8 @@
-# 将 api.your-domain.com 替换为你的真实域名
+# 将 api.your-domain.com 和 admin.your-domain.com 替换为你的真实域名
 api.your-domain.com {
   reverse_proxy api:3000
+}
+
+admin.your-domain.com {
+  reverse_proxy web:3001
 }

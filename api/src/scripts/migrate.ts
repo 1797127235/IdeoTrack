@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
   is_initial_password BOOLEAN NOT NULL DEFAULT true,
   failed_login_attempts INTEGER NOT NULL DEFAULT 0,
   locked_until TIMESTAMPTZ,
+  is_enabled BOOLEAN NOT NULL DEFAULT true,
   class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -72,6 +73,7 @@ CREATE TRIGGER update_users_updated_at
 
 -- 微信 openid 字段（学生微信登录绑定，AD-17）
 ALTER TABLE users ADD COLUMN IF NOT EXISTS wechat_openid TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
 DROP INDEX IF EXISTS idx_users_wechat_openid;
 CREATE UNIQUE INDEX idx_users_wechat_openid ON users(wechat_openid) WHERE wechat_openid IS NOT NULL;
@@ -212,6 +214,22 @@ ALTER TABLE reminders DROP CONSTRAINT IF EXISTS reminders_student_id_reminder_da
 CREATE UNIQUE INDEX idx_reminders_unique_sent ON reminders(student_id, reminder_date) WHERE status = 'sent';
 CREATE INDEX IF NOT EXISTS idx_reminders_class_date ON reminders(class_id, reminder_date);
 CREATE INDEX IF NOT EXISTS idx_reminders_student_date ON reminders(student_id, reminder_date);
+
+-- 地理围栏表（Epic 4.5 / AD-20）
+CREATE TABLE IF NOT EXISTS geofences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  center_lat DECIMAL(10, 8) NOT NULL,
+  center_lng DECIMAL(11, 8) NOT NULL,
+  radius_meters INTEGER NOT NULL CHECK (radius_meters BETWEEN 50 AND 5000),
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('school', 'college', 'class')),
+  scope_id UUID,
+  is_enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_geofences_scope ON geofences(scope_type, scope_id, is_enabled);
 
 -- AI 初审记录表（Epic 5.1）：保存每次 AI 审核输入、结果与原因，支持审计与调优
 CREATE TABLE IF NOT EXISTS ai_reviews (

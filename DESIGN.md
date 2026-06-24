@@ -2,118 +2,153 @@
 
 ## Overview
 
-A restrained, product-first admin dashboard for IdeoTrack. The visual system prioritizes data clarity, consistent density, and a calm professional tone. The primary accent is a teal/cyan that reads as trustworthy and modern without being overly clinical.
+A minimal, restrained admin dashboard for IdeoTrack. The visual system prioritizes clarity, density, and calm efficiency. The interface avoids decoration in favor of typography, spacing, and structural hierarchy. Inspired by Linear and Notion: generous whitespace, sharp type hierarchy, subtle borders, and a near-neutral palette with a single disciplined accent.
+
+## Register
+
+product
 
 ## Palette
 
 ### Primary Accent
 
-- `--color-primary`: `#0891B2` — links, active nav, chart lines, progress bars, primary actions
-- `--color-primary-dark`: `#0E7490` — hover states
-- `--color-primary-darker`: `#164E63` — sidebar background, headings, strong text
-- `--color-primary-light`: `#E0F2F7` — faint tints, chart fill
+- `--color-accent`: `#2563EB` — links, active nav indicator, primary actions, data highlights
+- `--color-accent-hover`: `#1D4ED8` — hover states
+- `--color-accent-subtle`: `#EFF6FF` — faint tints, active row backgrounds
 
 ### Neutral
 
-- `--color-bg`: `#F8FAFC` — page background (cool-tinted near-white)
-- `--color-surface`: `#FFFFFF` — cards, panels, tables
-- `--color-border`: `#E2E8F0` — dividers, table borders, subtle borders
+- `--color-bg`: `#FAFAFA` — page background (true off-white, chroma 0)
+- `--color-surface`: `#FFFFFF` — cards, panels, tables, sidebar
+- `--color-border`: `#E2E8F0` — dividers, table borders, input borders
 - `--color-border-strong`: `#CBD5E1` — stronger borders when needed
-- `--color-ink`: `#164E63` — primary text (headings, data)
-- `--color-ink-secondary`: `#475569` — secondary text (labels, descriptions)
-- `--color-ink-muted`: `#64748B` — tertiary text, placeholders
-- `--color-success`: `#22C55E`
-- `--color-warning`: `#F59E0B`
-- `--color-danger`: `#EF4444`
+- `--color-ink`: `#0F172A` — primary text, headings, data
+- `--color-ink-secondary`: `#475569` — secondary text, labels, descriptions
+- `--color-ink-muted`: `#64748B` — tertiary text, placeholders, disabled
 
-### Ranking Colors
+### Semantic
 
-- Gold: `#F59E0B` — rank 1
-- Silver: `#94A3B8` — rank 2
-- Bronze: `#F97316` — rank 3
+- `--color-success`: `#16A34A`
+- `--color-success-subtle`: `#F0FDF4`
+- `--color-warning`: `#D97706`
+- `--color-warning-subtle`: `#FFFBEB`
+- `--color-danger`: `#DC2626`
+- `--color-danger-subtle`: `#FEF2F2`
 
 ## Typography
 
 ### Font Family
 
 ```css
---font-sans: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 ```
+
+System-first stack. No web fonts. One family carries everything.
 
 ### Scale
 
-| Token | Size | Usage |
-|-------|------|-------|
-| `--text-xs` | 12px | timestamps, tiny labels |
-| `--text-sm` | 14px | body, table text, nav labels |
-| `--text-base` | 16px | card values, emphasis |
-| `--text-lg` | 18px | section titles |
-| `--text-xl` | 24px | page title |
-| `--text-2xl` | 32px | large KPI values |
+| Token | Size | Line Height | Usage |
+|-------|------|-------------|-------|
+| `--text-xs` | 12px | 16px | timestamps, badges |
+| `--text-sm` | 14px | 20px | body, table text, nav labels, buttons |
+| `--text-base` | 15px | 22px | default body, card values |
+| `--text-lg` | 18px | 26px | section titles |
+| `--text-xl` | 20px | 28px | page title |
+| `--text-2xl` | 28px | 34px | large KPI values |
 
 ### Weights
 
 - Regular: 400 — body
-- Medium: 500 — labels, nav items
-- Semibold: 600 — section titles, table headers
-- Bold: 700 — page title, KPI values
+- Medium: 500 — labels, nav items, buttons
+- Semibold: 600 — section titles, table headers, KPI values
 
 ## Spacing
 
-Base 4pt scale: 4, 8, 12, 16, 20, 24, 32, 48, 64px.
+Base 4pt scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64px.
 
 - Tight grouping: 8–12px
 - Section gaps: 24–32px
 - Major section separation: 32–48px
 - Dashboard padding: 32px
+- Card padding: 24px
 
 ## Components
 
 ### Sidebar
 
-- Width: 256px
-- Background: `--color-primary-darker` (`#164E63`)
-- Nav item padding: 12px 16px
-- Active item: `--color-primary` background, white text, 4px left indicator
-- Inactive item: white/75 text, hover white/10 background
-- Border radius: 12px
+- Width: 240px
+- Background: `--color-surface`
+- Border right: 1px `--color-border`
+- Nav item padding: 10px 14px
+- Active item: `--color-accent-subtle` background, `--color-accent` text, 3px left indicator
+- Inactive item: `--color-ink-secondary` text, hover `--color-bg` background
+- Border radius: 8px
+
+### Top Bar
+
+- Height: 56px
+- Background: `--color-surface`
+- Border bottom: 1px `--color-border`
+- Padding: 0 32px
+- Contains page title and admin menu
 
 ### Cards
 
-- Background: white
-- Border radius: 16px
+- Background: `--color-surface`
+- Border: 1px `--color-border`
+- Border radius: 12px
 - Padding: 24px
-- Shadow: none or `0 1px 3px rgba(0,0,0,0.05)`
-- Avoid nested cards
+- Shadow: none
 
 ### KPI Cards
 
 - Layout: horizontal row of 4 equal cards
-- Structure: label top-left, colored dot top-right, large value, secondary text
-- No shadows, no borders, white surface on gray background
+- Structure: muted label, large semibold value, secondary trend text
+- No shadows, no colored dots unless indicating status
 
 ### Tables
 
-- Header: 14px medium, `--color-ink-muted`
+- Header: 13px medium, `--color-ink-muted`, uppercase tracking wide
 - Row border: 1px `--color-border`
-- Cell padding: 16px vertical
+- Cell padding: 14px 16px
+- Hover row: `--color-bg`
 - Right-aligned numbers
 
-### Links
+### Buttons
 
-- Default: `--color-primary`
-- Hover: `--color-primary-dark` with underline
+- Primary: `--color-accent` bg, white text, 8px radius, 10px 16px padding
+- Secondary: `--color-surface` bg, `--color-border` border, `--color-ink` text
+- Ghost: transparent bg, `--color-ink-secondary` text, hover `--color-bg`
+- All buttons: medium weight, 14px
+
+### Inputs
+
+- Height: 40px
+- Border: 1px `--color-border`
+- Border radius: 8px
+- Padding: 0 12px
+- Focus: `--color-accent` ring 2px
+
+### Badges
+
+- Small rounded pills
+- Success: green subtle
+- Warning: amber subtle
+- Danger: red subtle
+- Neutral: gray subtle
 
 ## Layout
 
-- Dashboard main area padding: 32px
+- Sidebar fixed left, main area scrolls
+- Main content padding: 32px
 - Grid gap: 24px
-- Trend chart: 2/3 width
-- Distribution donut: 1/3 width
-- Ranking and absent students: equal 1/2 width below
+- Dashboard top row: 4 KPI cards
+- Dashboard middle: 2/3 trend chart + 1/3 distribution
+- Dashboard bottom: 1/2 ranking + 1/2 absent students
 
 ## Motion
 
-- Transitions: 150–200ms ease-out
-- Only state changes (hover, focus) animate; no page-load choreography
+- Transitions: 150ms ease-out
+- Only state changes (hover, focus, active) animate
+- No page-load choreography
 - Respect `prefers-reduced-motion`

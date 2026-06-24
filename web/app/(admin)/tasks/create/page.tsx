@@ -1,317 +1,253 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-interface TaskFormData {
-  title: string;
-  content: string;
-  guiding_questions: string[];
-  source_url: string;
-  video_url: string;
-  scope_type: 'school' | 'college' | 'class' | 'pool';
-  scope_id: string;
-  published_at: string;
-  deadline_at: string;
-}
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createTask, type TaskScopeType } from "@/lib/tasks";
+import { listColleges, listClasses, type College, type Class } from "@/lib/users";
 
 export default function CreateTaskPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<TaskFormData>({
-    title: '',
-    content: '',
-    guiding_questions: [''],
-    source_url: '',
-    video_url: '',
-    scope_type: 'pool',
-    scope_id: '',
-    published_at: new Date().toISOString().slice(0, 16),
-    deadline_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
-  });
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [guidingQuestions, setGuidingQuestions] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [scopeType, setScopeType] = useState<TaskScopeType>("school");
+  const [scopeId, setScopeId] = useState("");
+  const [publishedAt, setPublishedAt] = useState("");
+  const [deadlineAt, setDeadlineAt] = useState("");
+  const [colleges, setColleges] = useState<College[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleQuestionChange = (index: number, value: string) => {
-    const newQuestions = [...formData.guiding_questions];
-    newQuestions[index] = value;
-    setFormData(prev => ({ ...prev, guiding_questions: newQuestions }));
-  };
-
-  const addQuestion = () => {
-    setFormData(prev => ({
-      ...prev,
-      guiding_questions: [...prev.guiding_questions, '']
-    }));
-  };
-
-  const removeQuestion = (index: number) => {
-    if (formData.guiding_questions.length > 1) {
-      const newQuestions = formData.guiding_questions.filter((_, i) => i !== index);
-      setFormData(prev => ({ ...prev, guiding_questions: newQuestions }));
-    }
-  };
-
-  const showScopeId = formData.scope_type !== 'pool';
+  // 加载学院/班级下拉数据
+  useEffect(() => {
+    Promise.all([listColleges(), listClasses()])
+      .then(([c, cl]) => {
+        setColleges(c);
+        setClasses(cl);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setError("");
+    setSaving(true);
 
     try {
-      // 过滤空的思考题
-      const filteredQuestions = formData.guiding_questions.filter(q => q.trim() !== '');
+      const questions = guidingQuestions
+        .split("\n")
+        .map((q) => q.trim())
+        .filter((q) => q.length > 0);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          guiding_questions: filteredQuestions.length > 0 ? filteredQuestions : null,
-          source_url: formData.source_url || null,
-          video_url: formData.video_url || null,
-          scope_id: formData.scope_type === 'pool' ? null : formData.scope_id,
-        }),
+      await createTask({
+        title: title.trim(),
+        content: content.trim(),
+        guiding_questions: questions.length > 0 ? questions : undefined,
+        source_url: sourceUrl.trim() || undefined,
+        video_url: videoUrl.trim() || undefined,
+        scope_type: scopeType,
+        scope_id: scopeType === "school" || scopeType === "pool" ? undefined : scopeId,
+        published_at: new Date(publishedAt).toISOString(),
+        deadline_at: new Date(deadlineAt).toISOString(),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || '创建任务失败');
-      }
-
-      router.push('/tasks');
+      router.push("/tasks");
     } catch (err) {
-      setError(err instanceof Error ? err.message : '创建任务失败');
+      setError(err instanceof Error ? err.message : "创建失败");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#ECFEFF] p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#164E63]">创建新任务</h1>
-          <p className="text-[#64748B] mt-2">创建思政学习任务并发布给学生</p>
+    <div className="max-w-2xl">
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+          {error}
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 space-y-6"
+      >
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+            任务名称
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            placeholder="输入任务名称"
+            required
+          />
         </div>
 
-        {error && (
-          <div className="mb-4 p-4 bg-[#EF4444]/10 border border-[#EF4444] rounded-lg text-[#EF4444]">
-            {error}
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+            任务内容
+          </label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={5}
+            className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            placeholder="输入任务正文"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+            思考题（每行一个，可选）
+          </label>
+          <textarea
+            value={guidingQuestions}
+            onChange={(e) => setGuidingQuestions(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            placeholder="输入思考题，引导学生撰写心得"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              外部链接（可选）
+            </label>
+            <input
+              type="url"
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              placeholder="https://"
+            />
           </div>
-        )}
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              视频 URL（可选）
+            </label>
+            <input
+              type="url"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              placeholder="https://"
+            />
+          </div>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 基本信息 */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#164E63] mb-4">基本信息</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  任务标题 <span className="text-[#EF4444]">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  required
-                  maxLength={100}
-                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                  placeholder="请输入任务标题"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  任务正文 <span className="text-[#EF4444]">*</span>
-                </label>
-                <textarea
-                  name="content"
-                  value={formData.content}
-                  onChange={handleChange}
-                  required
-                  maxLength={2000}
-                  rows={6}
-                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                  placeholder="请输入任务内容"
-                />
-              </div>
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              发布范围
+            </label>
+            <select
+              value={scopeType}
+              onChange={(e) => {
+                setScopeType(e.target.value as TaskScopeType);
+                setScopeId("");
+              }}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            >
+              <option value="school">全校</option>
+              <option value="college">学院</option>
+              <option value="class">班级</option>
+              <option value="pool">任务池</option>
+            </select>
           </div>
 
-          {/* 可选内容 */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#164E63] mb-4">可选内容</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  思考题
-                </label>
-                {formData.guiding_questions.map((question, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={question}
-                      onChange={(e) => handleQuestionChange(index, e.target.value)}
-                      className="flex-1 px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                      placeholder={`思考题 ${index + 1}`}
-                    />
-                    {formData.guiding_questions.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeQuestion(index)}
-                        className="px-3 py-3 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg"
-                      >
-                        删除
-                      </button>
-                    )}
-                  </div>
+          {scopeType === "college" && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+                选择学院
+              </label>
+              <select
+                value={scopeId}
+                onChange={(e) => setScopeId(e.target.value)}
+                required
+                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              >
+                <option value="">请选择</option>
+                {colleges.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
-                <button
-                  type="button"
-                  onClick={addQuestion}
-                  className="text-[#0891B2] hover:text-[#164E63] text-sm font-medium"
-                >
-                  + 添加思考题
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  外部链接
-                </label>
-                <input
-                  type="url"
-                  name="source_url"
-                  value={formData.source_url}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                  placeholder="https://example.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  视频 URL
-                </label>
-                <input
-                  type="url"
-                  name="video_url"
-                  value={formData.video_url}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                  placeholder="https://video.example.com"
-                />
-              </div>
+              </select>
             </div>
-          </div>
+          )}
 
-          {/* 发布范围 */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#164E63] mb-4">发布范围</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  范围类型 <span className="text-[#EF4444]">*</span>
-                </label>
-                <select
-                  name="scope_type"
-                  value={formData.scope_type}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                >
-                  <option value="pool">任务池（供辅导员派发）</option>
-                  <option value="school">全校</option>
-                  <option value="college">学院</option>
-                  <option value="class">班级</option>
-                </select>
-              </div>
-
-              {showScopeId && (
-                <div>
-                  <label className="block text-sm font-medium text-[#164E63] mb-2">
-                    范围 ID <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="scope_id"
-                    value={formData.scope_id}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                    placeholder="请输入学校/学院/班级 ID"
-                  />
-                </div>
-              )}
+          {scopeType === "class" && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+                选择班级
+              </label>
+              <select
+                value={scopeId}
+                onChange={(e) => setScopeId(e.target.value)}
+                required
+                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              >
+                <option value="">请选择</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.collegeName} - {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* 时间设置 */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#164E63] mb-4">时间设置</h2>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  发布时间 <span className="text-[#EF4444]">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  name="published_at"
-                  value={formData.published_at}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#164E63] mb-2">
-                  截止时间 <span className="text-[#EF4444]">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  name="deadline_at"
-                  value={formData.deadline_at}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-                />
-              </div>
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              发布时间
+            </label>
+            <input
+              type="datetime-local"
+              value={publishedAt}
+              onChange={(e) => setPublishedAt(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              required
+            />
           </div>
-
-          {/* 提交按钮 */}
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-6 py-3 border border-[#E2E8F0] text-[#64748B] rounded-lg hover:bg-[#F1F5F9]"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-[#22C55E] text-white rounded-lg hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '创建中...' : '创建任务'}
-            </button>
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              截止时间
+            </label>
+            <input
+              type="datetime-local"
+              value={deadlineAt}
+              onChange={(e) => setDeadlineAt(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              required
+            />
           </div>
-        </form>
-      </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+          <Link
+            href="/tasks"
+            className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center transition-colors"
+          >
+            取消
+          </Link>
+          <button
+            type="submit"
+            disabled={saving}
+            className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium transition-colors"
+          >
+            {saving ? "保存中…" : "保存"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

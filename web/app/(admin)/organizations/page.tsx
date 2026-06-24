@@ -1,160 +1,291 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-
-type College = {
-  id: string;
-  name: string;
-  classCount: number;
-  studentCount: number;
-  counselorCount: number;
-  status: 'active' | 'inactive';
-};
-
-type ClassItem = {
-  id: string;
-  name: string;
-  college: string;
-  studentCount: number;
-  counselor: string;
-};
-
-const colleges: College[] = [
-  { id: '1', name: '马克思主义学院', classCount: 6, studentCount: 820, counselorCount: 4, status: 'active' },
-  { id: '2', name: '教育学院', classCount: 8, studentCount: 1150, counselorCount: 6, status: 'active' },
-  { id: '3', name: '经济管理学院', classCount: 10, studentCount: 1380, counselorCount: 7, status: 'active' },
-  { id: '4', name: '计算机学院', classCount: 7, studentCount: 960, counselorCount: 5, status: 'active' },
-  { id: '5', name: '外国语学院', classCount: 5, studentCount: 620, counselorCount: 3, status: 'inactive' },
-];
-
-const classes: ClassItem[] = [
-  { id: 'c1', name: '2023级思想政治教育1班', college: '马克思主义学院', studentCount: 42, counselor: '王建国' },
-  { id: 'c2', name: '2023级思想政治教育2班', college: '马克思主义学院', studentCount: 38, counselor: '王建国' },
-  { id: 'c3', name: '2023级小学教育1班', college: '教育学院', studentCount: 45, counselor: '李秀英' },
-  { id: 'c4', name: '2023级工商管理1班', college: '经济管理学院', studentCount: 50, counselor: '张志强' },
-  { id: 'c5', name: '2023级计算机科学与技术1班', college: '计算机学院', studentCount: 48, counselor: '陈伟' },
-  { id: 'c6', name: '2023级英语1班', college: '外国语学院', studentCount: 36, counselor: '刘敏' },
-];
-
-function StatusBadge({ status }: { status: College['status'] }) {
-  const isActive = status === 'active';
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        isActive ? 'bg-[#D1FAE5] text-[#065F46]' : 'bg-[#F1F5F9] text-[#64748B]'
-      }`}
-    >
-      {isActive ? '启用中' : '已停用'}
-    </span>
-  );
-}
+import { useEffect, useState } from "react";
+import {
+  listColleges,
+  listClasses,
+  createCollege,
+  updateCollege,
+  deleteCollege,
+  createClass,
+  updateClass,
+  deleteClass,
+  type College,
+  type Class,
+} from "@/lib/users";
 
 export default function OrganizationsPage() {
-  const [activeTab, setActiveTab] = useState<'college' | 'class'>('college');
+  const [colleges, setColleges] = useState<College[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const handleAddCollege = () => {
-    alert('演示功能，暂未接入后端');
+  const [collegeName, setCollegeName] = useState("");
+  const [editingCollege, setEditingCollege] = useState<College | null>(null);
+
+  const [className, setClassName] = useState("");
+  const [classCollegeId, setClassCollegeId] = useState("");
+  const [editingClass, setEditingClass] = useState<Class | null>(null);
+
+  const loadData = () => {
+    Promise.all([listColleges(), listClasses()])
+      .then(([c, cl]) => {
+        setColleges(c);
+        setClasses(cl);
+        setError("");
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "加载失败");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
-  const handleAddClass = () => {
-    alert('演示功能，暂未接入后端');
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleCreateCollege = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!collegeName.trim()) return;
+    try {
+      await createCollege({ name: collegeName.trim() });
+      setCollegeName("");
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "创建失败");
+    }
   };
+
+  const handleUpdateCollege = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCollege || !collegeName.trim()) return;
+    try {
+      await updateCollege(editingCollege.id, { name: collegeName.trim() });
+      setEditingCollege(null);
+      setCollegeName("");
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "更新失败");
+    }
+  };
+
+  const handleDeleteCollege = async (id: string) => {
+    if (!confirm("确定删除该学院？")) return;
+    try {
+      await deleteCollege(id);
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    }
+  };
+
+  const handleCreateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!className.trim() || !classCollegeId) return;
+    try {
+      await createClass({ collegeId: classCollegeId, name: className.trim() });
+      setClassName("");
+      setClassCollegeId("");
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "创建失败");
+    }
+  };
+
+  const handleUpdateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClass || !className.trim()) return;
+    try {
+      await updateClass(editingClass.id, {
+        name: className.trim(),
+        collegeId: classCollegeId || editingClass.collegeId,
+      });
+      setEditingClass(null);
+      setClassName("");
+      setClassCollegeId("");
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "更新失败");
+    }
+  };
+
+  const handleDeleteClass = async (id: string) => {
+    if (!confirm("确定删除该班级？")) return;
+    try {
+      await deleteClass(id);
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    }
+  };
+
+  if (loading) {
+    return <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>;
+  }
 
   return (
-    <div className='min-h-screen'>
-      <div className='mb-8 flex items-end justify-between'>
-        <div>
-          <h1 className='text-2xl font-bold text-[#164E63]'>组织结构</h1>
-          <p className='text-[#64748B] mt-2'>管理学院、班级等组织架构</p>
+    <div className="space-y-6">
+      {error && (
+        <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+          {error}
         </div>
-        <div className='flex gap-3'>
-          <button
-            onClick={handleAddCollege}
-            className='px-4 py-2 text-sm font-medium text-white bg-[#0891B2] rounded-lg hover:bg-[#164E63] transition-colors'
-          >
-            新增学院
-          </button>
-          <button
-            onClick={handleAddClass}
-            className='px-4 py-2 text-sm font-medium text-white bg-[#0891B2] rounded-lg hover:bg-[#164E63] transition-colors'
-          >
-            新增班级
-          </button>
-        </div>
-      </div>
+      )}
 
-      <div className='bg-white rounded-2xl p-6 shadow-sm'>
-        <div className='flex gap-4 mb-6 border-b border-[#E2E8F0]'>
-          <button
-            onClick={() => setActiveTab('college')}
-            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'college'
-                ? 'text-[#0891B2] border-[#0891B2]'
-                : 'text-[#64748B] border-transparent hover:text-[#164E63]'
-            }`}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Colleges */}
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">学院管理</h2>
+
+          <form
+            onSubmit={editingCollege ? handleUpdateCollege : handleCreateCollege}
+            className="flex gap-3 mb-4"
           >
-            学院列表
-          </button>
-          <button
-            onClick={() => setActiveTab('class')}
-            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'class'
-                ? 'text-[#0891B2] border-[#0891B2]'
-                : 'text-[#64748B] border-transparent hover:text-[#164E63]'
-            }`}
-          >
-            班级列表
-          </button>
+            <input
+              type="text"
+              value={collegeName}
+              onChange={(e) => setCollegeName(e.target.value)}
+              placeholder="学院名称"
+              className="flex-1 h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            />
+            <button
+              type="submit"
+              className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+            >
+              {editingCollege ? "更新" : "新增"}
+            </button>
+            {editingCollege && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingCollege(null);
+                  setCollegeName("");
+                }}
+                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
+              >
+                取消
+              </button>
+            )}
+          </form>
+
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]">
+                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">名称</th>
+                <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {colleges.map((college) => (
+                <tr key={college.id} className="border-b border-[var(--color-border)] last:border-0">
+                  <td className="py-3 text-[var(--color-ink)]">{college.name}</td>
+                  <td className="py-3 text-right space-x-3">
+                    <button
+                      onClick={() => {
+                        setEditingCollege(college);
+                        setCollegeName(college.name);
+                      }}
+                      className="text-[var(--color-accent)] hover:underline"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCollege(college.id)}
+                      className="text-[var(--color-danger)] hover:underline"
+                    >
+                      删除
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <div className='overflow-x-auto'>
-          {activeTab === 'college' ? (
-            <table className='w-full'>
-              <thead className='bg-[#F1F5F9]'>
-                <tr className='text-left text-sm text-[#64748B]'>
-                  <th className='px-4 py-3 font-medium rounded-l-lg'>学院名称</th>
-                  <th className='px-4 py-3 font-medium'>班级数</th>
-                  <th className='px-4 py-3 font-medium'>学生数</th>
-                  <th className='px-4 py-3 font-medium'>辅导员</th>
-                  <th className='px-4 py-3 font-medium rounded-r-lg'>状态</th>
+        {/* Classes */}
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">班级管理</h2>
+
+          <form
+            onSubmit={editingClass ? handleUpdateClass : handleCreateClass}
+            className="flex gap-3 mb-4"
+          >
+            <select
+              value={classCollegeId || (editingClass?.collegeId ?? "")}
+              onChange={(e) => setClassCollegeId(e.target.value)}
+              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            >
+              <option value="">选择学院</option>
+              {colleges.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={className}
+              onChange={(e) => setClassName(e.target.value)}
+              placeholder="班级名称"
+              className="flex-1 h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            />
+            <button
+              type="submit"
+              className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+            >
+              {editingClass ? "更新" : "新增"}
+            </button>
+            {editingClass && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingClass(null);
+                  setClassName("");
+                  setClassCollegeId("");
+                }}
+                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
+              >
+                取消
+              </button>
+            )}
+          </form>
+
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]">
+                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">班级</th>
+                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学院</th>
+                <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {classes.map((cls) => (
+                <tr key={cls.id} className="border-b border-[var(--color-border)] last:border-0">
+                  <td className="py-3 text-[var(--color-ink)]">{cls.name}</td>
+                  <td className="py-3 text-[var(--color-ink-secondary)]">{cls.collegeName}</td>
+                  <td className="py-3 text-right space-x-3">
+                    <button
+                      onClick={() => {
+                        setEditingClass(cls);
+                        setClassName(cls.name);
+                        setClassCollegeId(cls.collegeId);
+                      }}
+                      className="text-[var(--color-accent)] hover:underline"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClass(cls.id)}
+                      className="text-[var(--color-danger)] hover:underline"
+                    >
+                      删除
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className='divide-y divide-[#E2E8F0]'>
-                {colleges.map((college) => (
-                  <tr key={college.id}>
-                    <td className='px-4 py-4 text-sm text-[#164E63] font-medium'>{college.name}</td>
-                    <td className='px-4 py-4 text-sm text-[#64748B]'>{college.classCount}</td>
-                    <td className='px-4 py-4 text-sm text-[#64748B]'>{college.studentCount}</td>
-                    <td className='px-4 py-4 text-sm text-[#64748B]'>{college.counselorCount} 人</td>
-                    <td className='px-4 py-4'>
-                      <StatusBadge status={college.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <table className='w-full'>
-              <thead className='bg-[#F1F5F9]'>
-                <tr className='text-left text-sm text-[#64748B]'>
-                  <th className='px-4 py-3 font-medium rounded-l-lg'>班级名称</th>
-                  <th className='px-4 py-3 font-medium'>所属学院</th>
-                  <th className='px-4 py-3 font-medium'>学生数</th>
-                  <th className='px-4 py-3 font-medium rounded-r-lg'>辅导员</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-[#E2E8F0]'>
-                {classes.map((cls) => (
-                  <tr key={cls.id}>
-                    <td className='px-4 py-4 text-sm text-[#164E63] font-medium'>{cls.name}</td>
-                    <td className='px-4 py-4 text-sm text-[#64748B]'>{cls.college}</td>
-                    <td className='px-4 py-4 text-sm text-[#64748B]'>{cls.studentCount}</td>
-                    <td className='px-4 py-4 text-sm text-[#64748B]'>{cls.counselor}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

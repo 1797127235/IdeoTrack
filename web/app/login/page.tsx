@@ -1,93 +1,104 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login, getToken } from "@/lib/api";
-import { decodeJwtPayload, isTokenValid } from "@/lib/jwt";
-import styles from "./page.module.css";
+import { login } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [schoolId, setSchoolId] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
-  // 仅当已有「有效的 admin token」时直接跳后台，避免非 admin 死循环
-  useEffect(() => {
-    const token = getToken();
-    if (token && isTokenValid(token)) {
-      const payload = decodeJwtPayload(token);
-      if (payload?.role === "admin") {
-        router.replace("/");
-      }
-    }
-  }, [router]);
-
-  async function handleSubmit(e: FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    setError("");
 
-    if (!schoolId.trim() || !password) {
-      setErrorMsg("请输入账号和密码");
+    if (!schoolId || !password) {
+      setError("请输入用户名和密码");
       return;
     }
 
     setLoading(true);
-    setErrorMsg("");
     try {
-      const result = await login(schoolId, password);
-      // 首次登录强制改密
-      if (result.user.isInitialPassword) {
-        router.replace("/change-password");
+      const user = await login({ schoolId, password });
+      if (user.role !== "admin") {
+        setError("当前账号不是管理员，无法登录后台");
         return;
       }
-      router.replace("/");
+      if (user.isInitialPassword) {
+        router.push("/change-password");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "登录失败");
+      setError(err instanceof Error ? err.message : "登录失败");
+    } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className={styles.page}>
-      <form className={styles.card} onSubmit={handleSubmit}>
-        <div className={styles.logo}>📚</div>
-        <h1 className={styles.title}>思政打卡</h1>
-        <p className={styles.subtitle}>管理员登录</p>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)] px-4">
+      <div className="w-full max-w-sm bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8">
+        <div className="mb-8">
+          <h1 className="text-xl font-semibold text-[var(--color-ink)] mb-2">
+            IdeoTrack
+          </h1>
+          <p className="text-sm text-[var(--color-ink-secondary)]">
+            管理员后台登录
+          </p>
+        </div>
 
-        <label className={styles.field}>
-          <span className={styles.label}>账号 / 工号</span>
-          <input
-            className={styles.input}
-            type="text"
-            value={schoolId}
-            onChange={(e) => setSchoolId(e.target.value)}
-            placeholder="请输入账号或工号"
-            autoComplete="username"
+        {error && (
+          <div className="mb-4 px-3 py-2 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              用户名
+            </label>
+            <input
+              type="text"
+              value={schoolId}
+              onChange={(e) => setSchoolId(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+              placeholder="admin"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+              密码
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+              placeholder="••••••••"
+              disabled={loading}
+            />
+          </div>
+
+          <button
+            type="submit"
             disabled={loading}
-          />
-        </label>
+            className="w-full h-10 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium transition-colors"
+          >
+            {loading ? "登录中…" : "登录"}
+          </button>
+        </form>
 
-        <label className={styles.field}>
-          <span className={styles.label}>密码</span>
-          <input
-            className={styles.input}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="请输入密码"
-            autoComplete="current-password"
-            disabled={loading}
-          />
-        </label>
-
-        {errorMsg && <p className={styles.error}>{errorMsg}</p>}
-
-        <button className={styles.button} type="submit" disabled={loading}>
-          {loading ? "登录中…" : "登录"}
-        </button>
-      </form>
+        <p className="mt-6 text-xs text-center text-[var(--color-ink-muted)]">
+          首次登录需修改默认密码
+        </p>
+      </div>
     </div>
   );
 }

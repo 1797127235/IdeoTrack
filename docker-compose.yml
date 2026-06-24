@@ -47,6 +47,23 @@ services:
     expose:
       - "3000"
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+        NEXT_PUBLIC_AMAP_KEY: ${NEXT_PUBLIC_AMAP_KEY:-}
+    container_name: ideo-track-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    expose:
+      - "3001"
+
   # 可选：自动 HTTPS 反向代理。需要把 YOUR_DOMAIN 替换为真实域名，
   # 并在服务器上开放 80/443 端口、解析域名到服务器 IP。
   caddy:
@@ -55,6 +72,7 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+      - web
     ports:
       - "80:80"
       - "443:443"

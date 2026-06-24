@@ -1,18 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  /* 与 lib/theme.ts 对齐，供 CSS Modules / 内联样式复用 */
-  --color-primary: #0891b2;
-  --color-primary-light: #22d3ee;
-  --color-primary-dark: #164e63;
-  --color-cta: #22c55e;
-  --color-background: #ecfeff;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-subtle: #eff6ff;
+
+  --color-bg: #fafafa;
   --color-surface: #ffffff;
-  --color-text: #164e63;
-  --color-text-light: #64748b;
-  --color-error: #ef4444;
-  --color-success: #22c55e;
   --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  --color-ink: #0f172a;
+  --color-ink-secondary: #475569;
+  --color-ink-muted: #64748b;
+
+  --color-success: #16a34a;
+  --color-success-subtle: #f0fdf4;
+  --color-warning: #d97706;
+  --color-warning-subtle: #fffbeb;
+  --color-danger: #dc2626;
+  --color-danger-subtle: #fef2f2;
 }
 
 html,
@@ -22,10 +29,10 @@ body {
 
 body {
   margin: 0;
-  color: var(--color-text);
-  background: var(--color-background);
+  color: var(--color-ink);
+  background: var(--color-bg);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-    "Microsoft YaHei", Roboto, Arial, sans-serif;
+    "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -37,4 +44,14 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
 }

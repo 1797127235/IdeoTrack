@@ -1,126 +1,252 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-
-type Role = '学生' | '辅导员' | '管理员';
-
-type User = {
-  id: string;
-  name: string;
-  schoolId: string;
-  role: Role;
-  classOrCollege: string;
-  status: 'active' | 'inactive';
-};
-
-const users: User[] = [
-  { id: '1', name: '张晓明', schoolId: '2023010101', role: '学生', classOrCollege: '2023级思想政治教育1班', status: 'active' },
-  { id: '2', name: '李雨桐', schoolId: '2023010102', role: '学生', classOrCollege: '2023级思想政治教育1班', status: 'active' },
-  { id: '3', name: '王浩然', schoolId: '2023010103', role: '学生', classOrCollege: '2023级小学教育1班', status: 'active' },
-  { id: '4', name: '刘思远', schoolId: '2023010104', role: '学生', classOrCollege: '2023级工商管理1班', status: 'inactive' },
-  { id: '5', name: '王建国', schoolId: 'T2023001', role: '辅导员', classOrCollege: '马克思主义学院', status: 'active' },
-  { id: '6', name: '李秀英', schoolId: 'T2023002', role: '辅导员', classOrCollege: '教育学院', status: 'active' },
-  { id: '7', name: '张志强', schoolId: 'T2023003', role: '辅导员', classOrCollege: '经济管理学院', status: 'active' },
-  { id: '8', name: '陈管理员', schoolId: 'A2023001', role: '管理员', classOrCollege: '系统管理部', status: 'active' },
-];
-
-const roleFilters: Array<'全部' | Role> = ['全部', '学生', '辅导员', '管理员'];
-
-function RoleBadge({ role }: { role: Role }) {
-  const colors = {
-    学生: 'bg-[#DBEAFE] text-[#1E40AF]',
-    辅导员: 'bg-[#D1FAE5] text-[#065F46]',
-    管理员: 'bg-[#FEF3C7] text-[#92400E]',
-  };
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[role]}`}>
-      {role}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: User['status'] }) {
-  const isActive = status === 'active';
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        isActive ? 'bg-[#D1FAE5] text-[#065F46]' : 'bg-[#F1F5F9] text-[#64748B]'
-      }`}
-    >
-      {isActive ? '启用中' : '已停用'}
-    </span>
-  );
-}
+import { useEffect, useState } from "react";
+import {
+  listUsers,
+  listClasses,
+  createUser,
+  updateUser,
+  deleteUser,
+  type User,
+  type Class,
+  roleLabel,
+  type UserRole,
+} from "@/lib/users";
 
 export default function UsersPage() {
-  const [activeFilter, setActiveFilter] = useState<'全部' | Role>('全部');
+  const [users, setUsers] = useState<User[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filteredUsers = activeFilter === '全部' ? users : users.filter((user) => user.role === activeFilter);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  const handleAddUser = () => {
-    alert('演示功能，暂未接入后端');
+  const [schoolId, setSchoolId] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<UserRole>("student");
+  const [classId, setClassId] = useState("");
+
+  const loadData = () => {
+    Promise.all([listUsers(), listClasses()])
+      .then(([u, c]) => {
+        setUsers(u);
+        setClasses(c);
+        setError("");
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "加载失败");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const resetForm = () => {
+    setSchoolId("");
+    setName("");
+    setRole("student");
+    setClassId("");
+    setEditingUser(null);
+    setIsFormOpen(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolId.trim()) return;
+
+    try {
+      if (editingUser) {
+        await updateUser(editingUser.id, {
+          name: name.trim(),
+          role,
+          classId: role === "student" ? classId || null : null,
+        });
+      } else {
+        await createUser({
+          schoolId: schoolId.trim(),
+          name: name.trim(),
+          role,
+          classId: role === "student" ? classId : undefined,
+        });
+      }
+      resetForm();
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存失败");
+    }
+  };
+
+  const handleToggleStatus = async (user: User) => {
+    try {
+      await updateUser(user.id, { isEnabled: !user.isEnabled });
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "操作失败");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("确定删除该用户？")) return;
+    try {
+      await deleteUser(id);
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    }
+  };
+
+  if (loading) {
+    return <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>;
+  }
+
   return (
-    <div className='min-h-screen'>
-      <div className='mb-8 flex items-end justify-between'>
-        <div>
-          <h1 className='text-2xl font-bold text-[#164E63]'>用户管理</h1>
-          <p className='text-[#64748B] mt-2'>管理学生、辅导员和管理员账号</p>
+    <div className="space-y-5">
+      {error && (
+        <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+          {error}
         </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-[var(--color-ink)]">用户管理</h2>
         <button
-          onClick={handleAddUser}
-          className='px-4 py-2 text-sm font-medium text-white bg-[#0891B2] rounded-lg hover:bg-[#164E63] transition-colors'
+          onClick={() => setIsFormOpen(true)}
+          className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
         >
           新增用户
         </button>
       </div>
 
-      <div className='bg-white rounded-2xl p-6 shadow-sm'>
-        <div className='flex flex-wrap gap-3 mb-6'>
-          {roleFilters.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeFilter === filter
-                  ? 'bg-[#0891B2] text-white'
-                  : 'bg-[#F1F5F9] text-[#64748B] hover:text-[#164E63]'
-              }`}
+      {isFormOpen && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+          <h3 className="text-base font-medium text-[var(--color-ink)] mb-4">
+            {editingUser ? "编辑用户" : "新增用户"}
+          </h3>
+          <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-4">
+            <input
+              type="text"
+              value={schoolId}
+              onChange={(e) => setSchoolId(e.target.value)}
+              placeholder="学号/工号"
+              disabled={!!editingUser}
+              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:bg-[var(--color-bg)]"
+            />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="姓名"
+              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            />
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
             >
-              {filter}
-            </button>
-          ))}
-        </div>
-
-        <div className='overflow-x-auto'>
-          <table className='w-full'>
-            <thead className='bg-[#F1F5F9]'>
-              <tr className='text-left text-sm text-[#64748B]'>
-                <th className='px-4 py-3 font-medium rounded-l-lg'>姓名</th>
-                <th className='px-4 py-3 font-medium'>学工号</th>
-                <th className='px-4 py-3 font-medium'>角色</th>
-                <th className='px-4 py-3 font-medium'>班级/学院</th>
-                <th className='px-4 py-3 font-medium rounded-r-lg'>状态</th>
-              </tr>
-            </thead>
-            <tbody className='divide-y divide-[#E2E8F0]'>
-              {filteredUsers.map((user) => (
-                <tr key={user.id}>
-                  <td className='px-4 py-4 text-sm text-[#164E63] font-medium'>{user.name}</td>
-                  <td className='px-4 py-4 text-sm text-[#64748B]'>{user.schoolId}</td>
-                  <td className='px-4 py-4'>
-                    <RoleBadge role={user.role} />
-                  </td>
-                  <td className='px-4 py-4 text-sm text-[#64748B]'>{user.classOrCollege}</td>
-                  <td className='px-4 py-4'>
-                    <StatusBadge status={user.status} />
-                  </td>
-                </tr>
+              <option value="student">学生</option>
+              <option value="counselor">辅导员</option>
+              <option value="admin">管理员</option>
+            </select>
+            <select
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              disabled={role !== "student"}
+              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:bg-[var(--color-bg)]"
+            >
+              <option value="">{role === "student" ? "选择班级" : "不适用"}</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.collegeName} - {c.name}
+                </option>
               ))}
-            </tbody>
-          </table>
+            </select>
+            <div className="col-span-4 flex gap-3">
+              <button
+                type="submit"
+                className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+              >
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
+              >
+                取消
+              </button>
+            </div>
+          </form>
         </div>
+      )}
+
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--color-border)]">
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学号/工号</th>
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">姓名</th>
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">角色</th>
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学院</th>
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">班级</th>
+              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
+              <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id} className="border-b border-[var(--color-border)] last:border-0">
+                <td className="py-3 text-[var(--color-ink)]">{user.schoolId}</td>
+                <td className="py-3 text-[var(--color-ink)]">{user.name || "-"}</td>
+                <td className="py-3 text-[var(--color-ink-secondary)]">{roleLabel(user.role)}</td>
+                <td className="py-3 text-[var(--color-ink-secondary)]">{user.collegeName || "-"}</td>
+                <td className="py-3 text-[var(--color-ink-secondary)]">{user.className || "-"}</td>
+                <td className="py-3">
+                  <span
+                    className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                      user.isEnabled
+                        ? "bg-[var(--color-success-subtle)] text-[var(--color-success)]"
+                        : "bg-[var(--color-danger-subtle)] text-[var(--color-danger)]"
+                    }`}
+                  >
+                    {user.isEnabled ? "正常" : "禁用"}
+                  </span>
+                </td>
+                <td className="py-3 text-right space-x-3">
+                  <button
+                    onClick={() => {
+                      setEditingUser(user);
+                      setSchoolId(user.schoolId);
+                      setName(user.name || "");
+                      setRole(user.role);
+                      setClassId(user.classId || "");
+                      setIsFormOpen(true);
+                    }}
+                    className="text-[var(--color-accent)] hover:underline"
+                  >
+                    编辑
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(user)}
+                    className="text-[var(--color-ink-secondary)] hover:underline"
+                  >
+                    {user.isEnabled ? "禁用" : "启用"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user.id)}
+                    className="text-[var(--color-danger)] hover:underline"
+                  >
+                    删除
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
