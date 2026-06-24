@@ -11,6 +11,8 @@ import { errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { config } from './config/index.js';
 import { logStartup } from './lib/logger.js';
+import { verifyDownloadToken, resolveFilePath, deleteExportFile } from './lib/storage.js';
+import { promises as fs } from 'node:fs';
 
 const app = express();
 
@@ -32,6 +34,38 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/checkins', checkinRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/counselor', counselorRoutes);
+
+// 导出文件下载端点（AD-7：签名 token 自校验，不经过 JWT authenticate）
+app.get('/api/exports/:token', async (req, res, next) => {
+  try {
+    const payload = verifyDownloadToken(req.params.token);
+    if (!payload) {
+      res.status(410).json({
+        success: false,
+        error: { code: 'EXPORT_LINK_EXPIRED', message: '下载链接已过期或无效，请重新导出' },
+      });
+      return;
+    }
+
+    const filePath = resolveFilePath(payload.fileId);
+    try {
+      await fs.access(filePath);
+    } catch {
+      res.status(410).json({
+        success: false,
+        error: { code: 'EXPORT_LINK_EXPIRED', message: '下载链接已过期或无效，请重新导出' },
+      });
+      return;
+    }
+
+    res.download(filePath, '打卡记录.xlsx', async () => {
+      // 下载完成后清理临时文件（best-effort）
+      await deleteExportFile(payload.fileId);
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.get('/health', (_req, res) => {
   res.json({ success: true, data: { status: 'ok' } });

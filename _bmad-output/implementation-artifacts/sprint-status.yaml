@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: '2026-06-22T07:04:25Z'
-last_updated: '2026-06-24T01:25:00+08:00'
+last_updated: '2026-06-24T03:00:00+08:00'
 project: IdeoTrack
 project_key: NOKEY
 tracking_system: file-system
@@ -62,18 +62,19 @@ development_status:
   2-2-jin-7-ri-ming-yan-hua-dong-cha-kan: done
   2-3-ming-yan-ku-guan-li: done
   epic-2-retrospective: optional
-  epic-3: done
-  3-1-chuang-jian-yu-fa-bu-ren-wu: done  # admin: mobile, counselor: miniprogram
-  3-2-bian-ji-yu-xia-jia-ren-wu: done  # admin: mobile, counselor: miniprogram
+  epic-3: in-progress  # 重开：3.1/3.2 因派发模式 + P1 内容修订 (sprint-change-proposal-2026-06-24-v3)
+  3-1-chuang-jian-yu-fa-bu-ren-wu: in-progress  # 重开：派发模式 + P1 结构化内容（AD-21/AD-22）
+  3-2-bian-ji-yu-xia-jia-ren-wu: in-progress  # 重开：编辑权限按派发模式收敛（AD-21）
   3-3-xue-sheng-ren-wu-lie-biao: done
   3-4-ren-wu-xiang-qing-cha-kan: done
   3-5-ren-wu-zhuang-tai-ji-suan-yu-zhan-shi: done
   epic-3-retrospective: optional
-  epic-4: done
+  epic-4: in-progress  # 重开：Story 4.5 地理围栏新增 (sprint-change-proposal-2026-06-24-v3)
   4-1-ding-wei-qian-dao: done
   4-2-xin-de-ti-jiao: done
   4-3-da-ka-jie-guo-fan-kui: done
   4-4-xin-de-ti-jiao-hou-xiu-gai-1-ci: done
+  4-5-di-li-wei-lan: backlog  # 地理围栏校验 (AD-20)，依赖 14.2 + 9.x
   epic-4-retrospective: optional
   epic-5: done
   5-1-ai-chu-shen-fu-wu: done
@@ -95,8 +96,8 @@ development_status:
   epic-8: in-progress  # Story 8.1 已创建，进入实现
   8-1-ban-ji-shu-ju-gai-lan: done  # counselor: miniprogram
   8-2-wei-da-ka-xue-sheng-ming-dan: done  # counselor: miniprogram
-  8-3-yi-jian-ti-xing: ready-for-dev  # counselor: miniprogram
-  8-4-fu-dao-yuan-shu-ju-dao-chu: backlog  # counselor: miniprogram, temp-link export
+  8-3-yi-jian-ti-xing: in-progress  # counselor: miniprogram
+  8-4-fu-dao-yuan-shu-ju-dao-chu: review  # counselor: miniprogram, 实现完成待 code review
   epic-8-retrospective: optional
   epic-9: backlog
   9-1-xue-yuan-guan-li: backlog  # admin: web (v2)

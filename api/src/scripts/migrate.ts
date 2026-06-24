@@ -159,6 +159,25 @@ CREATE TABLE IF NOT EXISTS point_records (
 
 CREATE INDEX IF NOT EXISTS idx_point_records_user_id ON point_records(user_id);
 
+-- 辅导员一键提醒记录表（Epic 8.3）
+CREATE TABLE IF NOT EXISTS reminders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  counselor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reminder_date DATE NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'wechat_subscribe',
+  status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'skipped_no_openid', 'already_reminded')),
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- 仅限制“成功发送”每天每生一次；失败/跳过允许重试
+DROP INDEX IF EXISTS idx_reminders_unique_sent;
+ALTER TABLE reminders DROP CONSTRAINT IF EXISTS reminders_student_id_reminder_date_key;
+CREATE UNIQUE INDEX idx_reminders_unique_sent ON reminders(student_id, reminder_date) WHERE status = 'sent';
+CREATE INDEX IF NOT EXISTS idx_reminders_class_date ON reminders(class_id, reminder_date);
+CREATE INDEX IF NOT EXISTS idx_reminders_student_date ON reminders(student_id, reminder_date);
+
 -- AI 初审记录表（Epic 5.1）：保存每次 AI 审核输入、结果与原因，支持审计与调优
 CREATE TABLE IF NOT EXISTS ai_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

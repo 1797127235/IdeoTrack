@@ -22,6 +22,11 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/ideo_track
 TEST_DATABASE_URL=postgresql://postgres:password@localhost:5432/ideo_track_test
 JWT_SECRET=dev-jwt-secret-key-must-be-at-least-32-characters-long
 JWT_EXPIRES_IN=7d
+
+# 一键提醒（Epic 8.3）相关集成测试需要以下变量；本地测试可填任意占位值
+WECHAT_APP_ID=dev-app-id
+WECHAT_APP_SECRET=dev-app-secret
+WECHAT_REMINDER_TEMPLATE_ID=dev-reminder-template-id
 ```
 
 ## 2. 后端自动化测试

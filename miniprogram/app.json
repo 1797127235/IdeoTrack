@@ -14,7 +14,8 @@
     "pages/review/index",
     "pages/review/detail/index",
     "pages/counselor/dashboard/index",
-    "pages/counselor/class-detail/index"
+    "pages/counselor/class-detail/index",
+    "pages/counselor/export/index"
   ],
   "window": {
     "backgroundTextStyle": "light",

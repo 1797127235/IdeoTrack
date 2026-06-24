@@ -41,6 +41,7 @@ JWT_EXPIRES_IN=7d
 
 WECHAT_APP_ID=
 WECHAT_APP_SECRET=
+WECHAT_REMINDER_TEMPLATE_ID=
 EOF
     echo "请编辑 /opt/IdeoTrack/.env 填入真实配置"
 fi

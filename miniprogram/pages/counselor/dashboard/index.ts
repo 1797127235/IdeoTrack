@@ -68,4 +68,14 @@ Page({
       },
     });
   },
+
+  goToExport() {
+    wx.navigateTo({
+      url: '/pages/counselor/export/index',
+      fail: (err) => {
+        console.error('[navigateTo export fail]', err);
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      },
+    });
+  },
 });

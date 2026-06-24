@@ -35,9 +35,15 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       WECHAT_APP_ID: ${WECHAT_APP_ID:-}
       WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+      WECHAT_REMINDER_TEMPLATE_ID: ${WECHAT_REMINDER_TEMPLATE_ID:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
+      EXPORT_FILE_DIR: ${EXPORT_FILE_DIR:-/app/exports}
+      EXPORT_LINK_TTL_SECONDS: ${EXPORT_LINK_TTL_SECONDS:-86400}
+    volumes:
+      - ./logs:/app/logs
+      - ./exports:/app/exports
     expose:
       - "3000"
 

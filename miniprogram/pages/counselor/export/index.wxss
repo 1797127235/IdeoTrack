@@ -1,0 +1,196 @@
+.page {
+  padding: 24rpx;
+  background: #ECFEFF;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 错误提示 */
+.error-tip {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: #FEF2F2;
+  border: 1rpx solid #FECACA;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+.error-icon { font-size: 32rpx; }
+.error-text { font-size: 28rpx; color: #DC2626; }
+
+/* 区块 */
+.section {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #164E63;
+  margin-bottom: 16rpx;
+}
+.select-all {
+  font-size: 26rpx;
+  color: #0891B2;
+}
+
+/* 班级列表 */
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.class-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  border: 2rpx solid #E2E8F0;
+  border-radius: 12rpx;
+  transition: border-color 0.2s;
+}
+.class-item.selected {
+  border-color: #0891B2;
+  background: #F0FDFF;
+}
+.checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid #94A3B8;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #FFFFFF;
+  flex-shrink: 0;
+}
+.checkbox.checked {
+  background: #0891B2;
+  border-color: #0891B2;
+}
+.class-name {
+  font-size: 28rpx;
+  color: #164E63;
+  font-weight: 500;
+}
+.college-name {
+  font-size: 24rpx;
+  color: #64748B;
+  margin-left: auto;
+}
+.empty {
+  text-align: center;
+  padding: 40rpx;
+  color: #94A3B8;
+  font-size: 28rpx;
+}
+
+/* 日期选择 */
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.date-picker {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 20rpx;
+  background: #F0FDFF;
+  border: 1rpx solid #E2E8F0;
+  border-radius: 12rpx;
+}
+.date-label {
+  font-size: 24rpx;
+  color: #64748B;
+}
+.date-value {
+  font-size: 28rpx;
+  color: #164E63;
+  font-weight: 500;
+}
+.date-sep {
+  font-size: 28rpx;
+  color: #64748B;
+}
+
+/* 按钮 */
+.action-bar {
+  margin-bottom: 24rpx;
+}
+.btn-export {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #22C55E;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  text-align: center;
+}
+.btn-export.disabled {
+  opacity: 0.6;
+}
+
+/* 结果卡片 */
+.result-card {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  border: 2rpx solid #BBF7D0;
+}
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+.result-icon { font-size: 36rpx; }
+.result-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #164E63;
+}
+.result-info {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: 20rpx;
+}
+.result-label {
+  font-size: 26rpx;
+  color: #64748B;
+}
+.result-value {
+  font-size: 26rpx;
+  color: #164E63;
+}
+.btn-copy {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  background: #0891B2;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 500;
+  border-radius: 12rpx;
+  text-align: center;
+  margin-bottom: 12rpx;
+}
+.result-hint {
+  display: block;
+  text-align: center;
+  font-size: 24rpx;
+  color: #94A3B8;
+}

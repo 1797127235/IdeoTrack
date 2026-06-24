@@ -2,7 +2,10 @@
   <!-- Header -->
   <view class="header">
     <view class="greeting">班级数据概览</view>
-    <view class="date-text">{{dateText}}</view>
+    <view class="header-right">
+      <view class="export-btn" bindtap="goToExport">📊 导出</view>
+      <view class="date-text">{{dateText}}</view>
+    </view>
   </view>
 
   <!-- Summary cards -->
@@ -57,6 +60,10 @@
         <view class="stat">
           <view class="stat-value text-error">{{item.absent_count}}</view>
           <view class="stat-label">未打卡</view>
+        </view>
+        <view class="stat">
+          <view class="stat-value text-primary">{{item.reminded_count}}</view>
+          <view class="stat-label">已提醒</view>
         </view>
       </view>
 

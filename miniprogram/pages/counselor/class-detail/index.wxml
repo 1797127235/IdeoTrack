@@ -29,6 +29,14 @@
     <view class="mini-stat text-error">未打卡 {{absentCount}} 人</view>
   </view>
 
+  <!-- Absent selection toolbar -->
+  <view wx:if="{{status === 'absent'}}" class="selection-toolbar">
+    <text class="selection-text" bindtap="onSelectAll">全选</text>
+    <text class="selection-divider">|</text>
+    <text class="selection-text" bindtap="onClearSelection">清空</text>
+    <text class="selection-count">已选 {{selectedStudentIds.length}} 人</text>
+  </view>
+
   <view wx:if="{{errorMsg}}" class="error-tip">{{errorMsg}}</view>
 
   <view wx:if="{{loading && students.length === 0}}" class="skeleton-list">
@@ -41,12 +49,27 @@
       wx:key="student_id"
       class="student-card {{item.checked_in ? 'checked-in' : 'absent'}} {{item.isHighRisk ? 'high-risk' : ''}}"
     >
-      <view class="student-row">
+      <view
+        class="student-row"
+        data-student-id="{{item.student_id}}"
+        bindtap="onToggleSelect"
+      >
+        <checkbox-group
+          wx:if="{{!item.checked_in && status === 'absent'}}"
+          class="student-checkbox"
+          data-student-id="{{item.student_id}}"
+          bindchange="onCheckboxChange"
+          catchtap="onCheckboxTapStop"
+        >
+          <checkbox value="{{item.student_id}}" checked="{{selectedStudentIds.indexOf(item.student_id) !== -1}}" />
+        </checkbox-group>
+
         <view class="student-info">
           <view class="student-name">{{item.student_name}}</view>
           <view class="student-school-id">{{item.student_school_id}}</view>
         </view>
         <view wx:if="{{item.checked_in}}" class="status-badge success">已打卡</view>
+        <view wx:elif="{{item.reminded}}" class="status-badge reminded">已提醒</view>
         <view wx:else class="status-badge error">未打卡</view>
       </view>
 
@@ -69,5 +92,20 @@
   <view wx:if="{{!loading && students.length === 0 && !errorMsg}}" class="empty-state">
     <view>暂无学生记录</view>
     <view class="text-secondary">当前筛选条件下没有数据</view>
+  </view>
+
+  <!-- Sticky bottom action bar for absent tab -->
+  <view wx:if="{{status === 'absent'}}" class="action-bar {{selectedStudentIds.length > 0 ? 'active' : ''}}">
+    <view class="action-info">
+      已选 <text class="action-count">{{selectedStudentIds.length}}</text> 人
+    </view>
+    <button
+      class="action-btn"
+      loading="{{sending}}"
+      disabled="{{sending || selectedStudentIds.length === 0}}"
+      bindtap="onSendReminder"
+    >
+      一键提醒
+    </button>
   </view>
 </view>

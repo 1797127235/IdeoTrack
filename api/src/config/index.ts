@@ -47,9 +47,17 @@ export const config = {
   // 微信小程序（AD-17 学生端登录）。开发期可不配，配了才支持微信登录。
   wechatAppId: process.env.WECHAT_APP_ID || '',
   wechatAppSecret: process.env.WECHAT_APP_SECRET || '',
+  // 微信小程序订阅消息模板 ID（Epic 8.3 一键提醒）。开发期可不配。
+  wechatReminderTemplateId: process.env.WECHAT_REMINDER_TEMPLATE_ID || '',
   // 日志：级别 + 文件目录
   //   LOG_LEVEL 不设时，dev=debug（最详细），prod=info
   //   LOG_FILE_DIR 不设时，dev 写 ./logs，prod 仅 stdout（docker logs）
   logLevel: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
   logFileDir: process.env.LOG_FILE_DIR || '',
+  // 导出文件（AD-7）：本地临时文件目录 + 签名下载链接有效期。
+  //   EXPORT_FILE_DIR 不设时，默认写进程工作目录下的 ./exports（dev/test）。
+  //   生产环境通过 docker-compose 挂载 ./exports:/app/exports 卷持久化。
+  //   EXPORT_LINK_TTL_SECONDS 不设时，默认 86400（24h，AD-7）。
+  exportFileDir: process.env.EXPORT_FILE_DIR || '',
+  exportLinkTtlSeconds: Number(process.env.EXPORT_LINK_TTL_SECONDS) || 86400,
 };
