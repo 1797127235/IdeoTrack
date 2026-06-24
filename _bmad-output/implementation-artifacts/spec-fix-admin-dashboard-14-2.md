@@ -2,7 +2,7 @@
 title: 'Fix admin dashboard to match Story 14.2 module-card homepage'
 type: 'bugfix'
 created: '2026-06-24T16:15:46+08:00'
-status: 'in-review'
+status: 'done'
 baseline_commit: '61d63381e6b105a9c0ee436d500e9185079f8e8d'
 context:
   - '_bmad-output/implementation-artifacts/14-2-web-hou-tai-bu-ju-yu-dao-hang.md'
@@ -31,6 +31,8 @@ context:
 - Add KPIs, charts, rankings, or an absent-student list to this page.
 - Invent modules or routes not listed in Story 14.2.
 - Modify other admin pages, the API, or the miniprogram.
+- Change global design tokens, fonts, or colors beyond the minimum required to keep Tailwind v4 functioning.
+- Build a full task-list feature; only a minimal placeholder is allowed to satisfy AC-3 navigation.
 
 ## I/O & Edge-Case Matrix
 
@@ -56,6 +58,8 @@ context:
 - [ ] `web/app/(admin)/page.tsx` -- rewrite to 7 module-card grid per Story 14.2 UX spec -- restores approved design and removes unauthorized content
 - [ ] `web/app/(admin)/page.tsx` -- add hover/focus transition states -- meets `impeccable` interaction-state requirements
 - [ ] `web/app/(admin)/page.tsx` -- ensure all cards link to existing routes -- preserves navigation behavior
+- [ ] `web/app/(admin)/tasks/page.tsx` -- create a minimal task-list placeholder so the 任务 card navigates successfully -- closes AC-3 navigation gap discovered during review
+- [ ] `web/app/globals.css` -- ensure `@import "tailwindcss"` is present so Tailwind v4 styles continue to render -- required by current project toolchain, not a design change
 
 **Acceptance Criteria:**
 - Given an admin logs in, when they land on `/`, then they see 7 white module cards arranged in a 3-column grid.
@@ -89,3 +93,19 @@ Each card shows the module name and a one-line description, matching Story 14.2 
 **Manual checks:**
 - Open `http://localhost:3001/` and confirm the 7-card grid matches Story 14.2 layout.
 - Verify no KPIs, charts, rankings, or absent-student tables remain on the page.
+## Suggested Review Order
+
+- Entry point: server-rendered admin homepage now hosts the module-card grid
+  [`page.tsx:1`](../../web/app/(admin)/page.tsx#L1)
+
+- Module labels and routes restored to Story 14.2 AC-3 wording
+  [`page.tsx:4`](../../web/app/(admin)/page.tsx#L4)
+
+- Responsive 3-column grid with fixed 200×150px cards and hover/focus states
+  [`page.tsx:21`](../../web/app/(admin)/page.tsx#L21)
+
+- Minimal task-list placeholder closes the 404 gap for the 任务 card
+  [`tasks/page.tsx:1`](../../web/app/(admin)/tasks/page.tsx#L1)
+
+- Tailwind v4 import preserved in global styles
+  [`globals.css:1`](../../web/app/globals.css#L1)

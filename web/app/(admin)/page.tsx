@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 
 const modules = [
@@ -20,12 +18,12 @@ export default function AdminDashboard() {
         <p className="text-[#64748B] mt-2">请选择要管理的模块</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
         {modules.map((module) => (
           <Link
             key={module.href}
             href={module.href}
-            className="group flex flex-col justify-center w-[200px] h-[150px] bg-white rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#ECFEFF]"
+            className="group flex flex-col justify-center w-full max-w-[200px] h-[150px] bg-white rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#ECFEFF]"
           >
             <h2 className="text-lg font-semibold text-[#164E63] group-hover:text-[#0891B2] transition-colors">
               {module.label}
