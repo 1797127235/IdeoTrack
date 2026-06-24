@@ -15,7 +15,10 @@
     "pages/review/detail/index",
     "pages/counselor/dashboard/index",
     "pages/counselor/class-detail/index",
-    "pages/counselor/export/index"
+    "pages/counselor/export/index",
+    "pages/counselor/students/index",
+    "pages/counselor/tasks/index",
+    "pages/counselor/stats/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -49,7 +52,19 @@
       },
       {
         "pagePath": "pages/counselor/dashboard/index",
-        "text": "班级"
+        "text": "看板"
+      },
+      {
+        "pagePath": "pages/counselor/students/index",
+        "text": "学生"
+      },
+      {
+        "pagePath": "pages/counselor/tasks/index",
+        "text": "任务"
+      },
+      {
+        "pagePath": "pages/counselor/stats/index",
+        "text": "统计"
       },
       {
         "pagePath": "pages/review/index",

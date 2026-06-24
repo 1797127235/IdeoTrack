@@ -1,0 +1,34 @@
+<view class="page">
+  <view class="header">
+    <view class="header-title">所带班级</view>
+    <view class="header-sub">查看班级学生及打卡情况</view>
+  </view>
+
+  <view class="container">
+    <view class="class-list" wx:if="{{classes.length > 0}}">
+      <view
+        wx:for="{{classes}}"
+        wx:key="class_id"
+        class="class-card"
+        data-id="{{item.class_id}}"
+        data-name="{{item.class_name}}"
+        bindtap="goToClassDetail"
+      >
+        <view class="class-info">
+          <view class="class-name">{{item.class_name}}</view>
+          <view class="class-meta">{{item.college_name}}</view>
+          <view class="class-count">{{item.checked_in_count}}/{{item.total_students}} 人已打卡</view>
+        </view>
+        <view class="class-rate">
+          <view class="rate-value">{{item.check_in_rate}}%</view>
+          <view class="rate-label">打卡率</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:elif="{{!loading}}">
+      <view class="empty-icon">📋</view>
+      <view class="empty-text">暂无班级数据</view>
+    </view>
+  </view>
+</view>

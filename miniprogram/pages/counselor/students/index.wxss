@@ -1,0 +1,93 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-background, #ECFEFF);
+  padding-bottom: calc(112rpx + env(safe-area-inset-bottom));
+}
+
+.header {
+  background: linear-gradient(135deg, var(--color-primary, #0891B2), var(--color-primary-light, #22D3EE));
+  padding: 48rpx 32rpx 64rpx;
+  border-radius: 0 0 48rpx 48rpx;
+}
+
+.header-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.header-sub {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 8rpx;
+}
+
+.container {
+  padding: 24rpx;
+  margin-top: -32rpx;
+}
+
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.class-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4rpx 16rpx rgba(8, 145, 178, 0.06);
+}
+
+.class-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--color-text-primary, #164E63);
+}
+
+.class-meta {
+  font-size: 22rpx;
+  color: var(--color-text-secondary, #64748B);
+  margin-top: 4rpx;
+}
+
+.class-count {
+  font-size: 24rpx;
+  color: var(--color-text-secondary, #64748B);
+  margin-top: 12rpx;
+}
+
+.class-rate {
+  text-align: center;
+}
+
+.rate-value {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--color-cta, #22C55E);
+  font-family: var(--font-numeric, 'Inter', sans-serif);
+}
+
+.rate-label {
+  font-size: 22rpx;
+  color: var(--color-text-secondary, #64748B);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 120rpx 40rpx;
+  color: var(--color-text-secondary, #64748B);
+}
+
+.empty-icon {
+  font-size: 72rpx;
+  margin-bottom: 16rpx;
+}
+
+.empty-text {
+  font-size: 26rpx;
+}

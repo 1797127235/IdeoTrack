@@ -1,0 +1,50 @@
+<view class="page">
+  <view class="header">
+    <view class="header-title">任务管理</view>
+    <view class="header-sub">从任务池派发或查看已派发任务</view>
+  </view>
+
+  <view class="container">
+    <!-- 任务池 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="section-title">任务池</view>
+        <view class="section-count">{{poolTasks.length}} 个可派发</view>
+      </view>
+      <view class="task-list" wx:if="{{poolTasks.length > 0}}">
+        <view wx:for="{{poolTasks}}" wx:key="id" class="task-card">
+          <view class="task-info">
+            <view class="task-title">{{item.title}}</view>
+            <view class="task-meta">截止 {{item.deadline_at}}</view>
+          </view>
+          <view class="dispatch-btn" data-id="{{item.id}}" bindtap="dispatchTask">派发</view>
+        </view>
+      </view>
+      <view class="empty-state" wx:else>
+        <view class="empty-icon">📚</view>
+        <view class="empty-text">暂无任务池任务</view>
+      </view>
+    </view>
+
+    <!-- 已派发 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="section-title">已派发</view>
+        <view class="section-count">{{dispatchedTasks.length}} 个任务</view>
+      </view>
+      <view class="task-list" wx:if="{{dispatchedTasks.length > 0}}">
+        <view wx:for="{{dispatchedTasks}}" wx:key="id" class="task-card">
+          <view class="task-info">
+            <view class="task-title">{{item.title}}</view>
+            <view class="task-meta">截止 {{item.deadline_at}}</view>
+          </view>
+          <view class="task-status {{item.status}}">{{item.status === 'published' ? '进行中' : '已下架'}}</view>
+        </view>
+      </view>
+      <view class="empty-state" wx:else>
+        <view class="empty-icon">📋</view>
+        <view class="empty-text">暂无已派发任务</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,53 @@
+<view class="page">
+  <view class="header">
+    <view class="header-title">打卡统计</view>
+    <view class="header-sub">所带班级打卡数据概览</view>
+  </view>
+
+  <view class="container">
+    <!-- 总览卡片 -->
+    <view class="overview-card" wx:if="{{summary}}">
+      <view class="overview-item">
+        <view class="overview-value">{{summary.check_in_rate}}%</view>
+        <view class="overview-label">总体打卡率</view>
+      </view>
+      <view class="overview-divider"></view>
+      <view class="overview-item">
+        <view class="overview-value">{{summary.checked_in_count}}</view>
+        <view class="overview-label">已打卡</view>
+      </view>
+      <view class="overview-divider"></view>
+      <view class="overview-item">
+        <view class="overview-value">{{summary.total_students}}</view>
+        <view class="overview-label">总人数</view>
+      </view>
+    </view>
+
+    <!-- 班级打卡率 -->
+    <view class="section">
+      <view class="section-title">班级打卡率</view>
+      <view class="stat-list" wx:if="{{classStats.length > 0}}">
+        <view wx:for="{{classStats}}" wx:key="class_id" class="stat-card">
+          <view class="stat-info">
+            <view class="stat-name">{{item.class_name}}</view>
+            <view class="stat-meta">{{item.checked_in_count}}/{{item.total_students}} 人已打卡</view>
+          </view>
+          <view class="stat-rate">{{item.check_in_rate}}%</view>
+        </view>
+      </view>
+      <view class="empty-state" wx:else>
+        <view class="empty-icon">📊</view>
+        <view class="empty-text">暂无统计数据</view>
+      </view>
+    </view>
+
+    <!-- 数据导出 -->
+    <view class="export-card" bindtap="goToExport">
+      <view class="export-info">
+        <view class="export-title">数据导出</view>
+        <view class="export-sub">导出 Excel 打卡报表</view>
+      </view>
+      <view class="export-arrow">›</view>
+    </view>
+  </view>
+</view>
