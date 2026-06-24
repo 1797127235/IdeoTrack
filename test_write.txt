@@ -1,0 +1,2 @@
+className=\"text-2xl font-bold\"
+content=\"青年一代有理想\"

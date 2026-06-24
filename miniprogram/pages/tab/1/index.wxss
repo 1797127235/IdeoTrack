@@ -1,0 +1,98 @@
+.page-placeholder {
+  padding: var(--space-4);
+}
+.title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-2);
+}
+.desc {
+  font-size: 28rpx;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+.tag {
+  display: inline-block;
+  font-size: 22rpx;
+  color: var(--color-primary);
+  background-color: rgba(8, 145, 178, 0.1);
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+
+.page {
+  min-height: 100vh;
+  background: var(--color-background, #ECFEFF);
+  padding-bottom: calc(112rpx + env(safe-area-inset-bottom));
+}
+
+.container {
+  padding: 24rpx;
+}
+
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.class-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4rpx 16rpx rgba(8, 145, 178, 0.06);
+}
+
+.class-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--color-text-primary, #164E63);
+}
+
+.class-meta {
+  font-size: 22rpx;
+  color: var(--color-text-secondary, #64748B);
+  margin-top: 4rpx;
+}
+
+.class-count {
+  font-size: 24rpx;
+  color: var(--color-text-secondary, #64748B);
+  margin-top: 12rpx;
+}
+
+.class-rate {
+  text-align: center;
+}
+
+.rate-value {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--color-cta, #22C55E);
+  font-family: var(--font-numeric, 'Inter', sans-serif);
+}
+
+.rate-label {
+  font-size: 22rpx;
+  color: var(--color-text-secondary, #64748B);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 120rpx 40rpx;
+  color: var(--color-text-secondary, #64748B);
+}
+
+.empty-icon {
+  font-size: 72rpx;
+  margin-bottom: 16rpx;
+}
+
+.empty-text {
+  font-size: 26rpx;
+}

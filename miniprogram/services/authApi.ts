@@ -1,4 +1,4 @@
-import { post } from './api';
+import { get, post } from './api';
 
 /** 微信登录返回：已登录直接发 token，未绑定需先绑定 */
 export interface WechatLoginResponse {
@@ -82,6 +82,26 @@ export async function bindStudent(
   });
   if (!result.success || !result.data) {
     throw new Error(result.error?.message || '绑定失败');
+  }
+  return result.data;
+}
+
+export interface MeResponse {
+  userId: string;
+  role: 'student' | 'counselor' | 'admin';
+  name: string | null;
+  schoolId: string;
+  managedClassesCount: number;
+  collegeName: string | null;
+}
+
+/**
+ * 获取当前登录用户信息（我的页用）。
+ */
+export async function getMe(): Promise<MeResponse> {
+  const result = await get<MeResponse>('/api/me');
+  if (!result.success || !result.data) {
+    throw new Error(result.error?.message || '获取用户信息失败');
   }
   return result.data;
 }

@@ -1,0 +1,111 @@
+<view class="tab-page">
+  <!-- Student Calendar -->
+  <block wx:if="{{role === 'student'}}">
+    <view class="container calendar-container">
+      <view class="calendar-header">
+        <view class="nav-btn" bindtap="prevMonth">
+          <text class="nav-icon">‹</text>
+        </view>
+        <view class="month-title">{{year}}年{{monthText}}</view>
+        <view class="nav-btn" bindtap="nextMonth">
+          <text class="nav-icon">›</text>
+        </view>
+      </view>
+
+      <view class="weekdays">
+        <view class="weekday" wx:for="{{weekdays}}" wx:key="*this">{{item}}</view>
+      </view>
+
+      <view class="calendar-grid">
+        <view
+          class="day-cell {{item.inMonth ? '' : 'out-month'}} {{item.checkedIn ? 'checked-in' : ''}}"
+          wx:for="{{days}}"
+          wx:key="dayString"
+          data-daystring="{{item.dayString}}"
+          bindtap="onSelectDay"
+        >
+          <text class="day-number">{{item.day}}</text>
+        </view>
+      </view>
+
+      <view class="loading-state" wx:if="{{calendarLoading}}">
+        <view class="spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <view class="error-state" wx:if="{{calendarError}}">
+        <text>{{calendarError}}</text>
+      </view>
+
+      <view class="detail-mask" wx:if="{{showDetail}}" bindtap="closeDetail">
+        <view class="detail-card" catchtap="noop">
+          <view class="detail-header">
+            <text class="detail-date">{{selectedDay.dayString}}</text>
+            <view class="detail-close" bindtap="closeDetail">✕</view>
+          </view>
+          <view class="detail-body">
+            <view class="detail-row">
+              <text class="detail-label">任务</text>
+              <text class="detail-value">{{selectedDay.taskTitle || '未记录'}}</text>
+            </view>
+            <view class="detail-row">
+              <text class="detail-label">状态</text>
+              <text class="detail-value status">{{selectedDay.status || '已打卡'}}</text>
+            </view>
+            <view class="detail-row reflection">
+              <text class="detail-label">心得</text>
+              <text class="detail-reflection">{{selectedDay.reflectionContent || '无'}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- Counselor Tasks -->
+  <block wx:elif="{{role === 'counselor'}}">
+    <view class="page">
+      <view class="container">
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">任务池</view>
+            <view class="section-count">{{poolTasks.length}} 个可派发</view>
+          </view>
+          <view class="task-list" wx:if="{{poolTasks.length > 0}}">
+            <view wx:for="{{poolTasks}}" wx:key="id" class="task-card">
+              <view class="task-info">
+                <view class="task-title">{{item.title}}</view>
+                <view class="task-meta">截止 {{item.deadline_at}}</view>
+              </view>
+              <view class="dispatch-btn" data-id="{{item.id}}" bindtap="dispatchTask">派发</view>
+            </view>
+          </view>
+          <view class="empty-state" wx:else>
+            <view class="empty-icon empty-icon-pool"></view>
+            <view class="empty-text">暂无任务池任务</view>
+          </view>
+        </view>
+
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">已派发</view>
+            <view class="section-count">{{dispatchedTasks.length}} 个任务</view>
+          </view>
+          <view class="task-list" wx:if="{{dispatchedTasks.length > 0}}">
+            <view wx:for="{{dispatchedTasks}}" wx:key="id" class="task-card">
+              <view class="task-info">
+                <view class="task-title">{{item.title}}</view>
+                <view class="task-meta">截止 {{item.deadline_at}}</view>
+              </view>
+              <view class="task-status {{item.status}}">{{item.status === 'published' ? '进行中' : '已下架'}}</view>
+            </view>
+          </view>
+          <view class="empty-state" wx:else>
+            <view class="empty-icon empty-icon-dispatched"></view>
+            <view class="empty-text">暂无已派发任务</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

@@ -1,6 +1,6 @@
 /**
  * 通知自定义 tabBar 高亮当前页签。
- * 在 tabBar 页面（pages/home、pages/counselor/dashboard 等）的 onShow 中调用。
+ * 在 tabBar 页面（pages/tab/0 ~ pages/tab/4）的 onShow 中调用。
  */
 export function updateTabBarSelected(): void {
   const pages = getCurrentPages();

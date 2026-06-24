@@ -2,6 +2,11 @@
   "pages": [
     "pages/auth/login/index",
     "pages/auth/bind/index",
+    "pages/tab/0/index",
+    "pages/tab/1/index",
+    "pages/tab/2/index",
+    "pages/tab/3/index",
+    "pages/tab/4/index",
     "pages/home/index",
     "pages/leaderboard/index",
     "pages/calendar/index",
@@ -35,40 +40,24 @@
     "borderStyle": "white",
     "list": [
       {
-        "pagePath": "pages/home/index",
+        "pagePath": "pages/tab/0/index",
         "text": "首页"
       },
       {
-        "pagePath": "pages/leaderboard/index",
+        "pagePath": "pages/tab/1/index",
         "text": "排行"
       },
       {
-        "pagePath": "pages/calendar/index",
+        "pagePath": "pages/tab/2/index",
         "text": "日历"
       },
       {
-        "pagePath": "pages/profile/index",
-        "text": "我的"
-      },
-      {
-        "pagePath": "pages/counselor/dashboard/index",
-        "text": "看板"
-      },
-      {
-        "pagePath": "pages/counselor/classes/index",
-        "text": "班级"
-      },
-      {
-        "pagePath": "pages/counselor/tasks/index",
-        "text": "任务"
-      },
-      {
-        "pagePath": "pages/counselor/stats/index",
+        "pagePath": "pages/tab/3/index",
         "text": "统计"
       },
       {
-        "pagePath": "pages/review/index",
-        "text": "复核"
+        "pagePath": "pages/tab/4/index",
+        "text": "我的"
       }
     ]
   },

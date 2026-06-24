@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { login, changePassword, wechatLogin, bindWechat } from './auth.service.js';
+import { login, changePassword, getMe, wechatLogin, bindWechat } from './auth.service.js';
 import { AppError } from '../../middleware/error-handler.js';
 
 const loginSchema = z.object({
@@ -81,12 +81,11 @@ export async function meController(
       throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
     }
 
+    const data = await getMe(req.user.userId);
+
     res.json({
       success: true,
-      data: {
-        userId: req.user.userId,
-        role: req.user.role,
-      },
+      data,
     });
   } catch (err) {
     next(err);

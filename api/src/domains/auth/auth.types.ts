@@ -57,6 +57,15 @@ export interface WechatBindInput {
   password: string;
 }
 
+export interface MeResponse {
+  userId: string;
+  role: UserRole;
+  name: string | null;
+  schoolId: string;
+  managedClassesCount: number;
+  collegeName: string | null;
+}
+
 /** 微信 code2session 接口返回 */
 export interface WechatCode2SessionResponse {
   openid?: string;

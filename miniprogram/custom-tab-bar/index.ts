@@ -7,18 +7,18 @@ interface TabItem {
 }
 
 const STUDENT_TABS: TabItem[] = [
-  { pagePath: 'pages/home/index', text: '首页', iconKey: 'home' },
-  { pagePath: 'pages/leaderboard/index', text: '排行', iconKey: 'leaderboard' },
-  { pagePath: 'pages/calendar/index', text: '日历', iconKey: 'calendar' },
-  { pagePath: 'pages/profile/index', text: '我的', iconKey: 'profile' },
+  { pagePath: 'pages/tab/0/index', text: '首页', iconKey: 'home' },
+  { pagePath: 'pages/tab/1/index', text: '排行', iconKey: 'leaderboard' },
+  { pagePath: 'pages/tab/2/index', text: '日历', iconKey: 'calendar' },
+  { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
 ];
 
 const COUNSELOR_TABS: TabItem[] = [
-  { pagePath: 'pages/counselor/dashboard/index', text: '看板', iconKey: 'dashboard' },
-  { pagePath: 'pages/counselor/classes/index', text: '班级', iconKey: 'students' },
-  { pagePath: 'pages/counselor/tasks/index', text: '任务', iconKey: 'tasks' },
-  { pagePath: 'pages/counselor/stats/index', text: '统计', iconKey: 'stats' },
-  { pagePath: 'pages/profile/index', text: '我的', iconKey: 'profile' },
+  { pagePath: 'pages/tab/0/index', text: '看板', iconKey: 'dashboard' },
+  { pagePath: 'pages/tab/1/index', text: '班级', iconKey: 'students' },
+  { pagePath: 'pages/tab/2/index', text: '任务', iconKey: 'tasks' },
+  { pagePath: 'pages/tab/3/index', text: '统计', iconKey: 'stats' },
+  { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
 ];
 
 Component({

@@ -28,7 +28,12 @@ import type {
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function toBeijingDateString(date = new Date()): string {
-  return date.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+  const offsetMs = (date.getTimezoneOffset() + 480) * 60 * 1000;
+  const beijing = new Date(date.getTime() + offsetMs);
+  const year = beijing.getFullYear();
+  const month = String(beijing.getMonth() + 1).padStart(2, '0');
+  const day = String(beijing.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function parseDate(input?: string): string {

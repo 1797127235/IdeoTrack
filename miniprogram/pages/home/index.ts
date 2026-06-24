@@ -144,7 +144,7 @@ Page({
   },
 
   goToCalendar() {
-    wx.switchTab({ url: '/pages/calendar/index' });
+    wx.switchTab({ url: '/pages/tab/2/index' });
   },
 
   goToTask(event: WechatMiniprogram.BaseEvent) {

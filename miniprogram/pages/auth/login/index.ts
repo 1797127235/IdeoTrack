@@ -4,7 +4,7 @@ import { onLoginSuccess } from '../../../utils/auth';
 import { getToken, clearToken } from '../../../utils/token';
 
 function getHomeUrl(role: string | null): string {
-  return role === 'counselor' ? '/pages/counselor/dashboard/index' : '/pages/home/index';
+  return '/pages/tab/0/index';
 }
 
 Page({

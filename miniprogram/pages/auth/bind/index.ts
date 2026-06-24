@@ -2,7 +2,7 @@ import { bindStudent } from '../../../services/authApi';
 import { onLoginSuccess } from '../../../utils/auth';
 
 function getHomeUrl(role: string): string {
-  return role === 'counselor' ? '/pages/counselor/dashboard/index' : '/pages/home/index';
+  return '/pages/tab/0/index';
 }
 
 Page({

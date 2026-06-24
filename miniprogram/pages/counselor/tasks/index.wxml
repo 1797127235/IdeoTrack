@@ -16,7 +16,7 @@
         </view>
       </view>
       <view class="empty-state" wx:else>
-        <view class="empty-icon">📚</view>
+        <view class="empty-icon empty-icon-pool"></view>
         <view class="empty-text">暂无任务池任务</view>
       </view>
     </view>
@@ -37,7 +37,7 @@
         </view>
       </view>
       <view class="empty-state" wx:else>
-        <view class="empty-icon">📋</view>
+        <view class="empty-icon empty-icon-dispatched"></view>
         <view class="empty-text">暂无已派发任务</view>
       </view>
     </view>

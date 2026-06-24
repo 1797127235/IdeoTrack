@@ -96,7 +96,7 @@ Page({
         if (pages.length > 1) {
           wx.navigateBack();
         } else {
-          wx.switchTab({ url: '/pages/home/index' });
+          wx.switchTab({ url: '/pages/tab/0/index' });
         }
       }, 1500);
       return;
@@ -195,11 +195,11 @@ Page({
   },
 
   onGoHome() {
-    wx.switchTab({ url: '/pages/home/index' });
+    wx.switchTab({ url: '/pages/tab/0/index' });
   },
 
   onGoCalendar() {
-    wx.switchTab({ url: '/pages/calendar/index' });
+    wx.switchTab({ url: '/pages/tab/2/index' });
   },
 
   onGoTaskDetail() {

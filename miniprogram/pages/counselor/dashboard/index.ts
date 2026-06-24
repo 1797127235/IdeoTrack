@@ -39,15 +39,16 @@ Page({
     this.setData({ loading: true, errorMsg: '' });
     try {
       const data = await getCounselorDashboard(this.data.date);
+      const normalizedDate = toBeijingDateString(new Date(data.date.replace(/\//g, '-')));
       this.setData({
-        date: data.date,
-        dateText: formatDateText(data.date),
+        date: normalizedDate,
+        dateText: formatDateText(normalizedDate),
         summary: data.summary,
         classes: data.classes,
       });
       // 加载重点关注学生（取第一个班级的未打卡学生）
       if (data.classes.length > 0) {
-        this.loadFocusStudents(data.classes[0].class_id, data.date);
+        this.loadFocusStudents(data.classes[0].class_id, normalizedDate);
       }
     } catch (err) {
       this.setData({
