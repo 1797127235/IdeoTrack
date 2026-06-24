@@ -21,16 +21,11 @@
           <view class="checkmark"></view>
         </view>
         <text class="result-title">今日打卡完成！</text>
-        <text class="result-subtitle">
-          {{status === 'approved' ? '辅导员已复核通过' : '你的心得已通过 AI 初审'}}
-        </text>
+        <text class="result-subtitle">坚持学习，遇见更好的自己</text>
       </view>
 
       <view class="info-card" wx:if="{{task}}">
-        <text class="info-label">任务</text>
         <text class="info-title">{{task.title}}</text>
-        <view class="divider"></view>
-        <text class="info-label">心得摘要</text>
         <text class="info-summary">{{reflectionSummary || '暂无心得摘要'}}</text>
       </view>
 
@@ -49,36 +44,44 @@
       </block>
 
       <block wx:elif="{{result}}">
-        <view class="stats-grid">
-          <view class="stat-item">
-            <text class="stat-value">+{{result.base_points}}</text>
+        <view class="stats-row">
+          <view class="stat-card">
+            <text class="stat-value text-success">+{{result.base_points}}</text>
             <text class="stat-label">积分</text>
           </view>
-          <view class="stat-item">
+          <view class="stat-card">
             <text class="stat-value">{{result.streak_days}}</text>
             <text class="stat-label">连续天数</text>
           </view>
-          <view class="stat-item wide">
-            <text class="stat-label">等级进度</text>
-            <view class="progress-track">
-              <view class="progress-fill" style="width: {{result.next_level_progress}}%;"></view>
-            </view>
-            <text class="stat-meta">{{result.next_level_progress}}%</text>
+          <view class="stat-card">
+            <text class="stat-value">{{totalPoints}}</text>
+            <text class="stat-label">总积分</text>
+          </view>
+        </view>
+
+        <view class="progress-card">
+          <view class="progress-header">
+            <text class="progress-title">等级进度</text>
+            <text class="progress-value">{{result.next_level_progress}}%</text>
+          </view>
+          <view class="progress-track">
+            <view class="progress-fill" style="width: {{result.next_level_progress}}%;"></view>
           </view>
         </view>
 
         <view class="badge-card" wx:if="{{result.earned_badge}}">
           <view class="badge-icon">🏅</view>
           <view class="badge-content">
-            <text class="badge-title">获得勋章</text>
+            <text class="badge-title">获得新勋章</text>
             <text class="badge-name">{{result.earned_badge}}</text>
+            <text class="badge-date">{{today}}</text>
           </view>
         </view>
       </block>
 
       <view class="footer">
-        <button class="submit-btn" bindtap="onGoHome">返回首页</button>
         <button class="secondary-btn" bindtap="onGoCalendar">查看日历</button>
+        <button class="submit-btn" bindtap="onGoHome">继续学习</button>
       </view>
     </block>
 

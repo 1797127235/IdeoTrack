@@ -80,6 +80,8 @@ Page({
     result: null as CheckInResultSummary | null,
     resultLoading: true,
     resultError: '',
+    totalPoints: 256,
+    today: '',
   },
 
   onLoad(options: { checkInId?: string; taskId?: string; status?: string }) {
@@ -106,6 +108,7 @@ Page({
       this.triggerVibrate();
     }
 
+    this.setToday();
     this.loadTaskDetail(taskId);
     this.loadCheckInResult(checkInId);
   },
@@ -149,12 +152,22 @@ Page({
     }
   },
 
+  setToday() {
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+    this.setData({ today: dateStr });
+  },
+
   async loadCheckInResult(checkInId: string) {
     this.setData({ resultLoading: true, resultError: '' });
     try {
       const res = await getCheckInResult(checkInId);
       if (res.success && res.data) {
-        this.setData({ result: res.data, resultLoading: false });
+        this.setData({
+          result: res.data,
+          totalPoints: 256 + res.data.base_points,
+          resultLoading: false,
+        });
       } else {
         this.setData({
           resultError: res.error?.message || '获取打卡结果失败',

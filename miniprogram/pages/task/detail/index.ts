@@ -2,6 +2,15 @@ import { getMyTaskDetail, type TaskDetail } from '../../../services/taskApi';
 import { formatDeadline } from '../../../utils/format';
 import { theme } from '../../../theme';
 
+type StepStatus = 'pending' | 'current' | 'completed';
+
+interface TaskStep {
+  index: number;
+  title: string;
+  desc: string;
+  status: StepStatus;
+}
+
 function getStatusMeta(status: TaskDetail['status']) {
   switch (status) {
     case 'completed':
@@ -20,7 +29,7 @@ function getButtonMeta(task: TaskDetail) {
   if (task.status === 'overdue') return { text: '已逾期', disabled: true };
   const checkInStatus = task.check_in_status || '';
   if (checkInStatus === 'rejected') return { text: '未通过复核', disabled: true };
-  if (checkInStatus === 'requires_modification') return { text: '需修改心得', disabled: true };
+  if (checkInStatus === 'requires_modification') return { text: '需修改心得', disabled: false };
   if (checkInStatus === 'pending_manual_review') return { text: '等待辅导员复核', disabled: true };
   return { text: '立即打卡 +10 积分', disabled: false };
 }
@@ -66,6 +75,26 @@ function canModifyReflection(task: TaskDetail): boolean {
   return false;
 }
 
+function buildSteps(task: TaskDetail): TaskStep[] {
+  const steps: TaskStep[] = [
+    { index: 1, title: '阅读任务', desc: '了解学习内容', status: 'current' },
+    { index: 2, title: '定位签到', desc: '在指定位置打卡', status: 'pending' },
+    { index: 3, title: '撰写心得', desc: '提交学习体会', status: 'pending' },
+  ];
+
+  if (task.status === 'completed') {
+    steps[0].status = 'completed';
+    steps[1].status = 'completed';
+    steps[2].status = 'completed';
+  } else if (task.check_in_id) {
+    steps[0].status = 'completed';
+    steps[1].status = 'completed';
+    steps[2].status = 'current';
+  }
+
+  return steps;
+}
+
 Page({
   data: {
     taskId: '',
@@ -78,6 +107,7 @@ Page({
     buttonDisabled: true,
     showModifyReflection: false,
     deadlineText: '',
+    steps: [] as TaskStep[],
     reviewMeta: null as { label: string; color: string; icon: string } | null,
     reviewReasonText: '',
   },
@@ -100,6 +130,7 @@ Page({
         const task = res.data;
         const statusMeta = getStatusMeta(task.status);
         const buttonMeta = getButtonMeta(task);
+        const steps = buildSteps(task);
         this.setData({
           task,
           loading: false,
@@ -109,6 +140,7 @@ Page({
           buttonDisabled: buttonMeta.disabled,
           showModifyReflection: canModifyReflection(task),
           deadlineText: formatDeadline(task.deadline_at),
+          steps,
         });
       } else {
         this.setData({ error: res.error?.message || '获取任务详情失败', loading: false });
@@ -164,6 +196,17 @@ Page({
     if (!checkInId || !status) return;
     wx.navigateTo({
       url: `/pages/reflection/index?checkInId=${checkInId}&taskId=${taskId}&mode=edit&status=${status}`,
+    });
+  },
+
+  onOpenLink(event: WechatMiniprogram.BaseEvent) {
+    const { url } = event.currentTarget.dataset as { url?: string };
+    if (!url) return;
+    wx.setClipboardData({
+      data: url,
+      success: () => {
+        wx.showToast({ title: '链接已复制', icon: 'success' });
+      },
     });
   },
 });

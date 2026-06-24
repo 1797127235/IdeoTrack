@@ -14,41 +14,92 @@
 
   <block wx:elif="{{task}}">
     <scroll-view class="task-scroll" scroll-y>
-      <view class="task-card">
-        <view class="task-header">
-          <text class="task-title">{{task.title}}</text>
+      <!-- 任务标题卡片 -->
+      <view class="task-header-card">
+        <view class="task-header-top">
+          <view class="task-meta">
+            <text class="task-tag">今日任务</text>
+            <text class="task-deadline">{{deadlineText}}</text>
+          </view>
           <view class="status-badge" style="background-color: {{statusColor}}20; color: {{statusColor}};">
             {{statusLabel}}
           </view>
         </view>
+        <text class="task-title">{{task.title}}</text>
+      </view>
 
-        <view class="deadline-row">
-          <text class="deadline-icon">⏰</text>
-          <text class="deadline-text">{{deadlineText}}</text>
+      <!-- 任务步骤 -->
+      <view class="steps-card">
+        <view class="steps-title">任务步骤</view>
+        <view class="steps-list">
+          <view class="step-item {{step.status}}" wx:for="{{steps}}" wx:for-item="step" wx:key="index">
+            <view class="step-left">
+              <view class="step-number">
+                <text wx:if="{{step.status === 'completed'}}">✓</text>
+                <text wx:else>{{step.index}}</text>
+              </view>
+              <view class="step-line" wx:if="{{step.index < 3}}"></view>
+            </view>
+            <view class="step-content">
+              <text class="step-title">{{step.title}}</text>
+              <text class="step-desc">{{step.desc}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 任务内容 -->
+      <view class="content-card">
+        <text class="section-title">任务内容</text>
+        <text class="task-content">{{task.content}}</text>
+
+        <!-- 思考题 -->
+        <view class="questions-section" wx:if="{{task.guiding_questions && task.guiding_questions.length > 0}}">
+          <text class="section-title">思考题</text>
+          <view class="question-item" wx:for="{{task.guiding_questions}}" wx:key="*this">
+            <text class="question-dot">{{index + 1}}</text>
+            <text class="question-text">{{item}}</text>
+          </view>
         </view>
 
-        <view class="content-section">
-          <text class="section-title">任务内容</text>
-          <text class="task-content">{{task.content}}</text>
+        <!-- 外部链接 -->
+        <view class="link-section" wx:if="{{task.source_url}}">
+          <text class="section-title">延伸阅读</text>
+          <view class="link-card" data-url="{{task.source_url}}" bindtap="onOpenLink">
+            <text class="link-icon">🔗</text>
+            <text class="link-text">{{task.source_url}}</text>
+          </view>
         </view>
 
-        <view class="review-section" wx:if="{{reviewMeta}}">
-          <view class="review-header">
+        <!-- 视频链接 -->
+        <view class="link-section" wx:if="{{task.video_url}}">
+          <text class="section-title">相关视频</text>
+          <view class="link-card" data-url="{{task.video_url}}" bindtap="onOpenLink">
+            <text class="link-icon">▶️</text>
+            <text class="link-text">{{task.video_url}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 复核状态 -->
+      <view class="review-card" wx:if="{{reviewMeta}}">
+        <view class="review-header">
+          <view class="review-icon-wrap" style="background-color: {{reviewMeta.color}}20;">
             <text class="review-icon" style="color: {{reviewMeta.color}};">{{reviewMeta.icon}}</text>
-            <text class="review-label" style="color: {{reviewMeta.color}};">{{reviewMeta.label}}</text>
           </view>
-          <view class="review-reason" wx:if="{{reviewReasonText}}">
-            <text class="reason-label">AI 初审：</text>
-            <text class="reason-text">{{reviewReasonText}}</text>
-          </view>
-          <view class="review-feedback" wx:if="{{task.review_feedback}}">
-            <text class="feedback-label">辅导员反馈：</text>
-            <text class="feedback-text">{{task.review_feedback}}</text>
-          </view>
-          <view class="review-reflection" wx:if="{{task.reflection_content}}">
-            <text class="reflection-label">你的心得：</text>
-            <text class="reflection-text">{{task.reflection_content}}</text>
-          </view>
+          <text class="review-label" style="color: {{reviewMeta.color}};">{{reviewMeta.label}}</text>
+        </view>
+        <view class="review-reason" wx:if="{{reviewReasonText}}">
+          <text class="reason-label">AI 初审：</text>
+          <text class="reason-text">{{reviewReasonText}}</text>
+        </view>
+        <view class="review-feedback" wx:if="{{task.review_feedback}}">
+          <text class="feedback-label">辅导员反馈：</text>
+          <text class="feedback-text">{{task.review_feedback}}</text>
+        </view>
+        <view class="review-reflection" wx:if="{{task.reflection_content}}">
+          <text class="reflection-label">你的心得：</text>
+          <text class="reflection-text">{{task.reflection_content}}</text>
         </view>
       </view>
     </scroll-view>

@@ -29,6 +29,10 @@ export interface StudentTask {
 }
 
 export interface TaskDetail extends StudentTask {
+  content: string;
+  guiding_questions?: string[] | null;
+  source_url?: string | null;
+  video_url?: string | null;
   check_in_id?: string;
   check_in_status?: string;
   reflection_content?: string;
