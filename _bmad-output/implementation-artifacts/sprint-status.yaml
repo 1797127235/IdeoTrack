@@ -93,10 +93,10 @@ development_status:
   7-1-ban-ji-da-ka-lv-pai-ming-zhan-shi: backlog  # V2 deferred
   7-2-pai-hang-bang-an-xu-ji-suan-yu-huan-cun: backlog  # V2 deferred
   epic-7-retrospective: optional
-  epic-8: in-progress  # Story 8.1 已创建，进入实现
+  epic-8: done  # 8.1-8.4 全部完成
   8-1-ban-ji-shu-ju-gai-lan: done  # counselor: miniprogram
   8-2-wei-da-ka-xue-sheng-ming-dan: done  # counselor: miniprogram
-  8-3-yi-jian-ti-xing: in-progress  # counselor: miniprogram
+  8-3-yi-jian-ti-xing: done  # counselor: miniprogram
   8-4-fu-dao-yuan-shu-ju-dao-chu: done  # counselor: miniprogram, 导出功能完成
   epic-8-retrospective: optional
   epic-9: backlog
