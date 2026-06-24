@@ -217,16 +217,16 @@ export async function createTask(
     throw new AppError('ACCESS_DENIED', '辅导员不能直接创建任务，请从任务池派发', 403);
   }
 
-  // AD-21: 校验 scope_type 和 scope_id
-  if (input.scope_type === 'pool') {
-    // 任务池不需要 scope_id
+  // AD-21: 校验 scope_type 和 scope_id（与 schema 保持一致）
+  if (input.scope_type === 'pool' || input.scope_type === 'school') {
+    // 任务池/全校任务不需要 scope_id
     if (input.scope_id) {
-      throw new AppError('VALIDATION_ERROR', '任务池不需要指定 scope_id', 400);
+      throw new AppError('VALIDATION_ERROR', '任务池/全校任务不需要指定 scope_id', 400);
     }
   } else {
-    // school/college/class 需要 scope_id
+    // college/class 必须提供有效 scope_id
     if (!input.scope_id) {
-      throw new AppError('VALIDATION_ERROR', '发布范围为 school/college/class 时必须指定 scope_id', 400);
+      throw new AppError('VALIDATION_ERROR', '学院/班级任务必须指定 scope_id', 400);
     }
   }
 
