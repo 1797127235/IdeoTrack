@@ -109,19 +109,19 @@ jobs:
             DEEPSEEK_BASE_URL=${{ secrets.DEEPSEEK_BASE_URL }}
             DEEPSEEK_MODEL=${{ secrets.DEEPSEEK_MODEL }}
             CLIENT_URL=*
+            NEXT_PUBLIC_API_URL=https://ideotrack.cc.cd/api
+            NEXT_PUBLIC_AMAP_KEY=${{ secrets.NEXT_PUBLIC_AMAP_KEY }}
             EOF
             chmod 600 .env
 
-            # 配置 API 域名，Caddy 会自动申请并续期 HTTPS 证书
-            # 注：管理员 Web 后台 (Story 14.x) 计划用 admin.ideotrack.cc.cd，
-            # 由独立的 Web 部署（Next.js standalone 或独立容器）承载，届时在此追加：
-            #   admin.ideotrack.cc.cd {
-            #     reverse_proxy <web-host>:<web-port>
-            #   }
-            # 并把 CLIENT_URL 从 * 收紧为 ideotrack.cc.cd,https://admin.ideotrack.cc.cd
+            # 配置 API 与管理后台域名，Caddy 会自动申请并续期 HTTPS 证书
             cat > Caddyfile << 'EOF'
             ideotrack.cc.cd {
               reverse_proxy api:3000
+            }
+
+            admin.ideotrack.cc.cd {
+              reverse_proxy web:3001
             }
             EOF
 
@@ -141,6 +141,9 @@ jobs:
             # 重新构建并启动
             docker compose --profile with-caddy up -d --build
             docker compose restart caddy
+
+            # 等待 Web 服务就绪
+            sleep 10
 
             # 等待 API 服务就绪
             sleep 10

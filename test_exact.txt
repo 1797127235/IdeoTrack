@@ -1,6 +1,0 @@
-
-const mockQuotes: Quote[] = [
-  { id: '1', content: '青年有理想，国家有力量。', author
-
-const mockQuotes: Quote[] = [
-  { id: '1', content: '青年有理想，国家有力量。', author
