@@ -3,20 +3,20 @@ import { getUserRole } from '../utils/auth';
 interface TabItem {
   pagePath: string;
   text: string;
-  icon: string;
+  iconKey: string;
 }
 
 const STUDENT_TABS: TabItem[] = [
-  { pagePath: 'pages/home/index', text: '首页', icon: '🏠' },
-  { pagePath: 'pages/leaderboard/index', text: '排行', icon: '🏆' },
-  { pagePath: 'pages/calendar/index', text: '日历', icon: '📅' },
-  { pagePath: 'pages/profile/index', text: '我的', icon: '👤' },
+  { pagePath: 'pages/home/index', text: '首页', iconKey: 'home' },
+  { pagePath: 'pages/leaderboard/index', text: '排行', iconKey: 'leaderboard' },
+  { pagePath: 'pages/calendar/index', text: '日历', iconKey: 'calendar' },
+  { pagePath: 'pages/profile/index', text: '我的', iconKey: 'profile' },
 ];
 
 const COUNSELOR_TABS: TabItem[] = [
-  { pagePath: 'pages/counselor/dashboard/index', text: '班级', icon: '📊' },
-  { pagePath: 'pages/review/index', text: '复核', icon: '📝' },
-  { pagePath: 'pages/profile/index', text: '我的', icon: '👤' },
+  { pagePath: 'pages/counselor/dashboard/index', text: '班级', iconKey: 'class' },
+  { pagePath: 'pages/review/index', text: '复核', iconKey: 'review' },
+  { pagePath: 'pages/profile/index', text: '我的', iconKey: 'profile' },
 ];
 
 Component({
