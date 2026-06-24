@@ -26,14 +26,17 @@ export const createTaskSchema = z.object({
   deadline_at: z.string().datetime({ message: '截止时间格式无效' }),
 }).refine(
   (data) => {
-    // 如果 scope_type 不是 pool，则 scope_id 必填
-    if (data.scope_type !== 'pool' && !data.scope_id) {
+    // AD-21: pool/school 不需要 scope_id；college/class 必须提供有效 scope_id
+    if (data.scope_type === 'pool' && data.scope_id) {
+      return false;
+    }
+    if ((data.scope_type === 'college' || data.scope_type === 'class') && !data.scope_id) {
       return false;
     }
     return true;
   },
   {
-    message: '发布范围为 school/college/class 时必须指定 scope_id',
+    message: 'scope_id 与 scope_type 不匹配',
     path: ['scope_id'],
   }
 ).refine(
@@ -67,14 +70,17 @@ export const updateTaskSchema = z.object({
   status: z.enum(['published', 'delisted']).optional(),
 }).refine(
   (data) => {
-    // P5: 如果同时提供了 scope_type 和 scope_id，校验一致性
-    if (data.scope_type && data.scope_type !== 'pool' && data.scope_id === null) {
+    // AD-21: pool/school 不需要 scope_id；college/class 切换时 scope_id 不能为 null
+    if (data.scope_type === 'pool' && data.scope_id) {
+      return false;
+    }
+    if ((data.scope_type === 'college' || data.scope_type === 'class') && data.scope_id === null) {
       return false;
     }
     return true;
   },
   {
-    message: '发布范围为 school/college/class 时 scope_id 不能为 null',
+    message: 'scope_id 与 scope_type 不匹配',
     path: ['scope_id'],
   }
 ).refine(
