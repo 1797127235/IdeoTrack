@@ -2,7 +2,7 @@
 title: 思政打卡 App 视觉设计规范
 status: final
 created: 2026-06-22
-updated: 2026-06-22
+updated: 2026-06-24
 colors:
   primary: '#0891B2'
   primary-light: '#22D3EE'
@@ -20,6 +20,8 @@ colors:
   error: '#EF4444'
   border: '#E2E8F0'
   divider: '#F1F5F9'
+  admin-sidebar: '#164E63'
+  admin-sidebar-active: '#0891B2'
 typography:
   heading:
     family: "'Noto Sans SC', system-ui, sans-serif"
@@ -50,8 +52,9 @@ spacing:
 # 思政打卡 App — DESIGN.md
 
 > 视觉方向：**清新教育风**（青色 + 绿色）
-> 技术栈：**React Native（Expo）**
-> 状态：ready-for-review
+> 技术栈：**React Native（Expo）+ Next.js Web 后台**
+> 状态：final
+> 原型参考：`mockups/ideo-track-prototype-v2.png`（学生首页 / 任务详情 / 打卡成功 / 日历 / 辅导员看板 / 管理员后台）
 
 ## Brand & Style
 
@@ -225,12 +228,77 @@ spacing:
 - 未打卡：`border` 背景，无文字或灰色数字
 - 今天：`primary` 边框 2px
 
-### Chart / 图表
+### Quote Card / 每日名言卡片
 
-- 折线图：`primary` 线条，`primary-light` 填充渐变
-- 柱状图：已完成用 `cta`，未完成用 `border`
-- 数据标签使用 `numeric` 字体
-- 坐标轴和网格线使用 `divider`
+- 背景：`primary` → `primary-dark` 渐变（左侧深到右侧浅）
+- 文字：白色，引用正文使用 18px / 28px 行高，字重 500
+- 作者：右对齐，白色 70% 透明度，14px
+- 圆角：`rounded-lg`（24px）
+- 内边距：20px–24px
+- 高度：建议占首屏 30–40%，不超过 45%，避免挤压下方任务列表
+- 装饰：可添加轻微半透明纹理或光晕，但不使用复杂图案
+
+### Task Step Indicator / 任务步骤指示器
+
+- 用于任务详情页，展示「阅读任务 → 定位签到 → 撰写心得」流程
+- 每个步骤：圆形序号 + 标题 + 状态文字
+- 已完成步骤：圆形背景 `cta`，白色对勾
+- 当前步骤：圆形背景 `primary`，白色数字
+- 未开始步骤：圆形背景 `surface`，边框 1px `border`，文字 `text-secondary`
+- 连接线：1px `divider`，已完成段使用 `cta`
+- 垂直布局，步骤间距 16px
+
+### Success Feedback / 打卡成功页
+
+- 顶部：大号成功图标（绿色对勾），80–100px，带动画缩放
+- 主文案：「今日打卡完成！」，H1，字重 700，`text-primary`
+- 副文案：「坚持学习，遇见更好的自己」，`text-secondary`
+- 数据卡片（横向排列）：
+  - 积分 +10
+  - 连续打卡 N 天
+  - 总积分 256 分
+  - 数字使用 `numeric` 字体，24px，字重 600
+- 徽章区：若获得勋章，展示徽章图标 + 名称 + 获得日期
+- 底部按钮：「查看日历」（Secondary）+「继续学习」（CTA）
+
+### Calendar Grid / 打卡日历（细化）
+
+- 顶部月份切换：左右箭头 +「2024年5月」
+- 星期标题行：`text-secondary`，12px
+- 日期格子：`rounded-sm`（8px），高度与宽度相等
+- 已打卡：`cta` 背景，白色文字或对勾
+- 未打卡：`surface` 背景，`text-secondary` 文字
+- 今天：`primary` 边框 2px
+- 底部图例：已打卡 / 未打卡 / 部分打卡
+- 连续打卡趋势：日历下方展示近 7/30 天折线图
+
+### Counselor Dashboard / 辅导员看板
+
+- 顶部日期选择器 +「全部班级」筛选
+- KPI 卡片（横向 2 列）：今日整体打卡率、应打卡人数、已打卡人数
+- 打卡率环形图：已完成用 `cta`，未完成用 `border`
+- 班级进度列表：
+  - 班级名称 + 打卡率百分比
+  - 进度条：`cta` 填充，`border` 背景
+  - 点击下钻到班级详情
+- 重点关注学生：未打卡学生列表，带「提醒」按钮
+- 提醒按钮：小型 `primary` 按钮，圆角 `rounded-full`
+
+### Admin Web / 管理员后台
+
+- 布局：左侧固定深色侧边栏（`admin-sidebar` #164E63）+ 右侧主内容区
+- 侧边栏：
+  - 顶部 Logo / 系统名称
+  - 导航项：数据概览、学院管理、班级管理、学生管理、打卡管理、心得管理、任务管理、积分管理、系统设置
+  - 当前项：`admin-sidebar-active` 背景 + 左侧 4px 白色高亮条
+  - 文字：白色 90% 透明度，当前项 100%
+- 顶部栏：
+  - 左侧：当前页面标题
+  - 右侧：日期、管理员头像/名称、退出
+- 主内容区背景：`background`（#ECFEFF）
+- 数据概览卡片：`surface` 背景，`rounded-md`，顶部彩色指标条（`primary` / `cta` / `warning`）
+- 图表区：`surface` 背景卡片，`rounded-md`
+- 表格：白色背景，表头 `surface-raised`，行 hover `surface-raised`
 
 ## Do's and Don'ts
 
