@@ -128,6 +128,31 @@ CREATE TABLE IF NOT EXISTS tasks (
   )
 );
 
+-- AD-21/AD-22: 兼容旧表结构，添加缺失列（生产环境升级）
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS guiding_questions JSONB;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_url TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS video_url TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scope_id UUID;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_task_id UUID;
+-- 旧数据可能没有外键约束，安全起见先删除再重建（幂等）
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_source_task_id_fkey;
+ALTER TABLE tasks ADD CONSTRAINT tasks_source_task_id_fkey
+  FOREIGN KEY (source_task_id) REFERENCES tasks(id) ON DELETE SET NULL;
+
+-- 旧表的 scope_type CHECK 可能不包含 'pool'，需要更新约束
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_scope_type_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_scope_type_check
+  CHECK (scope_type IN ('school', 'college', 'class', 'pool'));
+
+-- 旧表的 valid_task_scope CHECK 可能不包含 pool 规则，需要更新约束
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS valid_task_scope;
+ALTER TABLE tasks ADD CONSTRAINT valid_task_scope CHECK (
+  (scope_type = 'school' AND target_college_id IS NULL AND target_class_id IS NULL) OR
+  (scope_type = 'college' AND target_college_id IS NOT NULL AND target_class_id IS NULL) OR
+  (scope_type = 'class' AND target_college_id IS NULL AND target_class_id IS NOT NULL) OR
+  (scope_type = 'pool' AND target_college_id IS NULL AND target_class_id IS NULL)
+);
+
 -- AD-21: 防止重复派发（同一源任务对同一班级只能派发一次）
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_unique_dispatch ON tasks(source_task_id, target_class_id) 
   WHERE source_task_id IS NOT NULL AND target_class_id IS NOT NULL;
