@@ -234,12 +234,16 @@ export async function createTask(
     throw new AppError('VALIDATION_ERROR', '截止时间必须晚于发布时间', 400);
   }
 
+  // AD-21/AD-22: 统一使用 scope_id，同时维护 target_college_id/target_class_id 以保持查询兼容
+  const targetCollegeId = input.scope_type === 'college' ? input.scope_id ?? null : null;
+  const targetClassId = input.scope_type === 'class' ? input.scope_id ?? null : null;
+
   const rows = await query<Task>(
     `INSERT INTO tasks (
       title, content, guiding_questions, source_url, video_url,
-      scope_type, scope_id, source_task_id,
+      scope_type, scope_id, target_college_id, target_class_id, source_task_id,
       created_by, published_at, deadline_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING *`,
     [
       input.title,
@@ -249,6 +253,8 @@ export async function createTask(
       input.video_url ?? null,
       input.scope_type,
       input.scope_id ?? null,  // pool 时为 NULL
+      targetCollegeId,
+      targetClassId,
       null,  // source_task_id: 管理员直接创建的为 NULL
       userId,
       input.published_at,
@@ -313,9 +319,9 @@ export async function dispatchTask(
   const rows = await query<Task>(
     `INSERT INTO tasks (
       title, content, guiding_questions, source_url, video_url,
-      scope_type, scope_id, source_task_id,
+      scope_type, scope_id, target_college_id, target_class_id, source_task_id,
       created_by, published_at, deadline_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING *`,
     [
       sourceTask.title,  // 快照：从源任务拷贝
@@ -325,6 +331,8 @@ export async function dispatchTask(
       sourceTask.video_url,  // 快照
       'class',  // 派发实例的 scope_type 固定为 class
       input.target_class_id,
+      null,  // target_college_id: class 作用域为 NULL
+      input.target_class_id,  // target_class_id 与 scope_id 保持一致
       input.source_task_id,  // 指向源任务
       userId,
       new Date().toISOString(),  // 发布时间为当前时间
@@ -614,10 +622,7 @@ export async function delistTask(userId: string, role: string, taskId: string): 
 
   // AD-21: 权限控制
   if (role === 'admin') {
-    // 管理员只能下架自己创建的任务
-    if (task.created_by !== userId) {
-      throw new AppError('ACCESS_DENIED', '管理员只能下架自己创建的任务', 403);
-    }
+    // 管理员可下架任意任务
   } else if (role === 'counselor') {
     // 辅导员只能下架自己派发的任务
     if (!task.source_task_id || task.created_by !== userId) {
@@ -658,11 +663,9 @@ export async function getTaskStats(
 
   const task = await fetchTaskById(taskId);
 
-  // 权限校验：只能查看自己创建或派发的任务
+  // 权限校验：admin 可查看任意任务，辅导员只能查看自己派发的任务
   if (role === 'admin') {
-    if (task.created_by !== userId) {
-      throw new AppError('ACCESS_DENIED', '管理员只能查看自己创建的任务统计', 403);
-    }
+    // no-op
   } else if (role === 'counselor') {
     if (!task.source_task_id || task.created_by !== userId) {
       throw new AppError('ACCESS_DENIED', '辅导员只能查看自己派发的任务统计', 403);

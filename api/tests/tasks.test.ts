@@ -43,6 +43,25 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
     return request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send(payload);
   }
 
+  async function seedCounselorTask(title: string, createdBy: string = counselorId, targetClassId: string = classId, sourceTaskId: string | null = null) {
+    const res = await client.query(
+      `INSERT INTO tasks (
+        title, content, scope_type, scope_id, target_college_id, target_class_id, source_task_id, created_by, published_at, deadline_at
+      ) VALUES ($1, $2, 'class', $3, NULL, $3, $4, $5, $6, $7)
+      RETURNING id`,
+      [
+        title,
+        '内容',
+        targetClassId,
+        sourceTaskId,
+        createdBy,
+        new Date(Date.now() - 1000).toISOString(),
+        new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      ]
+    );
+    return res.rows[0] as { id: string };
+  }
+
   beforeAll(async () => {
     if (!DATABASE_URL) return;
     client = new Client({ connectionString: DATABASE_URL });
@@ -84,13 +103,13 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
       title: 'TEST TASK 示例任务',
       content: '任务内容',
       scope_type: 'class',
-      target_class_id: classId,
+      scope_id: classId,
       published_at: new Date(Date.now() - 1000).toISOString(),
       deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     };
 
     it('allows admin to create a school task', async () => {
-      const res = await createTask(adminToken, { ...basePayload, scope_type: 'school', target_class_id: null });
+      const res = await createTask(adminToken, { ...basePayload, scope_type: 'school', scope_id: null });
       expect(res.status).toBe(201);
       expect(res.body.data.scope_label).toBe('全校');
     });
@@ -99,39 +118,30 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
       const res = await createTask(adminToken, {
         ...basePayload,
         scope_type: 'college',
-        target_class_id: null,
-        target_college_id: collegeId,
+        scope_id: collegeId,
       });
       expect(res.status).toBe(201);
       expect(res.body.data.scope_label).toBe('学院');
     });
 
-    it('allows counselor to create task for their own class', async () => {
+    it('rejects counselor creating task', async () => {
+      // AD-21: 辅导员不能直接创建任务，只能从任务池派发
       const res = await createTask(counselorToken, basePayload);
-      expect(res.status).toBe(201);
-      expect(res.body.data.created_by).toBe(counselorId);
-    });
+      expect(res.status).toBe(403);
 
-    it('rejects counselor creating school/college task', async () => {
       const schoolRes = await createTask(counselorToken, {
         ...basePayload,
         scope_type: 'school',
-        target_class_id: null,
+        scope_id: null,
       });
       expect(schoolRes.status).toBe(403);
 
       const collegeRes = await createTask(counselorToken, {
         ...basePayload,
         scope_type: 'college',
-        target_class_id: null,
-        target_college_id: collegeId,
+        scope_id: collegeId,
       });
       expect(collegeRes.status).toBe(403);
-    });
-
-    it('rejects counselor creating task for unmanaged class', async () => {
-      const res = await createTask(counselorToken, { ...basePayload, target_class_id: otherClassId });
-      expect(res.status).toBe(403);
     });
 
     it('rejects student creating task', async () => {
@@ -156,22 +166,16 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
   });
 
   describe('GET /api/tasks (admin/counselor)', () => {
-    it('lists tasks created by counselor', async () => {
-      await createTask(counselorToken, {
-        title: 'TEST TASK 辅导员任务',
-        content: '内容',
-        scope_type: 'class',
-        target_class_id: classId,
-        published_at: new Date(Date.now() - 1000).toISOString(),
-        deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      });
+    it('lists tasks dispatched by counselor', async () => {
+      const seeded = await seedCounselorTask('TEST TASK 辅导员任务');
 
       const res = await request(app).get('/api/tasks').set('Authorization', `Bearer ${counselorToken}`);
       expect(res.status).toBe(200);
       // P3: 返回结构改为 { items, total, page, limit }
       expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
-      expect(res.body.data.items[0].title).toContain('TEST TASK 辅导员任务');
-      expect(res.body.data.total).toBeGreaterThanOrEqual(1);
+      const found = res.body.data.items.find((t: { id: string }) => t.id === seeded.id);
+      expect(found).toBeDefined();
+      expect(found.title).toContain('TEST TASK 辅导员任务');
       expect(res.body.data.page).toBe(1);
       expect(res.body.data.limit).toBe(20);
     });
@@ -206,8 +210,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK 学院编辑测试',
         content: '内容',
         scope_type: 'college',
-        target_college_id: collegeId,
-        target_class_id: null,
+        scope_id: collegeId,
         published_at: new Date(Date.now() - 1000).toISOString(),
         deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -236,15 +239,8 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
     });
 
     it('rejects editing by non-creator (admin cannot edit counselor task)', async () => {
-      const createRes = await createTask(counselorToken, {
-        title: 'TEST TASK 他人任务',
-        content: '内容',
-        scope_type: 'class',
-        target_class_id: classId,
-        published_at: new Date(Date.now() - 1000).toISOString(),
-        deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      });
-      const taskId = createRes.body.data.id;
+      const seeded = await seedCounselorTask('TEST TASK 他人任务');
+      const taskId = seeded.id;
 
       const res = await request(app)
         .put(`/api/tasks/${taskId}`)
@@ -312,8 +308,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK scope 切换',
         content: '内容',
         scope_type: 'college',
-        target_college_id: collegeId,
-        target_class_id: null,
+        scope_id: collegeId,
         published_at: new Date(Date.now() - 1000).toISOString(),
         deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -322,7 +317,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
       const res = await request(app)
         .put(`/api/tasks/${taskId}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ scope_type: 'school' });
+        .send({ scope_type: 'school', scope_id: null });
       expect(res.status).toBe(200);
       expect(res.body.data.target_college_id).toBeNull();
       expect(res.body.data.target_class_id).toBeNull();
@@ -347,17 +342,10 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
       expect(res.body.data.status).toBe('delisted');
     });
 
-    // P1 核心场景：admin 可下架 counselor 创建的任务（之前会 403）
-    it('allows admin to delist counselor-created task', async () => {
-      const createRes = await createTask(counselorToken, {
-        title: 'TEST TASK 跨角色下架',
-        content: '内容',
-        scope_type: 'class',
-        target_class_id: classId,
-        published_at: new Date(Date.now() - 1000).toISOString(),
-        deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      });
-      const taskId = createRes.body.data.id;
+    // P1 核心场景：admin 可下架 counselor 派发的任务（之前会 403）
+    it('allows admin to delist counselor-dispatched task', async () => {
+      const seeded = await seedCounselorTask('TEST TASK 跨角色下架');
+      const taskId = seeded.id;
 
       const res = await request(app)
         .patch(`/api/tasks/${taskId}/delist`)
@@ -368,15 +356,8 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
 
     // P1: 非创建人的 counselor 不能下架其他 counselor 的任务
     it('rejects other counselor from delisting peer task', async () => {
-      const createRes = await createTask(counselorToken, {
-        title: 'TEST TASK 同事下架',
-        content: '内容',
-        scope_type: 'class',
-        target_class_id: classId,
-        published_at: new Date(Date.now() - 1000).toISOString(),
-        deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      });
-      const taskId = createRes.body.data.id;
+      const seeded = await seedCounselorTask('TEST TASK 同事下架');
+      const taskId = seeded.id;
 
       const res = await request(app)
         .patch(`/api/tasks/${taskId}/delist`)
@@ -429,7 +410,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK 学生任务',
         content: '内容',
         scope_type: 'class',
-        target_class_id: classId,
+        scope_id: classId,
         published_at: new Date(Date.now() - 1000).toISOString(),
         deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -445,7 +426,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK 已下架',
         content: '内容',
         scope_type: 'class',
-        target_class_id: classId,
+        scope_id: classId,
         published_at: new Date(Date.now() - 1000).toISOString(),
         deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -461,7 +442,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK 已完成',
         content: '内容',
         scope_type: 'class',
-        target_class_id: classId,
+        scope_id: classId,
         published_at: new Date(Date.now() - 1000).toISOString(),
         deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -483,7 +464,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK 审核中',
         content: '内容',
         scope_type: 'class',
-        target_class_id: classId,
+        scope_id: classId,
         published_at: new Date(Date.now() - 1000).toISOString(),
         deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -505,7 +486,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK 已逾期',
         content: '内容',
         scope_type: 'class',
-        target_class_id: classId,
+        scope_id: classId,
         published_at: new Date(Date.now() - 2000).toISOString(),
         deadline_at: new Date(Date.now() - 1000).toISOString(),
       });
@@ -523,7 +504,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title: 'TEST TASK 详情',
         content: '详情内容',
         scope_type: 'class',
-        target_class_id: classId,
+        scope_id: classId,
         published_at: new Date(Date.now() - 1000).toISOString(),
         deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
