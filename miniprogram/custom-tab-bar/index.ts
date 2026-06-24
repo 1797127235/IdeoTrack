@@ -15,7 +15,7 @@ const STUDENT_TABS: TabItem[] = [
 
 const COUNSELOR_TABS: TabItem[] = [
   { pagePath: 'pages/counselor/dashboard/index', text: '看板', iconKey: 'dashboard' },
-  { pagePath: 'pages/counselor/students/index', text: '学生', iconKey: 'students' },
+  { pagePath: 'pages/counselor/classes/index', text: '班级', iconKey: 'students' },
   { pagePath: 'pages/counselor/tasks/index', text: '任务', iconKey: 'tasks' },
   { pagePath: 'pages/counselor/stats/index', text: '统计', iconKey: 'stats' },
   { pagePath: 'pages/profile/index', text: '我的', iconKey: 'profile' },

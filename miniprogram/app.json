@@ -16,7 +16,7 @@
     "pages/counselor/dashboard/index",
     "pages/counselor/class-detail/index",
     "pages/counselor/export/index",
-    "pages/counselor/students/index",
+    "pages/counselor/classes/index",
     "pages/counselor/tasks/index",
     "pages/counselor/stats/index"
   ],
@@ -55,8 +55,8 @@
         "text": "看板"
       },
       {
-        "pagePath": "pages/counselor/students/index",
-        "text": "学生"
+        "pagePath": "pages/counselor/classes/index",
+        "text": "班级"
       },
       {
         "pagePath": "pages/counselor/tasks/index",

@@ -1,9 +1,4 @@
 <view class="page">
-  <view class="header">
-    <view class="header-title">所带班级</view>
-    <view class="header-sub">查看班级学生及打卡情况</view>
-  </view>
-
   <view class="container">
     <view class="class-list" wx:if="{{classes.length > 0}}">
       <view
