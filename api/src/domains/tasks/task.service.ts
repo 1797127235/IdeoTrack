@@ -630,10 +630,7 @@ export async function delistTask(userId: string, role: string, taskId: string): 
     }
   }
 
-  // AC-4: 截止时间后不允许下架
-  if (new Date(task.deadline_at) <= new Date()) {
-    throw new AppError('TASK_DEADLINE_PASSED', '任务已截止，无法编辑或下架', 409);
-  }
+  // P1: 下架不受截止时间限制（区别于编辑）
 
   if (task.status === 'delisted') {
     throw new AppError('TASK_ALREADY_DELISTED', '任务已下架', 409);
