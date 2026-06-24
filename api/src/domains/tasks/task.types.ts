@@ -1,4 +1,4 @@
-export type TaskScopeType = 'school' | 'college' | 'class';
+export type TaskScopeType = 'school' | 'college' | 'class' | 'pool';
 export type TaskStatus = 'published' | 'delisted';
 export type CheckInStatus =
   | 'submitted'
@@ -15,9 +15,14 @@ export interface Task {
   id: string;
   title: string;
   content: string;
+  guiding_questions: string[] | null;  // AD-22: JSONB 数组，可选
+  source_url: string | null;  // AD-22: 外部链接，可选
+  video_url: string | null;  // AD-22: 视频 URL，可选
   scope_type: TaskScopeType;
-  target_college_id: string | null;
-  target_class_id: string | null;
+  scope_id: string | null;  // school_id / college_id / class_id (pool 时为 NULL)
+  target_college_id: string | null;  // 学院 ID（兼容旧 schema）
+  target_class_id: string | null;  // 班级 ID（兼容旧 schema）
+  source_task_id: string | null;  // AD-21: 派发实例指向源任务
   created_by: string;
   published_at: string;
   deadline_at: string;
@@ -59,17 +64,31 @@ export interface TaskWithStats extends TaskResponse {
 export interface CreateTaskInput {
   title: string;
   content: string;
+  guiding_questions?: string[] | null;  // AD-22: 可选
+  source_url?: string | null;  // AD-22: 可选
+  video_url?: string | null;  // AD-22: 可选
   scope_type: TaskScopeType;
-  target_college_id?: string | null;
-  target_class_id?: string | null;
+  scope_id?: string | null;  // school_id / college_id / class_id (pool 时为 NULL)
+  target_college_id?: string | null;  // 学院 ID（兼容旧 schema）
+  target_class_id?: string | null;  // 班级 ID（兼容旧 schema）
   published_at: string;
+  deadline_at: string;
+}
+
+export interface DispatchTaskInput {
+  source_task_id: string;  // AD-21: 必填
+  target_class_id: string;
   deadline_at: string;
 }
 
 export interface UpdateTaskInput {
   title?: string;
   content?: string;
+  guiding_questions?: string[] | null;
+  source_url?: string | null;
+  video_url?: string | null;
   scope_type?: TaskScopeType;
+  scope_id?: string | null;
   target_college_id?: string | null;
   target_class_id?: string | null;
   published_at?: string;

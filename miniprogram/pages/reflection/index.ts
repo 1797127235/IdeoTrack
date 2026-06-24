@@ -1,5 +1,5 @@
 import { submitReflection } from '../../services/checkinApi';
-import { getMyTaskDetail, Task } from '../../services/taskApi';
+import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
 import { isUuid } from '../../utils/validators';
 
 function getReviewReasonText(reasonCode: string | undefined, reason: string | undefined): string {
@@ -42,7 +42,7 @@ Page({
     taskId: '',
     mode: 'create' as 'create' | 'edit',
     editStatus: '' as string,
-    task: null as Task | null,
+    task: null as TaskDetail | null,
     taskLoading: true,
     taskError: '',
     content: '',

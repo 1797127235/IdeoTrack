@@ -1,8 +1,8 @@
-import { getMyTaskDetail, type Task } from '../../../services/taskApi';
+import { getMyTaskDetail, type TaskDetail } from '../../../services/taskApi';
 import { formatDeadline } from '../../../utils/format';
 import { theme } from '../../../theme';
 
-function getStatusMeta(status: Task['status']) {
+function getStatusMeta(status: TaskDetail['status']) {
   switch (status) {
     case 'completed':
       return { label: '已完成', color: theme.colors.success };
@@ -15,7 +15,7 @@ function getStatusMeta(status: Task['status']) {
   }
 }
 
-function getButtonMeta(task: Task) {
+function getButtonMeta(task: TaskDetail) {
   if (task.status === 'completed') return { text: '今日已打卡', disabled: true };
   if (task.status === 'overdue') return { text: '已逾期', disabled: true };
   const checkInStatus = task.check_in_status || '';
@@ -59,7 +59,7 @@ function getReviewReasonText(reasonCode: string | undefined, reason: string | un
   }
 }
 
-function canModifyReflection(task: Task): boolean {
+function canModifyReflection(task: TaskDetail): boolean {
   const status = task.check_in_status || '';
   if (status === 'requires_modification') return true;
   if (status === 'pending_manual_review' && task.reflection_modified !== true) return true;
@@ -69,7 +69,7 @@ function canModifyReflection(task: Task): boolean {
 Page({
   data: {
     taskId: '',
-    task: null as Task | null,
+    task: null as TaskDetail | null,
     loading: true,
     error: '',
     statusLabel: '',
@@ -138,7 +138,7 @@ Page({
   },
 
   onCheckIn() {
-    const task = this.data.task as Task | null;
+    const task = this.data.task as TaskDetail | null;
     const taskId = this.data.taskId as string;
     if (!task) return;
 
@@ -157,7 +157,7 @@ Page({
   },
 
   onModifyReflection() {
-    const task = this.data.task as Task | null;
+    const task = this.data.task as TaskDetail | null;
     const taskId = this.data.taskId as string;
     const checkInId = task?.check_in_id;
     const status = task?.check_in_status;

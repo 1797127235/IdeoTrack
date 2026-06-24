@@ -1,0 +1,106 @@
+<view class="container">
+  <view class="header">
+    <text class="title">派发任务</text>
+    <text class="subtitle">从任务池选择任务派发给班级</text>
+  </view>
+
+  <!-- 任务池列表 -->
+  <view class="section">
+    <text class="section-title">选择任务</text>
+    <view class="task-list" wx:if="{{taskPool.length > 0}}">
+      <view 
+        class="task-item {{selectedTask.id === item.id ? 'selected' : ''}}"
+        wx:for="{{taskPool}}"
+        wx:key="id"
+        bindtap="selectTask"
+        data-id="{{item.id}}"
+      >
+        <view class="task-info">
+          <text class="task-title">{{item.title}}</text>
+          <text class="task-date">发布于 {{item.published_at}}</text>
+        </view>
+        <view class="task-check" wx:if="{{selectedTask.id === item.id}}">
+          <text class="check-icon">✓</text>
+        </view>
+      </view>
+    </view>
+    <view class="empty" wx:else>
+      <text class="empty-text">暂无可派发的任务</text>
+    </view>
+  </view>
+
+  <!-- 选中任务详情 -->
+  <view class="section" wx:if="{{selectedTask}}">
+    <text class="section-title">任务详情</text>
+    <view class="task-detail">
+      <text class="detail-title">{{selectedTask.title}}</text>
+      <text class="detail-content">{{selectedTask.content}}</text>
+      
+      <!-- 思考题 -->
+      <view class="detail-questions" wx:if="{{selectedTask.guiding_questions && selectedTask.guiding_questions.length > 0}}">
+        <text class="questions-title">思考题：</text>
+        <text class="question-item" wx:for="{{selectedTask.guiding_questions}}" wx:key="*this">
+          {{index + 1}}. {{item}}
+        </text>
+      </view>
+
+      <!-- 链接 -->
+      <view class="detail-links" wx:if="{{selectedTask.source_url || selectedTask.video_url}}">
+        <text class="link-item" wx:if="{{selectedTask.source_url}}">
+          外部链接: {{selectedTask.source_url}}
+        </text>
+        <text class="link-item" wx:if="{{selectedTask.video_url}}">
+          视频链接: {{selectedTask.video_url}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 班级选择 -->
+  <view class="section">
+    <text class="section-title">选择班级</text>
+    <picker 
+      mode="selector" 
+      range="{{classes}}" 
+      range-key="name"
+      bindchange="selectClass"
+    >
+      <view class="picker">
+        <text class="picker-text">
+          {{selectedClassId ? classes[selectedClassId - 1].name : '请选择班级'}}
+        </text>
+        <text class="picker-arrow">▼</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 截止时间 -->
+  <view class="section">
+    <text class="section-title">截止时间</text>
+    <view class="deadline-row">
+      <picker mode="date" value="{{deadlineDate}}" bindchange="onDeadlineDateChange">
+        <view class="picker">
+          <text class="picker-text">{{deadlineDate || '选择日期'}}</text>
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+      <picker mode="time" value="{{deadlineTime}}" bindchange="onDeadlineTimeChange">
+        <view class="picker">
+          <text class="picker-text">{{deadlineTime || '选择时间'}}</text>
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-section">
+    <button 
+      class="submit-btn" 
+      bindtap="submitDispatch"
+      disabled="{{submitting || !selectedTask || !selectedClassId}}"
+    >
+      {{submitting ? '派发中...' : '确认派发'}}
+    </button>
+  </view>
+</view>

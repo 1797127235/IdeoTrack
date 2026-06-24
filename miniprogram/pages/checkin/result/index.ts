@@ -1,5 +1,5 @@
 import { getCheckInResult, type CheckInResultSummary } from '../../../services/checkinApi';
-import { getMyTaskDetail, Task } from '../../../services/taskApi';
+import { getMyTaskDetail, type TaskDetail } from '../../../services/taskApi';
 import { isUuid } from '../../../utils/validators';
 
 const VALID_STATUSES: string[] = [
@@ -20,7 +20,7 @@ function truncateText(text: string | undefined, maxLength = 120): string {
   return text.slice(0, maxLength) + '…';
 }
 
-function canModifyReflection(task: Task): boolean {
+function canModifyReflection(task: TaskDetail): boolean {
   const editableStatuses: string[] = [
     'submitted',
     'ai_reviewing',
@@ -71,7 +71,7 @@ Page({
     checkInId: '',
     taskId: '',
     status: 'ai_approved' as string,
-    task: null as Task | null,
+    task: null as TaskDetail | null,
     taskLoading: true,
     taskError: '',
     reflectionSummary: '',

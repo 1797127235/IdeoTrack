@@ -1,4 +1,5 @@
 import AuthGuard from "@/components/AuthGuard";
+import Sidebar from "@/components/Sidebar";
 
 /**
  * 管理员路由组布局 —— 统一包裹 AuthGuard，
@@ -9,5 +10,14 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthGuard>{children}</AuthGuard>;
+  return (
+    <AuthGuard>
+      <div className="flex min-h-screen bg-[#ECFEFF]">
+        <Sidebar />
+        <main className="flex-1 p-6">
+          {children}
+        </main>
+      </div>
+    </AuthGuard>
+  );
 }

@@ -106,9 +106,14 @@ CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   content TEXT NOT NULL,
-  scope_type TEXT NOT NULL CHECK (scope_type IN ('school', 'college', 'class')),
+  guiding_questions JSONB,  -- AD-22: 思考题数组，可选
+  source_url TEXT,  -- AD-22: 外部链接，可选
+  video_url TEXT,  -- AD-22: 视频 URL，可选
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('school', 'college', 'class', 'pool')),
+  scope_id UUID,  -- AD-21: 统一的范围 ID（替代 target_college_id/target_class_id）
   target_college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
   target_class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  source_task_id UUID REFERENCES tasks(id) ON DELETE SET NULL,  -- AD-21: 派发实例指向源任务
   created_by UUID NOT NULL REFERENCES users(id),
   published_at TIMESTAMPTZ NOT NULL,
   deadline_at TIMESTAMPTZ NOT NULL,
@@ -118,9 +123,14 @@ CREATE TABLE IF NOT EXISTS tasks (
   CONSTRAINT valid_task_scope CHECK (
     (scope_type = 'school' AND target_college_id IS NULL AND target_class_id IS NULL) OR
     (scope_type = 'college' AND target_college_id IS NOT NULL AND target_class_id IS NULL) OR
-    (scope_type = 'class' AND target_college_id IS NULL AND target_class_id IS NOT NULL)
+    (scope_type = 'class' AND target_college_id IS NULL AND target_class_id IS NOT NULL) OR
+    (scope_type = 'pool' AND target_college_id IS NULL AND target_class_id IS NULL)  -- AD-21: 任务池
   )
 );
+
+-- AD-21: 防止重复派发（同一源任务对同一班级只能派发一次）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_unique_dispatch ON tasks(source_task_id, target_class_id) 
+  WHERE source_task_id IS NOT NULL AND target_class_id IS NOT NULL;
 
 -- 打卡记录表（Epic 3 最小版本，Epic 4 扩展定位与心得）
 CREATE TABLE IF NOT EXISTS check_ins (

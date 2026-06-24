@@ -8,6 +8,7 @@ import type {
   StudentTask,
   TaskDetail,
   CreateTaskInput,
+  DispatchTaskInput,
   UpdateTaskInput,
   TaskFilters,
   TaskScopeType,
@@ -24,6 +25,7 @@ function toTaskResponse(task: Task): TaskResponse {
   let scope_label = '全校';
   if (task.scope_type === 'college') scope_label = '学院';
   if (task.scope_type === 'class') scope_label = '班级';
+  if (task.scope_type === 'pool') scope_label = '任务池';
   return {
     ...task,
     scope_label,
@@ -116,7 +118,7 @@ async function assertTaskEditable(task: Task, userId: string): Promise<void> {
     throw new AppError('ACCESS_DENIED', '只有发布人可以编辑该任务', 403);
   }
   if (new Date(task.deadline_at) <= new Date()) {
-    throw new AppError('TASK_DEADLINE_PASSED', '任务已截止，无法编辑', 409);
+    throw new AppError('TASK_DEADLINE_PASSED', '任务已截止，无法编辑或下架', 409);
   }
 }
 
@@ -209,7 +211,24 @@ export async function createTask(
   role: string,
   input: CreateTaskInput
 ): Promise<TaskResponse> {
-  await assertScopePermission(userId, role, input.scope_type, input.target_college_id, input.target_class_id);
+  // AD-21: 管理员可以创建任何 scope_type，辅导员只能创建 class scope
+  if (role === 'counselor') {
+    // 辅导员不能直接创建任务，只能派发
+    throw new AppError('ACCESS_DENIED', '辅导员不能直接创建任务，请从任务池派发', 403);
+  }
+
+  // AD-21: 校验 scope_type 和 scope_id
+  if (input.scope_type === 'pool') {
+    // 任务池不需要 scope_id
+    if (input.scope_id) {
+      throw new AppError('VALIDATION_ERROR', '任务池不需要指定 scope_id', 400);
+    }
+  } else {
+    // school/college/class 需要 scope_id
+    if (!input.scope_id) {
+      throw new AppError('VALIDATION_ERROR', '发布范围为 school/college/class 时必须指定 scope_id', 400);
+    }
+  }
 
   if (new Date(input.deadline_at) <= new Date(input.published_at)) {
     throw new AppError('VALIDATION_ERROR', '截止时间必须晚于发布时间', 400);
@@ -217,16 +236,20 @@ export async function createTask(
 
   const rows = await query<Task>(
     `INSERT INTO tasks (
-      title, content, scope_type, target_college_id, target_class_id,
+      title, content, guiding_questions, source_url, video_url,
+      scope_type, scope_id, source_task_id,
       created_by, published_at, deadline_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *`,
     [
       input.title,
       input.content,
+      input.guiding_questions ? JSON.stringify(input.guiding_questions) : null,
+      input.source_url ?? null,
+      input.video_url ?? null,
       input.scope_type,
-      input.target_college_id ?? null,
-      input.target_class_id ?? null,
+      input.scope_id ?? null,  // pool 时为 NULL
+      null,  // source_task_id: 管理员直接创建的为 NULL
       userId,
       input.published_at,
       input.deadline_at,
@@ -235,6 +258,82 @@ export async function createTask(
 
   if (rows.length === 0) {
     throw new AppError('TASK_SERVICE_ERROR', '创建任务失败', 500);
+  }
+
+  return toTaskResponse(rows[0]);
+}
+
+// AD-21: 辅导员派发任务
+export async function dispatchTask(
+  userId: string,
+  role: string,
+  input: DispatchTaskInput
+): Promise<TaskResponse> {
+  // 只有辅导员可以派发任务
+  if (role !== 'counselor') {
+    throw new AppError('ACCESS_DENIED', '只有辅导员可以派发任务', 403);
+  }
+
+  // 查询源任务
+  const sourceTask = await fetchTaskById(input.source_task_id);
+
+  // 校验源任务必须是任务池中的
+  if (sourceTask.scope_type !== 'pool') {
+    throw new AppError('VALIDATION_ERROR', '只能派发任务池中的任务', 400);
+  }
+
+  // P7: 校验源任务状态必须是 published
+  if (sourceTask.status !== 'published') {
+    throw new AppError('VALIDATION_ERROR', '只能派发已发布的任务', 400);
+  }
+
+  // 校验辅导员是否有权限派发到目标班级
+  const relation = await queryOne<{ id: string }>(
+    `SELECT id FROM counselor_classes
+     WHERE counselor_id = $1 AND class_id = $2
+     LIMIT 1`,
+    [userId, input.target_class_id]
+  );
+
+  if (!relation) {
+    throw new AppError('ACCESS_DENIED', '您没有该班级的派发权限', 403);
+  }
+
+  // 校验截止时间
+  if (new Date(input.deadline_at) <= new Date()) {
+    throw new AppError('VALIDATION_ERROR', '截止时间必须晚于当前时间', 400);
+  }
+
+  // DN-3: 校验派发截止时间不能晚于源任务截止时间
+  if (new Date(input.deadline_at) > new Date(sourceTask.deadline_at)) {
+    throw new AppError('VALIDATION_ERROR', '派发截止时间不能晚于源任务截止时间', 400);
+  }
+
+  // 从源任务拷贝快照字段，创建派发实例
+  const rows = await query<Task>(
+    `INSERT INTO tasks (
+      title, content, guiding_questions, source_url, video_url,
+      scope_type, scope_id, source_task_id,
+      created_by, published_at, deadline_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    RETURNING *`,
+    [
+      sourceTask.title,  // 快照：从源任务拷贝
+      sourceTask.content,  // 快照：从源任务拷贝
+      sourceTask.guiding_questions ? JSON.stringify(sourceTask.guiding_questions) : null,  // 快照
+      sourceTask.source_url,  // 快照
+      sourceTask.video_url,  // 快照
+      'class',  // 派发实例的 scope_type 固定为 class
+      input.target_class_id,
+      input.source_task_id,  // 指向源任务
+      userId,
+      new Date().toISOString(),  // 发布时间为当前时间
+      input.deadline_at,
+    ]
+  );
+
+  if (rows.length === 0) {
+    throw new AppError('TASK_SERVICE_ERROR', '派发任务失败', 500);
   }
 
   return toTaskResponse(rows[0]);
@@ -375,16 +474,54 @@ export async function updateTask(
   const task = await fetchTaskById(taskId);
   await assertTaskEditable(task, userId);
 
+  // AD-21: 权限控制
+  if (role === 'admin') {
+    // 管理员不能编辑派发实例
+    if (task.source_task_id) {
+      throw new AppError('ACCESS_DENIED', '管理员不能编辑派发实例', 403);
+    }
+  } else if (role === 'counselor') {
+    // 辅导员只能编辑派发实例
+    if (!task.source_task_id) {
+      throw new AppError('ACCESS_DENIED', '辅导员不能编辑源任务', 403);
+    }
+    // 辅导员只能编辑 deadline_at
+    const allowedFields = ['deadline_at'];
+    const inputFields = Object.keys(input);
+    const invalidFields = inputFields.filter(field => !allowedFields.includes(field));
+    if (invalidFields.length > 0) {
+      throw new AppError('VALIDATION_ERROR', `辅导员只能编辑截止时间，不能编辑: ${invalidFields.join(', ')}`, 400);
+    }
+  }
+
   const scopeType = input.scope_type ?? task.scope_type;
   // P8: scope 切换时主动清理无关 target id，避免 DB CHECK 约束 500
   const targetCollegeId = resolveTargetCollegeId(scopeType, input.target_college_id, task.target_college_id);
   const targetClassId = resolveTargetClassId(scopeType, input.target_class_id, task.target_class_id);
-  await assertScopePermission(userId, role, scopeType, targetCollegeId, targetClassId);
+  // P3: 跳过派发实例的范围检查（辅导员编辑 deadline_at 时）
+  if (!(task.source_task_id && role === 'counselor')) {
+    await assertScopePermission(userId, role, scopeType, targetCollegeId, targetClassId);
+  }
 
   const publishedAt = input.published_at ?? task.published_at;
   const deadlineAt = input.deadline_at ?? task.deadline_at;
   if (new Date(deadlineAt) <= new Date(publishedAt)) {
     throw new AppError('VALIDATION_ERROR', '截止时间必须晚于发布时间', 400);
+  }
+
+  // P7: 辅导员编辑派发实例时，验证新截止时间不超过源任务截止时间
+  if (task.source_task_id && role === 'counselor' && input.deadline_at) {
+    const sourceTask = await fetchTaskById(task.source_task_id);
+    if (new Date(deadlineAt) > new Date(sourceTask.deadline_at)) {
+      throw new AppError('VALIDATION_ERROR', '派发截止时间不能晚于源任务截止时间', 400);
+    }
+  }
+
+  // P8: 辅导员编辑派发实例时，验证新截止时间在当前时间之后
+  if (task.source_task_id && role === 'counselor' && input.deadline_at) {
+    if (new Date(deadlineAt) <= new Date()) {
+      throw new AppError('VALIDATION_ERROR', '截止时间必须晚于当前时间', 400);
+    }
   }
 
   const updates: string[] = [];
@@ -397,8 +534,19 @@ export async function updateTask(
     paramIndex++;
   }
 
+  // P12: 派发实例不允许修改范围
+  if (task.source_task_id && (input.scope_type || input.target_college_id || input.target_class_id)) {
+    throw new AppError('VALIDATION_ERROR', '派发实例不允许修改发布范围', 400);
+  }
+
   if (input.title !== undefined) addSet('title', input.title);
   if (input.content !== undefined) addSet('content', input.content);
+  // AD-22: 添加新字段支持
+  if (input.guiding_questions !== undefined) {
+    addSet('guiding_questions', input.guiding_questions ? JSON.stringify(input.guiding_questions) : null);
+  }
+  if (input.source_url !== undefined) addSet('source_url', input.source_url ?? null);
+  if (input.video_url !== undefined) addSet('video_url', input.video_url ?? null);
   if (input.scope_type !== undefined) {
     addSet('scope_type', input.scope_type);
     // scope 变化时强制带上清理后的 target id，保持 valid_task_scope 约束
@@ -459,9 +607,24 @@ function resolveTargetClassId(
 export async function delistTask(userId: string, role: string, taskId: string): Promise<TaskResponse> {
   const task = await fetchTaskById(taskId);
 
-  if (role !== 'admin' && task.created_by !== userId) {
-    throw new AppError('ACCESS_DENIED', '只有管理员或发布人可以下架该任务', 403);
+  // AD-21: 权限控制
+  if (role === 'admin') {
+    // 管理员只能下架自己创建的任务
+    if (task.created_by !== userId) {
+      throw new AppError('ACCESS_DENIED', '管理员只能下架自己创建的任务', 403);
+    }
+  } else if (role === 'counselor') {
+    // 辅导员只能下架自己派发的任务
+    if (!task.source_task_id || task.created_by !== userId) {
+      throw new AppError('ACCESS_DENIED', '辅导员只能下架自己派发的任务', 403);
+    }
   }
+
+  // AC-4: 截止时间后不允许下架
+  if (new Date(task.deadline_at) <= new Date()) {
+    throw new AppError('TASK_DEADLINE_PASSED', '任务已截止，无法编辑或下架', 409);
+  }
+
   if (task.status === 'delisted') {
     throw new AppError('TASK_ALREADY_DELISTED', '任务已下架', 409);
   }
@@ -475,6 +638,89 @@ export async function delistTask(userId: string, role: string, taskId: string): 
   }
 
   return toTaskResponse(rows[0]);
+}
+
+// AC-5: 任务统计
+export async function getTaskStats(
+  userId: string,
+  role: string,
+  taskId: string
+): Promise<{ total: number; completed: number; rate: number }> {
+  // P4: UUID 验证
+  if (!isUuid(taskId)) {
+    throw new AppError('VALIDATION_ERROR', '任务 ID 格式无效', 400);
+  }
+
+  const task = await fetchTaskById(taskId);
+
+  // 权限校验：只能查看自己创建或派发的任务
+  if (role === 'admin') {
+    if (task.created_by !== userId) {
+      throw new AppError('ACCESS_DENIED', '管理员只能查看自己创建的任务统计', 403);
+    }
+  } else if (role === 'counselor') {
+    if (!task.source_task_id || task.created_by !== userId) {
+      throw new AppError('ACCESS_DENIED', '辅导员只能查看自己派发的任务统计', 403);
+    }
+  }
+
+  // 计算总人数（按 scope_type）
+  let total = 0;
+  if (task.scope_type === 'school') {
+    total = await queryCount("SELECT COUNT(*) FROM users WHERE role = 'student'");
+  } else if (task.scope_type === 'college' && task.target_college_id) {
+    total = await queryCount(
+      `SELECT COUNT(*) FROM users u
+       JOIN classes c ON u.class_id = c.id
+       WHERE u.role = 'student' AND c.college_id = $1`,
+      [task.target_college_id]
+    );
+  } else if (task.scope_type === 'class' && task.target_class_id) {
+    total = await queryCount(
+      "SELECT COUNT(*) FROM users WHERE role = 'student' AND class_id = $1",
+      [task.target_class_id]
+    );
+  } else if (task.scope_type === 'pool') {
+    // 任务池任务没有直接的总人数，返回 0
+    total = 0;
+  }
+
+  // 计算已完成人数（status = 'approved'）
+  const completed = await queryCount(
+    "SELECT COUNT(*) FROM check_ins WHERE task_id = $1 AND status = 'approved'",
+    [taskId]
+  );
+
+  // 计算完成率
+  const rate = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
+
+  return { total, completed, rate };
+}
+
+// DN-1: 任务池查询（辅导员专用）
+export async function listTaskPool(
+  userId: string,
+  page = 1,
+  limit = 20
+): Promise<{ items: Task[]; total: number; page: number; limit: number }> {
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(50, Math.max(1, limit));
+
+  const count = await queryCount(
+    `SELECT COUNT(*) FROM tasks 
+     WHERE scope_type = 'pool' AND status = 'published'`
+  );
+
+  const offset = (safePage - 1) * safeLimit;
+  const tasks = await query<Task>(
+    `SELECT * FROM tasks 
+     WHERE scope_type = 'pool' AND status = 'published'
+     ORDER BY created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [safeLimit, offset]
+  );
+
+  return { items: tasks, total: count, page: safePage, limit: safeLimit };
 }
 
 export async function listMyTasks(

@@ -1,12 +1,12 @@
 import { createCheckIn } from '../../services/checkinApi';
-import { getMyTaskDetail, type Task } from '../../services/taskApi';
+import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
 import { formatDeadline } from '../../utils/format';
 
 Page({
   data: {
     taskId: '',
     taskTitle: '定位签到',
-    task: null as Task | null,
+    task: null as TaskDetail | null,
     deadlineText: '',
     taskLoading: true,
     taskError: '',
