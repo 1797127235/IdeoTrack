@@ -3,7 +3,7 @@ story_id: 8.4
 story_key: 8-4-fu-dao-yuan-shu-ju-dao-chu
 epic: 8
 epic_title: 辅导员数据看板
-status: review
+status: done
 priority: high
 points: 5
 baseline_commit: 8c4427f572b21cf28680c6964a016df895f65836

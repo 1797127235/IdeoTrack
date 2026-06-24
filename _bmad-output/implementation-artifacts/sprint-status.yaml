@@ -97,7 +97,7 @@ development_status:
   8-1-ban-ji-shu-ju-gai-lan: done  # counselor: miniprogram
   8-2-wei-da-ka-xue-sheng-ming-dan: done  # counselor: miniprogram
   8-3-yi-jian-ti-xing: in-progress  # counselor: miniprogram
-  8-4-fu-dao-yuan-shu-ju-dao-chu: review  # counselor: miniprogram, 实现完成待 code review
+  8-4-fu-dao-yuan-shu-ju-dao-chu: done  # counselor: miniprogram, 导出功能完成
   epic-8-retrospective: optional
   epic-9: backlog
   9-1-xue-yuan-guan-li: backlog  # admin: web (v2)
