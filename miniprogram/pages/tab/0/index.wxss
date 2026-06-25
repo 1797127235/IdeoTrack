@@ -174,14 +174,18 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
-  background-color: var(--color-surface);
+  background-color: #FFFFFF;
   padding: 10rpx 18rpx;
   border-radius: var(--radius-full, 999rpx);
+  border: 2rpx solid #CBD5E1;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .sort-text {
   font-size: 24rpx;
-  color: var(--color-text-secondary);
+  color: #64748B;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .sort-arrow {
@@ -189,8 +193,9 @@
   height: 0;
   border-left: 8rpx solid transparent;
   border-right: 8rpx solid transparent;
-  border-bottom: 10rpx solid var(--color-text-secondary);
+  border-bottom: 10rpx solid #64748B;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
 .sort-arrow.desc {
