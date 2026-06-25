@@ -29,21 +29,33 @@
   margin-bottom: 24rpx;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
 .section-title {
   font-size: 32rpx;
   font-weight: 600;
   color: #164E63;
-  margin-bottom: 16rpx;
-  display: block;
 }
 
-.task-list {
+.select-all {
+  font-size: 26rpx;
+  color: #0891B2;
+}
+
+.task-list,
+.class-list {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
 }
 
-.task-item {
+.task-item,
+.class-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -52,29 +64,35 @@
   border-radius: 12rpx;
 }
 
-.task-item.selected {
+.task-item.selected,
+.class-item.selected {
   border-color: #0891B2;
   background-color: #F0FDFF;
 }
 
-.task-info {
+.task-info,
+.class-info {
   flex: 1;
+  min-width: 0;
 }
 
-.task-title {
+.task-title,
+.class-name {
   font-size: 28rpx;
   color: #164E63;
   display: block;
 }
 
-.task-date {
+.task-date,
+.class-meta {
   font-size: 24rpx;
   color: #64748B;
   margin-top: 4rpx;
   display: block;
 }
 
-.task-check {
+.task-check,
+.class-check {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
@@ -82,6 +100,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 16rpx;
+  flex-shrink: 0;
 }
 
 .check-icon {
@@ -97,85 +117,6 @@
 .empty-text {
   font-size: 28rpx;
   color: #64748B;
-}
-
-.task-detail {
-  padding: 16rpx;
-  background-color: #F0FDFF;
-  border-radius: 12rpx;
-}
-
-.detail-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #164E63;
-  display: block;
-  margin-bottom: 12rpx;
-}
-
-.detail-content {
-  font-size: 28rpx;
-  color: #164E63;
-  display: block;
-  margin-bottom: 16rpx;
-}
-
-.detail-questions {
-  margin-top: 16rpx;
-}
-
-.questions-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #164E63;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.question-item {
-  font-size: 26rpx;
-  color: #64748B;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.detail-links {
-  margin-top: 16rpx;
-}
-
-.link-item {
-  font-size: 24rpx;
-  color: #0891B2;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.picker {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16rpx;
-  border: 2rpx solid #E2E8F0;
-  border-radius: 12rpx;
-}
-
-.picker-text {
-  font-size: 28rpx;
-  color: #164E63;
-}
-
-.picker-arrow {
-  font-size: 24rpx;
-  color: #64748B;
-}
-
-.deadline-row {
-  display: flex;
-  gap: 16rpx;
-}
-
-.deadline-row .picker {
-  flex: 1;
 }
 
 .submit-section {
