@@ -110,7 +110,17 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
   });
 
   beforeEach(() => {
-    process.env.REMINDER_TIME_OVERRIDE = '2026-06-24T12:00:00+08:00';
+    // override 用「真实当天北京时间正午」，而非硬编码日期：
+    // 测试造数据（createApprovedCheckIn 默认 new Date()）用真实今天，
+    // service 查询走 override，二者必须落在同一天，否则跨天后查不到打卡数据
+    // 导致 dashboard/students/reminder 用例全盘失败（flaky 来源）。
+    // 12:00 固定落在 08:00-22:00 窗口内；测时间窗口拒绝的用例在 it 内单独覆盖。
+    const now = new Date();
+    const beijing = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const y = beijing.getUTCFullYear();
+    const m = String(beijing.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(beijing.getUTCDate()).padStart(2, '0');
+    process.env.REMINDER_TIME_OVERRIDE = `${y}-${m}-${d}T12:00:00+08:00`;
     vi.mocked(sendSubscribeMessage).mockClear();
   });
 
