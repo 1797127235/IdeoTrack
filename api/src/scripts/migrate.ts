@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   source_task_id UUID REFERENCES tasks(id) ON DELETE SET NULL,  -- AD-21: 派发实例指向源任务
   geo_lat DECIMAL(10, 8),
   geo_lng DECIMAL(11, 8),
-  geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 5000),
+  geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 1000),
   geo_address TEXT,
   created_by UUID NOT NULL REFERENCES users(id),
   published_at TIMESTAMPTZ NOT NULL,
@@ -141,8 +141,12 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS video_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scope_id UUID;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_lat DECIMAL(10, 8);
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_lng DECIMAL(11, 8);
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 5000);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 1000);
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_address TEXT;
+-- 收紧已存在库的 geo_radius_meters CHECK（旧值 5000），与前端/后端 schema 统一为 1000
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_geo_radius_meters_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_geo_radius_meters_check
+  CHECK (geo_radius_meters IS NULL OR geo_radius_meters BETWEEN 50 AND 1000);
 -- 旧数据可能没有外键约束，安全起见先删除再重建（幂等）
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_source_task_id_fkey;
 ALTER TABLE tasks ADD CONSTRAINT tasks_source_task_id_fkey

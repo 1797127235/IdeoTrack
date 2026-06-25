@@ -4,6 +4,7 @@ import {
   changePasswordController,
   logoutController,
   meController,
+  meStatsController,
   wechatLoginController,
   wechatBindController,
 } from './auth.controller.js';
@@ -18,6 +19,7 @@ router.post('/wechat/bind', wechatBindController);
 router.post('/change-password', authenticate, changePasswordController);
 router.post('/logout', authenticate, logoutController);
 router.get('/me', authenticate, meController);
+router.get('/me/stats', authenticate, meStatsController);
 
 // Placeholder role-restricted routes for RBAC validation
 router.get(

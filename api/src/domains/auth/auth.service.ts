@@ -138,6 +138,126 @@ export async function getMe(userId: string): Promise<{
   };
 }
 
+interface LevelInfo {
+  level: number;
+  title: string;
+  minPoints: number;
+  maxPoints: number | null;
+}
+
+function computeLevel(points: number): LevelInfo {
+  if (points >= 1500) return { level: 4, title: '卓越学者', minPoints: 1500, maxPoints: null };
+  if (points >= 500) return { level: 3, title: '励志学员', minPoints: 500, maxPoints: 1499 };
+  if (points >= 100) return { level: 2, title: '勤学学员', minPoints: 100, maxPoints: 499 };
+  return { level: 1, title: '新手学员', minPoints: 0, maxPoints: 99 };
+}
+
+function computeStreakDays(days: string[]): number {
+  if (days.length === 0) return 0;
+  const dateSet = new Set(days);
+  const sortedDesc = [...days].sort((a, b) => b.localeCompare(a));
+  let cursor = new Date(sortedDesc[0] + 'T00:00:00.000Z');
+  let count = 0;
+  const maxLookback = 365;
+  for (let i = 0; i < maxLookback; i++) {
+    const cursorStr = cursor.toISOString().slice(0, 10);
+    if (dateSet.has(cursorStr)) {
+      count++;
+    } else {
+      break;
+    }
+    cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
+  }
+  return count;
+}
+
+function computeMaxStreak(days: string[]): number {
+  if (days.length === 0) return 0;
+  const sorted = [...days].sort((a, b) => a.localeCompare(b));
+  let max = 1;
+  let current = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1] + 'T00:00:00.000Z');
+    const curr = new Date(sorted[i] + 'T00:00:00.000Z');
+    if (curr.getTime() - prev.getTime() === 24 * 60 * 60 * 1000) {
+      current++;
+      max = Math.max(max, current);
+    } else if (sorted[i] !== sorted[i - 1]) {
+      current = 1;
+    }
+  }
+  return max;
+}
+
+interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  earned: boolean;
+}
+
+function computeBadges(totalApproved: number, currentStreak: number, maxStreak: number): Badge[] {
+  const badges: Badge[] = [
+    { id: 'first_checkin', name: '初出茅庐', icon: '🌱', earned: totalApproved >= 1 },
+    { id: 'ten_checkins', name: '百折不挠', icon: '💪', earned: totalApproved >= 10 },
+    { id: 'thirty_checkins', name: '持之以恒', icon: '🏆', earned: totalApproved >= 30 },
+    { id: 'week_streak', name: '坚持一周', icon: '🔥', earned: maxStreak >= 7 },
+    { id: 'month_streak', name: '坚持一月', icon: '👑', earned: maxStreak >= 30 },
+  ];
+  return badges;
+}
+
+export async function getMeStats(userId: string): Promise<{
+  points: number;
+  level: LevelInfo;
+  badges: Badge[];
+  currentStreak: number;
+  maxStreak: number;
+  totalApproved: number;
+  recent7Days: Array<{ date: string; checkedIn: boolean }>;
+}> {
+  const pointsRow = await queryOne<{ total: number }>(
+    'SELECT COALESCE(SUM(points), 0)::int AS total FROM point_records WHERE user_id = $1',
+    [userId]
+  );
+  const points = pointsRow?.total ?? 0;
+
+  const approvedDaysRows = await query<{ day: string; approved_count: number }>(
+    `SELECT DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai')::text AS day,
+            COUNT(*)::int AS approved_count
+     FROM check_ins
+     WHERE user_id = $1 AND status = 'approved'
+     GROUP BY DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai')`,
+    [userId]
+  );
+  const approvedDays = approvedDaysRows.map((r) => r.day);
+  const totalApproved = approvedDaysRows.reduce((sum, r) => sum + r.approved_count, 0);
+
+  const currentStreak = computeStreakDays(approvedDays);
+  const maxStreak = computeMaxStreak(approvedDays);
+  const level = computeLevel(points);
+  const badges = computeBadges(totalApproved, currentStreak, maxStreak);
+
+  const today = new Date();
+  const recent7Days: Array<{ date: string; checkedIn: boolean }> = [];
+  const beijingOffset = 8 * 60 * 60 * 1000;
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today.getTime() + beijingOffset - i * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().slice(0, 10);
+    recent7Days.push({ date: dateStr, checkedIn: approvedDays.includes(dateStr) });
+  }
+
+  return {
+    points,
+    level,
+    badges,
+    currentStreak,
+    maxStreak,
+    totalApproved,
+    recent7Days,
+  };
+}
+
 export async function changePassword(
   userId: string,
   input: ChangePasswordInput

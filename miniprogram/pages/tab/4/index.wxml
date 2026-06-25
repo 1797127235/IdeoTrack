@@ -1,50 +1,148 @@
-<view class="page-placeholder">
-  <!-- Student: keep placeholder -->
-  <block wx:if="{{role === 'student'}}">
-    <view class="card">
-      <view class="title">我的</view>
-      <view class="desc">积分 / 等级 / 勋章 / 个人信息将在这里展示</view>
-      <view class="tag">待 Epic 6</view>
-    </view>
-  </block>
+<view class="page">
+  <view class="header-bg"></view>
 
-  <!-- Counselor / Admin: profile card + menu -->
-  <block wx:elif="{{role === 'counselor' || role === 'admin'}}">
-    <view class="counselor-card">
-      <view class="counselor-main">
-        <view class="counselor-avatar">{{profile.name ? profile.name[0] : '导'}}</view>
-        <view class="counselor-info">
-          <view class="counselor-name">{{profile.name || '辅导员'}}</view>
-          <view class="counselor-meta" wx:if="{{profile.schoolId}}">工号 {{profile.schoolId}}</view>
-          <view class="counselor-meta" wx:if="{{profile.collegeName}}">{{profile.collegeName}}</view>
+  <view class="content">
+    <block wx:if="{{role === 'student'}}">
+      <view class="profile-card">
+        <view class="profile-main">
+          <view class="profile-avatar">
+            <text class="avatar-text">{{profile.name ? profile.name[0] : '学'}}</text>
+            <view class="level-badge">Lv.{{stats.level.level}}</view>
+          </view>
+          <view class="profile-info">
+            <view class="profile-name">{{profile.name || '同学'}}</view>
+            <view class="profile-meta">学号：{{profile.schoolId || '-'}}</view>
+            <view class="profile-slogan">每一次努力，都是成长的足迹。</view>
+          </view>
+          <view class="profile-arrow">&#8250;</view>
         </view>
       </view>
-      <view class="counselor-stat">
-        <view class="stat-value">{{profile.managedClassesCount}}</view>
-        <view class="stat-label">管辖班级</view>
+
+      <view class="stats-card">
+        <view class="stat-item">
+          <view class="stat-label">积分</view>
+          <view class="stat-value">{{statsLoading ? '-' : stats.points}}</view>
+        </view>
+        <view class="stat-divider"></view>
+
+        <view class="stat-item">
+          <view class="stat-label">等级</view>
+          <view class="stat-value">Lv.{{statsLoading ? '-' : stats.level.level}}</view>
+          <view class="stat-sub">{{statsLoading ? '' : stats.level.title}}</view>
+        </view>
+
+        <view class="stat-divider"></view>
+
+        <view class="stat-item" bindtap="goToAchievements">
+          <view class="stat-label">勋章</view>
+          <view class="stat-value">{{statsLoading ? '-' : stats.badges.filter(b => b.earned).length}}</view>
+          <view class="stat-sub">已获得</view>
+        </view>
       </view>
-    </view>
+
+      <view class="streak-card">
+        <view class="streak-header">
+          <view class="streak-main">
+            <text class="streak-icon">打卡</text>
+            <view class="streak-text">
+              <view class="streak-title">连续打卡 <text class="streak-days">{{statsLoading ? '-' : stats.currentStreak}}</text> 天</view>
+              <view class="streak-desc">继续加油，养成学习好习惯！</view>
+            </view>
+          </view>
+          <view class="streak-best">最佳 {{statsLoading ? '-' : stats.maxStreak}} 天</view>
+        </view>
+
+        <view class="week-days">
+          <view wx:for="{{statsLoading ? [] : stats.recent7Days}}" wx:key="date" class="week-day {{item.checkedIn ? 'checked' : ''}}">
+            <view class="day-dot">
+              <text wx:if="{{item.checkedIn}}" class="day-check">✓</text>
+            </view>
+            <text class="day-label">{{item.date.slice(8)}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="badges-card" wx:if="{{!statsLoading}}">
+        <view class="section-title">我的勋章</view>
+        <view class="badges-list">
+          <view wx:for="{{stats.badges}}" wx:key="id" class="badge-item {{item.earned ? '' : 'locked'}}">
+            <text class="badge-icon">{{item.name[0]}}</text>
+            <text class="badge-name">{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{role === 'counselor' || role === 'admin'}}">
+      <view class="profile-card counselor">
+        <view class="profile-main">
+          <view class="profile-avatar">
+            <text class="avatar-text">{{profile.name ? profile.name[0] : '导'}}</text>
+          </view>
+          <view class="profile-info">
+            <view class="profile-name">{{profile.name || '辅导员'}}</view>
+            <view class="profile-meta">工号：{{profile.schoolId || '-'}}</view>
+            <view class="profile-meta" wx:if="{{profile.collegeName}}">{{profile.collegeName}}</view>
+          </view>
+        </view>
+        <view class="counselor-stat">
+          <view class="stat-value-lg">{{profile.managedClassesCount}}</view>
+          <view class="stat-label">管辖班级</view>
+        </view>
+      </view>
+
+      <view class="menu-list">
+        <view wx:if="{{showReviewEntry}}" class="menu-card" bindtap="goToReviews">
+          <text class="menu-icon-text menu-icon-review">复</text>
+          <view class="menu-content">
+            <view class="menu-title">心得复核</view>
+            <view class="menu-desc">查看待复核的学生心得并处理</view>
+          </view>
+          <view class="menu-arrow">&#8250;</view>
+        </view>
+
+        <view class="menu-card" bindtap="goToExport">
+          <text class="menu-icon-text menu-icon-export">导</text>
+          <view class="menu-content">
+            <view class="menu-title">数据导出</view>
+            <view class="menu-desc">导出 Excel 打卡报表</view>
+          </view>
+          <view class="menu-arrow">&#8250;</view>
+        </view>
+      </view>
+    </block>
 
     <view class="menu-list">
-      <view wx:if="{{showReviewEntry}}" class="menu-card" bindtap="goToReviews">
-        <view class="menu-icon menu-icon-review"></view>
+      <view class="menu-card" bindtap="goToCalendar">
+        <text class="menu-icon-text menu-icon-calendar">历</text>
         <view class="menu-content">
-          <view class="menu-title">心得复核</view>
-          <view class="menu-desc">查看待复核的学生心得并处理</view>
+          <view class="menu-title">学习日历</view>
         </view>
-        <view class="menu-arrow">›</view>
+        <view class="menu-arrow">&#8250;</view>
       </view>
 
-      <view class="menu-card" bindtap="goToExport">
-        <view class="menu-icon menu-icon-export"></view>
+      <view class="menu-card" bindtap="goToLeaderboard">
+        <text class="menu-icon-text menu-icon-rank">榜</text>
         <view class="menu-content">
-          <view class="menu-title">数据导出</view>
-          <view class="menu-desc">导出 Excel 打卡报表</view>
+          <view class="menu-title">排行榜</view>
         </view>
-        <view class="menu-arrow">›</view>
+        <view class="menu-arrow">&#8250;</view>
+      </view>
+
+      <view class="menu-card" bindtap="goToSettings">
+        <text class="menu-icon-text menu-icon-setting">设</text>
+        <view class="menu-content">
+          <view class="menu-title">设置</view>
+        </view>
+        <view class="menu-arrow">&#8250;</view>
       </view>
     </view>
-  </block>
 
-  <button class="btn-logout" bindtap="handleLogout">退出登录</button>
+    <view class="logout-wrap">
+      <button class="btn-logout" bindtap="handleLogout">
+        <text class="logout-icon">退出</text>
+        退出登录
+      </button>
+    </view>
+  </view>
 </view>

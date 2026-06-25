@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { login, changePassword, getMe, wechatLogin, bindWechat } from './auth.service.js';
+import { login, changePassword, getMe, getMeStats, wechatLogin, bindWechat } from './auth.service.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { config } from '../../config/index.js';
 
@@ -109,6 +109,27 @@ export async function meController(
     }
 
     const data = await getMe(req.user.userId);
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function meStatsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const data = await getMeStats(req.user.userId);
 
     res.json({
       success: true,

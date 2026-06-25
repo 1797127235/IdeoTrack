@@ -95,6 +95,30 @@ export interface MeResponse {
   collegeName: string | null;
 }
 
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  earned: boolean;
+}
+
+export interface LevelInfo {
+  level: number;
+  title: string;
+  minPoints: number;
+  maxPoints: number | null;
+}
+
+export interface MeStatsResponse {
+  points: number;
+  level: LevelInfo;
+  badges: Badge[];
+  currentStreak: number;
+  maxStreak: number;
+  totalApproved: number;
+  recent7Days: Array<{ date: string; checkedIn: boolean }>;
+}
+
 /**
  * 获取当前登录用户信息（我的页用）。
  */
@@ -102,6 +126,17 @@ export async function getMe(): Promise<MeResponse> {
   const result = await get<MeResponse>('/api/me');
   if (!result.success || !result.data) {
     throw new Error(result.error?.message || '获取用户信息失败');
+  }
+  return result.data;
+}
+
+/**
+ * 获取当前登录用户统计（我的页用）。
+ */
+export async function getMeStats(): Promise<MeStatsResponse> {
+  const result = await get<MeStatsResponse>('/api/me/stats');
+  if (!result.success || !result.data) {
+    throw new Error(result.error?.message || '获取用户统计失败');
   }
   return result.data;
 }
