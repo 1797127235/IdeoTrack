@@ -3,7 +3,7 @@ import { logger } from '../../lib/logger.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { aiReviewReflection, getReviewReasonCode, saveAIReviewRecord } from '../reviews/reviews.service.js';
 import { assertTaskVisibleToStudent, fetchTaskById } from '../tasks/task.service.js';
-import { checkGeofence } from '../geofences/geofences.service.js';
+import { haversineDistance } from '../tasks/task.utils.js';
 import type {
   CheckIn,
   CheckInStatus,
@@ -151,14 +151,12 @@ export async function createOrUpdateCheckIn(
   const task = await fetchTaskById(task_id);
   await assertTaskVisibleToStudent(task, userId);
 
-  // AD-20: 地理围栏校验（后端集中判定）
-  const student = await queryOne<{ class_id: string | null }>(
-    'SELECT class_id FROM users WHERE id = $1 LIMIT 1',
-    [userId]
-  );
-  const geofenceResult = await checkGeofence(latitude, longitude, student?.class_id ?? undefined);
-  if (!geofenceResult.allowed) {
-    throw new AppError('CHECKIN_OUTSIDE_GEOFENCE', geofenceResult.message || '当前不在签到范围内', 403);
+  // 如果任务指定了签到范围，校验学生位置是否在范围内
+  if (task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null) {
+    const distance = haversineDistance(latitude, longitude, task.geo_lat, task.geo_lng);
+    if (distance > task.geo_radius_meters) {
+      throw new AppError('CHECKIN_OUTSIDE_GEOFENCE', '当前不在签到范围内，请到指定地点打卡', 403);
+    }
   }
 
   const rows = await query<CheckIn>(
