@@ -37,6 +37,7 @@ export default function GeofencePicker({ value, onChange }: GeofencePickerProps)
   const [suggestions, setSuggestions] = useState<Array<{ name: string; lat: number; lng: number; address: string }>>([]);
   const [radius, setRadius] = useState(value?.radius ?? DEFAULT_RADIUS);
   const [address, setAddress] = useState(value?.address ?? "");
+  const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(AMAP_KEY ? "" : "缺少高德地图 Key，请配置 NEXT_PUBLIC_AMAP_KEY");
 
   const emitChange = useCallback((lat: number, lng: number, r: number, addr: string) => {
