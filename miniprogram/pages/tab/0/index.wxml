@@ -82,15 +82,6 @@
   <!-- Counselor Dashboard: task-centric -->
   <block wx:elif="{{role === 'counselor'}}">
     <view class="dashboard-container">
-      <view class="header">
-        <view class="header-top">
-          <view>
-            <view class="date-text">所辖班级任务完成情况</view>
-          </view>
-          <view class="export-btn" bindtap="goToExport">导出数据</view>
-        </view>
-      </view>
-
       <view wx:if="{{dashErrorMsg}}" class="error-tip">{{dashErrorMsg}}</view>
 
       <view wx:if="{{dashLoading && dashTasks.length === 0}}" class="skeleton-list">
