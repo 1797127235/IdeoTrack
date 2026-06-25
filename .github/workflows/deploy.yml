@@ -86,11 +86,12 @@ jobs:
             set -euo pipefail
             cd /opt/IdeoTrack
 
-            # 确保服务器工作区干净，避免本地未提交修改阻塞 git pull
+            # 确保服务器工作区干净，并强制对齐到 origin/main
             # 注意：这会丢弃对仓库跟踪文件的本地修改；后续会重新生成 .env
-            git reset --hard HEAD
+            git fetch origin main
+            git reset --hard origin/main
 
-            # 拉取最新代码
+            # 拉取最新代码（此时应为 fast-forward）
             git pull origin main
 
             # 生成 /opt/IdeoTrack/.env（仅服务器本地，不进 git）
