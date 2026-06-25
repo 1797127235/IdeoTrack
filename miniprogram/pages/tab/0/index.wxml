@@ -4,7 +4,7 @@
     <view class="container home-container">
       <view class="header">
         <view class="greeting-row">
-          <text class="greeting">{{greeting}}，{{roleLabel}}</text>
+          <text class="greeting">{{greeting}}{{roleLabel}}</text>
           <view class="role-tag">{{roleLabel}}</view>
         </view>
         <text class="date-text">{{homeDateText}}</text>
@@ -22,16 +22,16 @@
             </text>
           </block>
           <block wx:else>
-            <text class="empty-hint">暂无今日名言</text>
+            <text class="empty-hint"></text>
           </block>
         </view>
       </view>
 
       <view class="streak-card">
         <view class="streak-main">
-          <view class="streak-label">连续打卡</view>
-          <view class="streak-value">{{streakDays}}<text class="streak-unit">天</text></view>
-          <view class="streak-sub">累计积分 {{totalPoints}} 分</view>
+          <view class="streak-label"></view>
+          <view class="streak-value">{{streakDays}}<text class="streak-unit"></text></view>
+          <view class="streak-sub"> {{totalPoints}} </view>
         </view>
         <view class="streak-week">
           <view class="week-day {{item.checked ? 'checked' : ''}}" wx:for="{{weekDays}}" wx:key="day">
@@ -43,19 +43,30 @@
 
       <view class="tasks-section">
         <view class="section-header">
-          <text class="section-title">打卡任务</text>
+          <text class="section-title"></text>
           <view class="sort-control" bindtap="toggleSort">
-            <text class="sort-text">{{sortAsc ? '最早截止' : '最晚截止'}}</text>
+            <text class="sort-text">{{sortAsc ? '' : ''}}</text>
             <view class="sort-arrow {{sortAsc ? 'asc' : 'desc'}}"></view>
           </view>
+        </view>
+
+        <view class="search-bar">
+          <input
+            class="search-input"
+            type="text"
+            placeholder=""
+            value="{{searchKeyword}}"
+            bindinput="onSearchInput"
+          />
+          <view wx:if="{{searchKeyword}}" class="search-clear" bindtap="clearSearch"></view>
         </view>
 
         <view class="loading-state" wx:if="{{tasksLoading}}">
           <view class="skeleton task-skeleton" wx:for="{{3}}" wx:key="*this"></view>
         </view>
 
-        <block wx:elif="{{tasks.length > 0}}">
-          <view class="task-card" wx:for="{{tasks}}" wx:key="id" data-id="{{item.id}}" bindtap="goToTask">
+        <block wx:elif="{{displayedTasks.length > 0}}">
+          <view class="task-card" wx:for="{{displayedTasks}}" wx:key="id" data-id="{{item.id}}" bindtap="goToTask">
             <view class="task-main">
               <view class="task-title-row">
                 <text class="task-title">{{item.title}}</text>
@@ -67,14 +78,15 @@
               <text class="task-summary" wx:if="{{item.content}}">{{item.content}}</text>
             </view>
             <view class="task-action" wx:if="{{item.status === 'in_progress'}}" catchtap="goToCheckIn" data-id="{{item.id}}">
-              <button class="btn-mini">去打卡</button>
+              <button class="btn-mini"></button>
             </view>
           </view>
         </block>
 
         <view class="empty-state" wx:else>
-          <view class="empty-icon">🎉</view>
-          <view>今日暂无任务，好好休息吧</view>
+          <view class="empty-icon">完成</view>
+          <view wx:if="{{searchKeyword}}">没有找到匹配的任务</view>
+          <view wx:else>暂无任务，好好休息吧</view>
         </view>
       </view>
 
@@ -89,12 +101,12 @@
 
       <view class="high-risk-card" bindtap="goToHighRiskStudents">
         <view class="high-risk-main">
-          <view class="high-risk-title">重点关注学生</view>
-          <view class="high-risk-count" wx:if="{{!highRiskLoading}}">{{highRisk.students.length}} 人</view>
-          <view class="high-risk-loading" wx:else>加载中...</view>
+          <view class="high-risk-title"></view>
+          <view class="high-risk-count" wx:if="{{!highRiskLoading}}">{{highRisk.students.length}} </view>
+          <view class="high-risk-loading" wx:else>...</view>
         </view>
         <view class="high-risk-desc">
-          最近 {{highRisk.window_size}} 个任务中缺卡 ≥{{highRisk.absent_threshold}} 次
+           {{highRisk.window_size}}  ≥{{highRisk.absent_threshold}} 
         </view>
         <view class="high-risk-arrow">></view>
       </view>
@@ -130,13 +142,13 @@
             </view>
           </view>
 
-          <view class="card-hint">点击查看班级明细</view>
+          <view class="card-hint"></view>
         </view>
       </block>
 
       <view wx:if="{{!dashLoading && dashTasks.length === 0 && !dashErrorMsg}}" class="empty-state">
-        <view>暂无负责的任务</view>
-        <view class="text-secondary">管理员发布任务后即可查看</view>
+        <view></view>
+        <view class="text-secondary"></view>
       </view>
     </view>
   </block>
@@ -144,8 +156,8 @@
   <!-- Unknown role -->
   <block wx:else>
     <view class="empty-state">
-      <view class="empty-icon">🔒</view>
-      <view>请先登录</view>
+      <view class="empty-icon"></view>
+      <view></view>
     </view>
   </block>
 </view>

@@ -197,6 +197,39 @@
   transform: rotate(180deg);
 }
 
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: #FFFFFF;
+  border-radius: var(--radius-full, 999rpx);
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-3);
+  border: 1rpx solid var(--color-border, #e2e8f0);
+}
+
+.search-input {
+  flex: 1;
+  height: 72rpx;
+  font-size: 28rpx;
+  color: var(--color-text);
+}
+
+.search-input::placeholder {
+  color: var(--color-text-disabled, #94a3b8);
+}
+
+.search-clear {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background-color: var(--color-border, #e2e8f0);
+  color: #FFFFFF;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .task-card {
   display: flex;
   align-items: center;

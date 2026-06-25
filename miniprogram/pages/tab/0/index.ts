@@ -80,6 +80,8 @@ Page({
     quote: null as Quote | null,
     quoteLoading: true,
     tasks: [] as TaskItem[],
+    displayedTasks: [] as TaskItem[],
+    searchKeyword: '',
     tasksLoading: true,
     sortAsc: true,
     streakDays: 5,
@@ -172,12 +174,13 @@ Page({
           return this.data.sortAsc ? deadlineDiff : -deadlineDiff;
         });
         this.setData({ tasks });
+        this.applyFilter();
       } else {
-        this.setData({ tasks: [] });
+        this.setData({ tasks: [], displayedTasks: [] });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '获取任务失败';
-      this.setData({ homeError: message, tasks: [] });
+      this.setData({ homeError: message, tasks: [], displayedTasks: [] });
     } finally {
       this.setData({ tasksLoading: false });
     }
@@ -187,6 +190,26 @@ Page({
     const sortAsc = !this.data.sortAsc;
     this.setData({ sortAsc });
     this.loadTasks();
+  },
+
+  onSearchInput(e: WechatMiniprogram.Input) {
+    const searchKeyword = e.detail.value || '';
+    this.setData({ searchKeyword });
+    this.applyFilter();
+  },
+
+  applyFilter() {
+    const { tasks, searchKeyword } = this.data;
+    const keyword = searchKeyword.trim().toLowerCase();
+    const displayedTasks = keyword
+      ? tasks.filter((t) => t.title.toLowerCase().includes(keyword) || (t.content ?? '').toLowerCase().includes(keyword))
+      : tasks;
+    this.setData({ displayedTasks });
+  },
+
+  clearSearch() {
+    this.setData({ searchKeyword: '' });
+    this.applyFilter();
   },
 
   async loadCounselorDashboard() {
