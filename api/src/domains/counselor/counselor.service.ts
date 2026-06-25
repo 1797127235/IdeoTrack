@@ -271,6 +271,10 @@ export async function getTaskClassStats(
     [counselorId, taskId]
   );
 
+  if (rows.length === 0) {
+    throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
+  }
+
   const classes: ClassDashboardItem[] = rows.map((row) => {
     const total = row.total_students;
     const checked = row.checked_in_count;

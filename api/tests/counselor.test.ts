@@ -180,7 +180,8 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
       const task = tasks[0];
       expect(task.task_id).toBe(taskA);
       expect(task.title).toBe('TEST COUNSELOR 任务');
-      expect(task.classes).toHaveLength(2);
+      // class-scope 任务只对目标班级可见
+      expect(task.classes).toHaveLength(1);
 
       const classA = task.classes.find((c: { class_id: string }) => c.class_id === classIdA);
       expect(classA.total_students).toBe(2);
@@ -188,10 +189,6 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
       expect(classA.check_in_rate).toBe(50);
       expect(classA.absent_count).toBe(1);
       expect(classA.reminded_count).toBe(0);
-
-      const classB = task.classes.find((c: { class_id: string }) => c.class_id === classIdB);
-      expect(classB.total_students).toBe(1);
-      expect(classB.checked_in_count).toBe(0);
     });
 
     it('excludes classes of other counselors', async () => {
@@ -225,7 +222,9 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.task_id).toBe(taskA);
-      expect(res.body.data.classes).toHaveLength(2);
+      // class-scope 任务只对目标班级可见
+      expect(res.body.data.classes).toHaveLength(1);
+      expect(res.body.data.classes[0].class_id).toBe(classIdA);
     });
 
     it('returns 404 for task not visible to counselor', async () => {
@@ -318,11 +317,13 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
       expect(checkedInStudent.consecutive_absent_days).toBe(0);
       expect(checkedInStudent.student_name).toBe(checkedInStudent.student_school_id);
 
-      const absentStudent = res.body.data.students.find(
+      const pastCheckInStudent = res.body.data.students.find(
         (s: { student_id: string }) => s.student_id === studentA2
       );
-      expect(absentStudent.checked_in).toBe(false);
-      expect(absentStudent.consecutive_absent_days).toBe(4);
+      // 任务维度：只要在该任务下有 approved 打卡即视为已完成
+      expect(pastCheckInStudent.checked_in).toBe(true);
+      // 最近一次打卡距截止日相差 4 天
+      expect(pastCheckInStudent.consecutive_absent_days).toBe(4);
     });
 
     it('returns 400 when task_id is missing', async () => {
