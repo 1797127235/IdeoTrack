@@ -25,28 +25,27 @@ CROSS JOIN generate_series(1, 2) AS g
 WHERE c.name LIKE 'Demo-%学院';
 
 -- 创建辅导员（每学院 1 名，带该学院所有班级）
-WITH inserted_counselors AS (
+WITH ranked_colleges AS (
+  SELECT id, name, row_number() OVER (ORDER BY id) AS rn
+  FROM colleges
+  WHERE name LIKE 'Demo-%学院'
+),
+inserted_counselors AS (
   INSERT INTO users (school_id, password_hash, name, role, is_initial_password, is_enabled)
-  SELECT 'DEMO-C' || row_number() OVER (ORDER BY co.id),
-         crypt('DEMO-C' || row_number() OVER (ORDER BY co.id), gen_salt('bf')),
-         'Demo辅导员' || row_number() OVER (ORDER BY co.id),
+  SELECT 'DEMO-C' || rc.rn,
+         crypt('DEMO-C' || rc.rn, gen_salt('bf')),
+         'Demo辅导员' || rc.rn,
          'counselor',
          true,
          true
-  FROM colleges co
-  WHERE co.name LIKE 'Demo-%学院'
-  RETURNING id, school_id
+  FROM ranked_colleges rc
+  RETURNING id, name
 )
 INSERT INTO counselor_classes (counselor_id, class_id)
 SELECT ic.id, cl.id
 FROM inserted_counselors ic
-JOIN colleges co ON co.name = 'Demo-' || CASE substring(ic.school_id from 8)
-  WHEN '1' THEN '马克思主义学院'
-  WHEN '2' THEN '计算机学院'
-  WHEN '3' THEN '经济管理学院'
-  WHEN '4' THEN '外国语学院'
-END
-JOIN classes cl ON cl.college_id = co.id;
+JOIN ranked_colleges rc ON rc.name = ic.name
+JOIN classes cl ON cl.college_id = rc.id;
 
 -- 创建学生（每班 25 人）
 DO $$
