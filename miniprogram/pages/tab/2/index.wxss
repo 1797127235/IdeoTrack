@@ -29,7 +29,7 @@
   color: #164E63;
 }
 
-.overview-month {
+.overview-arrow {
   font-size: 24rpx;
   color: #0891B2;
   font-weight: 500;
@@ -372,6 +372,10 @@
 .beat-rate {
   color: #F59E0B;
   font-weight: 700;
+}
+
+.leaderboard-scroll {
+  max-height: 480rpx;
 }
 
 .leaderboard-list {
