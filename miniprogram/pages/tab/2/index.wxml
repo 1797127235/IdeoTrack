@@ -87,27 +87,43 @@
       </view>
     </view>
 
-    <!-- 班级排行榜 -->
-    <view class="leaderboard-card" bindtap="goToLeaderboard">
-      <view class="section-title">班级排行榜</view>
+    <!-- 排行榜 -->
+    <view class="leaderboard-card">
+      <view class="leaderboard-header">
+        <view class="leaderboard-tabs">
+          <view
+            wx:for="{{['班级', '学院', '全校']}}"
+            wx:key="*this"
+            class="leaderboard-tab {{leaderboard.scope === (item === '班级' ? 'class' : item === '学院' ? 'college' : 'school') ? 'active' : ''}}"
+            data-scope="{{item === '班级' ? 'class' : item === '学院' ? 'college' : 'school'}}"
+            bindtap="switchLeaderboardScope"
+          >
+            {{item}}
+          </view>
+        </view>
+      </view>
 
       <view class="leaderboard-self">
         <view class="self-rank">
           <view class="self-label">我的排名</view>
-          <view class="self-value">第 - 名</view>
+          <view class="self-value">第 {{leaderboard.myRank || '-'}} 名</view>
         </view>
         <view class="self-beat">
-          超过了 <text class="beat-rate">- %</text> 的同学
+          超过了 <text class="beat-rate">{{leaderboard.beatRate}}%</text> 的同学
         </view>
       </view>
 
-      <view class="leaderboard-list">
-        <view class="leaderboard-item placeholder">
-          <view class="rank">1</view>
-          <view class="avatar">-</view>
-          <view class="name">排行榜开发中</view>
-          <view class="score">-</view>
+      <view class="leaderboard-list" wx:if="{{leaderboard.items.length > 0}}">
+        <view wx:for="{{leaderboard.items}}" wx:key="userId" class="leaderboard-item {{item.isMe ? 'me' : ''}}">
+          <view class="rank {{item.rank <= 3 ? 'top' : ''}}">{{item.rank}}</view>
+          <view class="avatar">{{item.name[0]}}</view>
+          <view class="name">{{item.name}} <text wx:if="{{item.isMe}}" class="me-tag">我</text></view>
+          <view class="score">{{item.points}} 分</view>
         </view>
+      </view>
+
+      <view wx:else class="leaderboard-empty">
+        暂无排名数据
       </view>
     </view>
 

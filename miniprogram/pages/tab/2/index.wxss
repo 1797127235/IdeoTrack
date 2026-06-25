@@ -310,6 +310,37 @@
   box-shadow: 0 8rpx 32rpx rgba(8, 145, 178, 0.12);
 }
 
+.leaderboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.leaderboard-tabs {
+  display: flex;
+  align-items: center;
+  background-color: #F1F5F9;
+  border-radius: 999rpx;
+  padding: 6rpx;
+  gap: 6rpx;
+}
+
+.leaderboard-tab {
+  font-size: 26rpx;
+  color: #64748B;
+  padding: 10rpx 28rpx;
+  border-radius: 999rpx;
+  transition: all 0.2s ease;
+}
+
+.leaderboard-tab.active {
+  background-color: #FFFFFF;
+  color: #0891B2;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
 .leaderboard-self {
   display: flex;
   align-items: center;
@@ -355,9 +386,11 @@
   padding: 16rpx 0;
 }
 
-.leaderboard-item.placeholder {
-  justify-content: center;
-  color: #94A3B8;
+.leaderboard-item.me {
+  background-color: #F0FDFF;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  margin: 0 -16rpx;
 }
 
 .rank {
@@ -368,17 +401,22 @@
   text-align: center;
 }
 
+.rank.top {
+  color: #F59E0B;
+}
+
 .avatar {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background-color: #E2E8F0;
+  background: linear-gradient(135deg, #22D3EE 0%, #0891B2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 16rpx;
   font-size: 24rpx;
-  color: #64748B;
+  color: #FFFFFF;
+  font-weight: 600;
 }
 
 .name {
@@ -387,10 +425,27 @@
   color: #475569;
 }
 
+.me-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #0891B2;
+  background-color: #E0F2FE;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  margin-left: 8rpx;
+}
+
 .score {
   font-size: 28rpx;
   font-weight: 600;
   color: #164E63;
+}
+
+.leaderboard-empty {
+  font-size: 26rpx;
+  color: #94A3B8;
+  text-align: center;
+  padding: 32rpx 0;
 }
 
 /* 学习记录入口 */
