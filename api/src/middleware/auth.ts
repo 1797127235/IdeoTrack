@@ -19,14 +19,26 @@ declare global {
 
 const validRoles: UserRole[] = ['student', 'counselor', 'admin'];
 
-export function authenticate(req: Request, _res: Response, next: NextFunction): void {
+function extractToken(req: Request): string | null {
   const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next(new AppError('AUTH_UNAUTHORIZED', '未提供有效的认证令牌', 401));
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7);
   }
 
-  const token = authHeader.slice(7);
+  const cookieToken = req.cookies?.token;
+  if (typeof cookieToken === 'string' && cookieToken) {
+    return cookieToken;
+  }
+
+  return null;
+}
+
+export function authenticate(req: Request, _res: Response, next: NextFunction): void {
+  const token = extractToken(req);
+
+  if (!token) {
+    return next(new AppError('AUTH_UNAUTHORIZED', '未提供有效的认证令牌', 401));
+  }
 
   try {
     const payload = jwt.verify(token, config.jwtSecret) as { userId?: unknown; role?: unknown };

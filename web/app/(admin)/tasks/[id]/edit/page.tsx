@@ -28,15 +28,12 @@ export default function EditTaskPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    Promise.all([listColleges(), listClasses()])
-      .then(([c, cl]) => {
-        setColleges(c);
-        setClasses(cl);
-      })
-      .catch(() => {});
-
-    getTask(taskId)
-      .then((task) => {
+    let cancelled = false;
+    Promise.all([listColleges(), listClasses(), getTask(taskId)])
+      .then(([collegesData, classesData, task]) => {
+        if (cancelled) return;
+        setColleges(collegesData);
+        setClasses(classesData);
         setTitle(task.title);
         setContent(task.content);
         setGuidingQuestions(task.guiding_questions?.join("\n") || "");
@@ -46,13 +43,18 @@ export default function EditTaskPage() {
         setScopeId(task.scope_id || task.target_college_id || task.target_class_id || "");
         setPublishedAt(formatDateTimeLocal(task.published_at));
         setDeadlineAt(formatDateTimeLocal(task.deadline_at));
+        setError("");
       })
       .catch((err) => {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : "加载失败");
       })
       .finally(() => {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [taskId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,11 +93,11 @@ export default function EditTaskPage() {
 
   return (
     <div className="max-w-2xl">
-      {error && (
+      {error ? (
         <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
           {error}
         </div>
-      )}
+      ) : null}
 
       <form
         onSubmit={handleSubmit}

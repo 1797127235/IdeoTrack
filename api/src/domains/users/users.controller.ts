@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import * as usersService from './users.service.js';
 import { AppError } from '../../middleware/error-handler.js';
+import type { UserRole } from './users.types.js';
 
 // ===== Colleges =====
 
@@ -96,9 +97,32 @@ export async function deleteClassController(req: Request, res: Response, next: N
 
 // ===== Users =====
 
-export async function listUsersController(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function listUsersController(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const data = await usersService.listUsers();
+    const filters: { keyword?: string; role?: UserRole; classId?: string; collegeId?: string; isEnabled?: boolean } = {};
+
+    if (typeof req.query.keyword === 'string' && req.query.keyword.trim()) {
+      filters.keyword = req.query.keyword.trim();
+    }
+    if (req.query.role === 'student' || req.query.role === 'counselor' || req.query.role === 'admin') {
+      filters.role = req.query.role;
+    }
+    if (typeof req.query.class_id === 'string' && req.query.class_id) {
+      filters.classId = req.query.class_id;
+    }
+    if (typeof req.query.college_id === 'string' && req.query.college_id) {
+      filters.collegeId = req.query.college_id;
+    }
+    if (req.query.is_enabled === 'true') {
+      filters.isEnabled = true;
+    } else if (req.query.is_enabled === 'false') {
+      filters.isEnabled = false;
+    }
+
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
+
+    const data = await usersService.listUsers(filters, page, limit);
     res.json({ success: true, data });
   } catch (err) {
     next(err);

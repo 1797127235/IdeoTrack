@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { isAuthenticated } from "@/lib/auth";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -11,13 +10,13 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const { user, loading, error } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!loading && !user) {
       router.replace("/login");
     }
-  }, [router]);
+  }, [loading, user, router]);
 
   if (loading) {
     return (
@@ -27,11 +26,13 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  if (error || !user) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
         <div className="text-center">
-          <div className="text-sm text-[var(--color-danger)] mb-4">{error}</div>
+          <div className="text-sm text-[var(--color-danger)] mb-4">
+            登录已过期，请重新登录
+          </div>
           <a
             href="/login"
             className="text-sm text-[var(--color-accent)] hover:underline"

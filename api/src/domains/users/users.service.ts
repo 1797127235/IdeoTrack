@@ -14,6 +14,8 @@ import type {
   BatchImportUserInput,
   BatchImportResult,
   UserRole,
+  UserFilters,
+  ListUsersResult,
 } from './users.types.js';
 
 const BCRYPT_SALT_ROUNDS = 10;
@@ -201,12 +203,72 @@ function buildUserListQuery(): string {
   `;
 }
 
-export async function listUsers(): Promise<User[]> {
+export async function listUsers(
+  filters: UserFilters = {},
+  page = 1,
+  limit = 20
+): Promise<ListUsersResult> {
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  if (filters.keyword && filters.keyword.trim()) {
+    const keyword = `%${filters.keyword.trim()}%`;
+    conditions.push(`(u.school_id ILIKE $${paramIndex} OR u.name ILIKE $${paramIndex})`);
+    values.push(keyword);
+    paramIndex++;
+  }
+  if (filters.role) {
+    conditions.push(`u.role = $${paramIndex}`);
+    values.push(filters.role);
+    paramIndex++;
+  }
+  if (filters.classId) {
+    conditions.push(`u.class_id = $${paramIndex}`);
+    values.push(filters.classId);
+    paramIndex++;
+  }
+  if (filters.collegeId) {
+    conditions.push(`c.college_id = $${paramIndex}`);
+    values.push(filters.collegeId);
+    paramIndex++;
+  }
+  if (filters.isEnabled !== undefined) {
+    conditions.push(`u.is_enabled = $${paramIndex}`);
+    values.push(filters.isEnabled);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countRow = await queryOne<{ count: number }>(
+    `SELECT COUNT(*)::int AS count
+     FROM users u
+     LEFT JOIN classes c ON u.class_id = c.id
+     LEFT JOIN colleges co ON c.college_id = co.id
+     ${whereClause}`,
+    values
+  );
+  const total = countRow?.count ?? 0;
+
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(50, Math.max(1, limit));
+  const offset = (safePage - 1) * safeLimit;
+
   const rows = await query<User>(
     `${buildUserListQuery()}
-     ORDER BY u.created_at DESC`
+     ${whereClause}
+     ORDER BY u.created_at DESC
+     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    [...values, safeLimit, offset]
   );
-  return rows;
+
+  return {
+    items: rows,
+    total,
+    page: safePage,
+    limit: safeLimit,
+  };
 }
 
 export async function getUserById(id: string): Promise<User | null> {

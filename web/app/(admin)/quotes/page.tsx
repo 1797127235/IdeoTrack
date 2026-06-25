@@ -75,11 +75,11 @@ export default function QuotesPage() {
 
   return (
     <div className="space-y-5">
-      {error && (
+      {error ? (
         <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
           {error}
         </div>
-      )}
+      ) : null}
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-ink)]">名言管理</h2>

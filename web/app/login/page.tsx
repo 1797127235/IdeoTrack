@@ -51,11 +51,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {error && (
+        {error ? (
           <div className="mb-4 px-3 py-2 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
             {error}
           </div>
-        )}
+        ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -64,11 +64,11 @@ export default function CreateTaskPage() {
 
   return (
     <div className="max-w-2xl">
-      {error && (
+      {error ? (
         <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
           {error}
         </div>
-      )}
+      ) : null}
 
       <form
         onSubmit={handleSubmit}

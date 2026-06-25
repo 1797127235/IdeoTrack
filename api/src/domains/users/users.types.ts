@@ -31,6 +31,21 @@ export interface User {
   updatedAt: string;
 }
 
+export interface UserFilters {
+  keyword?: string;
+  role?: UserRole;
+  classId?: string;
+  collegeId?: string;
+  isEnabled?: boolean;
+}
+
+export interface ListUsersResult {
+  items: User[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface CreateCollegeInput {
   name: string;
 }

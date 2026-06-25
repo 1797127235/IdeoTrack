@@ -1,8 +1,7 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { getDashboardStats, type DashboardStats } from "@/lib/reports";
+import { redirect } from "next/navigation";
+import { getDashboardStats, type DashboardStats } from "@/lib/server/reports";
+import { ServerApiError } from "@/lib/server-api";
 
 function TrendChart() {
   const data = [65, 68, 72, 70, 75, 78, 82, 80, 85, 83, 87, 87];
@@ -115,37 +114,7 @@ function DistributionChart() {
   );
 }
 
-export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    getDashboardStats()
-      .then((data) => {
-        setStats(data);
-        setError("");
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "加载失败");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>;
-  }
-
-  if (error || !stats) {
-    return (
-      <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
-        {error}
-      </div>
-    );
-  }
-
+function DashboardContent({ stats }: { stats: DashboardStats }) {
   const statCards = [
     {
       label: "今日打卡率",
@@ -320,4 +289,22 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+export default async function DashboardPage() {
+  let stats: DashboardStats;
+  try {
+    stats = await getDashboardStats();
+  } catch (err) {
+    if (err instanceof ServerApiError && err.status === 401) {
+      redirect("/login");
+    }
+    return (
+      <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+        {err instanceof Error ? err.message : "加载失败"}
+      </div>
+    );
+  }
+
+  return <DashboardContent stats={stats} />;
 }

@@ -127,11 +127,11 @@ export default function OrganizationsPage() {
 
   return (
     <div className="space-y-6">
-      {error && (
+      {error ? (
         <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
           {error}
         </div>
-      )}
+      ) : null}
 
       <div className="grid grid-cols-2 gap-6">
         {/* Colleges */}

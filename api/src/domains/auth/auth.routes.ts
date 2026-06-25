@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   loginController,
   changePasswordController,
+  logoutController,
   meController,
   wechatLoginController,
   wechatBindController,
@@ -15,6 +16,7 @@ router.post('/login', loginController);
 router.post('/wechat/login', wechatLoginController);
 router.post('/wechat/bind', wechatBindController);
 router.post('/change-password', authenticate, changePasswordController);
+router.post('/logout', authenticate, logoutController);
 router.get('/me', authenticate, meController);
 
 // Placeholder role-restricted routes for RBAC validation

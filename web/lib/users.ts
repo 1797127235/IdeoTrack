@@ -26,6 +26,23 @@ export interface User {
   className: string | null;
 }
 
+export interface UserFilters {
+  keyword?: string;
+  role?: UserRole;
+  classId?: string;
+  collegeId?: string;
+  isEnabled?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface ListUsersResponse {
+  items: User[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // Colleges
 export const listColleges = () => api.get<College[]>("/users/colleges");
 export const createCollege = (data: { name: string }) =>
@@ -45,7 +62,21 @@ export const deleteClass = (id: string) =>
   api.delete<{ id: string }>(`/users/classes/${id}`);
 
 // Users
-export const listUsers = () => api.get<User[]>("/users");
+export const listUsers = (filters: UserFilters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.keyword) params.set("keyword", filters.keyword);
+  if (filters.role) params.set("role", filters.role);
+  if (filters.classId) params.set("class_id", filters.classId);
+  if (filters.collegeId) params.set("college_id", filters.collegeId);
+  if (filters.isEnabled !== undefined) params.set("is_enabled", String(filters.isEnabled));
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.limit) params.set("limit", String(filters.limit));
+
+  const query = params.toString();
+  const path = query ? `/users?${query}` : "/users";
+  return api.get<ListUsersResponse>(path);
+};
+
 export const createUser = (data: {
   schoolId: string;
   name?: string;

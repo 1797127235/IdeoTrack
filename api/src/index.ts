@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import authRoutes from './domains/auth/auth.routes.js';
 import quoteRoutes from './domains/quotes/quote.routes.js';
 import taskRoutes from './domains/tasks/task.routes.js';
@@ -26,6 +27,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(cookieParser());
 app.use(express.json({ limit: '10kb' }));
 
 // 请求日志：记录每个请求的方法/路径/状态码/耗时/用户

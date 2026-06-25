@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
   useTransition,
+  useMemo,
 } from "react";
 import { useRouter } from "next/navigation";
 import { fetchMe, logout as authLogout, type MeResponse } from "@/lib/auth";
@@ -15,7 +16,7 @@ interface AuthContextValue {
   user: MeResponse | null;
   loading: boolean;
   error: string;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   refresh: () => void;
 }
 
@@ -67,21 +68,24 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     loadUser();
   }, [loadUser]);
 
-  const handleLogout = useCallback(() => {
-    authLogout();
+  const handleLogout = useCallback(async () => {
+    await authLogout();
     router.replace("/login");
   }, [router]);
 
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      error,
+      logout: handleLogout,
+      refresh: loadUser,
+    }),
+    [user, loading, error, handleLogout, loadUser]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        error,
-        logout: handleLogout,
-        refresh: loadUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

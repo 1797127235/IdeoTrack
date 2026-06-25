@@ -1,6 +1,6 @@
 /**
  * Web 公共 API 客户端
- * - 自动注入 JWT
+ * - 依赖后端 httpOnly Cookie 认证（fetch credentials: include）
  * - 统一错误处理
  * - 适配后端标准响应格式 { success, data, error }
  */
@@ -30,39 +30,21 @@ export class ApiClientError extends Error {
   }
 }
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("ideo_token");
-}
-
-export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("ideo_token", token);
-}
-
-export function removeToken(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("ideo_token");
-}
-
 async function request<T>(
   method: string,
   path: string,
   body?: unknown
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
-  const token = getToken();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
   const response = await fetch(url, {
     method,
     headers,
+    credentials: "include",
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -94,7 +76,6 @@ async function request<T>(
     } catch {
       // ignore
     }
-    removeToken();
     throw new ApiClientError(code, message, 401);
   }
 

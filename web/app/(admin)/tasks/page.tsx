@@ -14,6 +14,11 @@ import {
 
 const PAGE_SIZE = 20;
 
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 interface TaskQuery {
   page: number;
   status: TaskStatus | "";
@@ -87,24 +92,20 @@ export default function TasksPage() {
       .catch((err) => setError(err instanceof Error ? err.message : "下架失败"));
   };
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
-
+  const normalizedKeyword = keyword.trim().toLowerCase();
   const filteredTasks = tasks.filter((task) =>
-    task.title.toLowerCase().includes(keyword.trim().toLowerCase())
+    task.title.toLowerCase().includes(normalizedKeyword)
   );
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="space-y-5">
-      {error && (
+      {error ? (
         <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
           {error}
         </div>
-      )}
+      ) : null}
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-ink)]">任务管理</h2>

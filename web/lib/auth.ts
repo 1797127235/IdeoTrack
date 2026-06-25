@@ -1,5 +1,4 @@
-import { api, setToken, removeToken } from "./api";
-import { withBasePath } from "./paths";
+import { api } from "./api";
 
 export type UserRole = "student" | "counselor" | "admin";
 
@@ -24,11 +23,10 @@ export interface LoginCredentials {
 }
 
 export async function login(credentials: LoginCredentials): Promise<AuthUser> {
-  const { token, user } = await api.post<{ token: string; user: AuthUser }>(
+  const { user } = await api.post<{ token: string; user: AuthUser }>(
     "/auth/login",
     credentials
   );
-  setToken(token);
   return user;
 }
 
@@ -45,14 +43,10 @@ export async function changePassword(input: ChangePasswordInput): Promise<void> 
   await api.post<null>("/auth/change-password", input);
 }
 
-export function logout(): void {
-  removeToken();
-  if (typeof window !== "undefined") {
-    window.location.href = withBasePath("/login");
+export async function logout(): Promise<void> {
+  try {
+    await api.post<null>("/auth/logout", {});
+  } catch {
+    // best-effort: 即使服务端登出失败，也继续由调用方处理跳转
   }
-}
-
-export function isAuthenticated(): boolean {
-  if (typeof window === "undefined") return false;
-  return !!localStorage.getItem("ideo_token");
 }

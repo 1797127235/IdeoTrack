@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { login, changePassword, getMe, wechatLogin, bindWechat } from './auth.service.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { config } from '../../config/index.js';
 
 const loginSchema = z.object({
   schoolId: z.string().min(1, '学号/工号不能为空'),
@@ -36,6 +37,19 @@ export async function loginController(
 
     const result = await login(parseResult.data);
 
+    const maxAgeMs =
+      typeof config.jwtExpiresIn === 'string' && config.jwtExpiresIn.endsWith('d')
+        ? parseInt(config.jwtExpiresIn, 10) * 24 * 60 * 60 * 1000
+        : 7 * 24 * 60 * 60 * 1000;
+
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: !config.isDev,
+      sameSite: 'lax',
+      maxAge: maxAgeMs,
+      path: '/',
+    });
+
     res.json({
       success: true,
       data: result,
@@ -66,6 +80,19 @@ export async function changePasswordController(
       success: true,
       data: null,
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function logoutController(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    res.clearCookie('token', { path: '/', httpOnly: true, sameSite: 'lax' });
+    res.json({ success: true, data: null });
   } catch (err) {
     next(err);
   }
