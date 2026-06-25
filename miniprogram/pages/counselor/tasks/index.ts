@@ -2,14 +2,10 @@ import { fetchTaskPool, type Task } from '../../../services/taskApi';
 import { get, type ApiResponse } from '../../../services/api';
 import { updateTabBarSelected } from '../../../utils/tabBar';
 
-interface DispatchedTask extends Task {
-  source_task_id: string;
-}
-
 Page({
   data: {
     poolTasks: [] as Task[],
-    dispatchedTasks: [] as DispatchedTask[],
+    dispatchedTasks: [] as Task[],
     loading: true,
   },
 
@@ -27,8 +23,9 @@ Page({
       ]);
       this.setData({
         poolTasks: poolRes.data?.items ?? [],
+        // 服务端已按辅导员可见范围返回（全校/学院/班级 + 自己派发）
         dispatchedTasks: (listRes.data?.items ?? []).filter(
-          (t): t is DispatchedTask => !!t.source_task_id
+          (t) => t.scope_type !== 'pool'
         ),
         loading: false,
       });

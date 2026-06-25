@@ -363,9 +363,48 @@ export async function listTasks(
   let paramIndex = 1;
 
   if (role !== 'admin') {
-    whereConditions.push(`created_by = $${paramIndex}`);
-    params.push(userId);
-    paramIndex++;
+    if (role === 'counselor') {
+      // 辅导员应看到：
+      // 1) 自己创建/派发的任务；
+      // 2) 管理员直接发布给其管辖班级/学院/全校的任务。
+      // 否则管理员在 Web 端发布的班级任务，教师端小程序里会看不到。
+      const managed = await query<{ class_id: string; college_id: string }>(
+        `SELECT cc.class_id, c.college_id
+         FROM counselor_classes cc
+         JOIN classes c ON c.id = cc.class_id
+         WHERE cc.counselor_id = $1`,
+        [userId]
+      );
+      const classIds = managed.map((m) => m.class_id).filter(Boolean);
+      const collegeIds = [...new Set(managed.map((m) => m.college_id).filter(Boolean))];
+
+      const visibilityConditions: string[] = [];
+      visibilityConditions.push(`created_by = $${paramIndex}`);
+      params.push(userId);
+      paramIndex++;
+      visibilityConditions.push(`scope_type = 'school'`);
+
+      if (collegeIds.length > 0) {
+        visibilityConditions.push(
+          `(scope_type = 'college' AND target_college_id = ANY($${paramIndex}::uuid[]))`
+        );
+        params.push(collegeIds);
+        paramIndex++;
+      }
+      if (classIds.length > 0) {
+        visibilityConditions.push(
+          `(scope_type = 'class' AND target_class_id = ANY($${paramIndex}::uuid[]))`
+        );
+        params.push(classIds);
+        paramIndex++;
+      }
+
+      whereConditions.push(`(${visibilityConditions.join(' OR ')})`);
+    } else {
+      whereConditions.push(`created_by = $${paramIndex}`);
+      params.push(userId);
+      paramIndex++;
+    }
   }
   if (filters.status) {
     whereConditions.push(`status = $${paramIndex}`);

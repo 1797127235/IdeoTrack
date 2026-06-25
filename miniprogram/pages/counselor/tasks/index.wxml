@@ -21,10 +21,10 @@
       </view>
     </view>
 
-    <!-- 已派发 -->
+    <!-- 负责的任务 -->
     <view class="section">
       <view class="section-header">
-        <view class="section-title">已派发</view>
+        <view class="section-title">负责的任务</view>
         <view class="section-count">{{dispatchedTasks.length}} 个任务</view>
       </view>
       <view class="task-list" wx:if="{{dispatchedTasks.length > 0}}">
@@ -38,7 +38,7 @@
       </view>
       <view class="empty-state" wx:else>
         <view class="empty-icon empty-icon-dispatched"></view>
-        <view class="empty-text">暂无已派发任务</view>
+        <view class="empty-text">暂无负责的任务</view>
       </view>
     </view>
   </view>

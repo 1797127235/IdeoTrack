@@ -180,6 +180,23 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
       expect(res.body.data.limit).toBe(20);
     });
 
+    it('lists admin-created class tasks visible to counselor', async () => {
+      const classTask = await createTask(adminToken, {
+        title: 'TEST TASK 管理员班级任务',
+        content: '内容',
+        scope_type: 'class',
+        scope_id: classId,
+        published_at: new Date(Date.now() - 1000).toISOString(),
+        deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      });
+      expect(classTask.status).toBe(201);
+
+      const res = await request(app).get('/api/tasks').set('Authorization', `Bearer ${counselorToken}`);
+      expect(res.status).toBe(200);
+      const found = res.body.data.items.find((t: { id: string }) => t.id === classTask.body.data.id);
+      expect(found).toBeDefined();
+    });
+
     it('admin can filter by status', async () => {
       await createTask(adminToken, {
         title: 'TEST TASK 待下架',
