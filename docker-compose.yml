@@ -53,7 +53,7 @@ services:
       dockerfile: Dockerfile.web
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
-        NEXT_PUBLIC_AMAP_KEY: ${NEXT_PUBLIC_AMAP_KEY:-}
+        NEXT_PUBLIC_AMAP_JSAPI_KEY: ${NEXT_PUBLIC_AMAP_JSAPI_KEY:-}
     container_name: ideo-track-web
     restart: unless-stopped
     depends_on:

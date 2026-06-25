@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import AMapLoader from "@amap/amap-jsapi-loader";
 
-const AMAP_KEY = process.env.NEXT_PUBLIC_AMAP_KEY || "";
+const AMAP_KEY = process.env.NEXT_PUBLIC_AMAP_JSAPI_KEY || "";
 
 export interface GeofenceValue {
   lat: number;
@@ -38,7 +38,7 @@ export default function GeofencePicker({ value, onChange }: GeofencePickerProps)
   const [radius, setRadius] = useState(value?.radius ?? DEFAULT_RADIUS);
   const [address, setAddress] = useState(value?.address ?? "");
   const [ready, setReady] = useState(false);
-  const [loadError, setLoadError] = useState(AMAP_KEY ? "" : "缺少高德地图 Key，请配置 NEXT_PUBLIC_AMAP_KEY");
+  const [loadError, setLoadError] = useState(AMAP_KEY ? "" : "缺少高德地图 Key，请配置 NEXT_PUBLIC_AMAP_JSAPI_KEY");
 
   const emitChange = useCallback((lat: number, lng: number, r: number, addr: string) => {
     onChange({ lat, lng, radius: r, address: addr });

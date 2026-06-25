@@ -4,7 +4,7 @@ FROM node:24 AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_AMAP_KEY
+ARG NEXT_PUBLIC_AMAP_JSAPI_KEY
 
 COPY web/package*.json ./
 # lightningcss 的平台二进制在 optionalDependencies 中，构建时必须安装

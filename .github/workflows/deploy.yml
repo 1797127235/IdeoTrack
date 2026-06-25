@@ -111,7 +111,7 @@ jobs:
             DEEPSEEK_MODEL=${{ secrets.DEEPSEEK_MODEL }}
             CLIENT_URL=*
             NEXT_PUBLIC_API_URL=https://ideotrack.cc.cd/api
-            NEXT_PUBLIC_AMAP_KEY=${{ secrets.NEXT_PUBLIC_AMAP_KEY }}
+            NEXT_PUBLIC_AMAP_JSAPI_KEY=${{ secrets.NEXT_PUBLIC_AMAP_JSAPI_KEY }}
             EOF
             chmod 600 .env
 
