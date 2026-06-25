@@ -40,7 +40,7 @@ WITH inserted_counselors AS (
 INSERT INTO counselor_classes (counselor_id, class_id)
 SELECT ic.id, cl.id
 FROM inserted_counselors ic
-JOIN colleges co ON co.name = 'Demo-' || CASE substring(ic.school_id from 9)
+JOIN colleges co ON co.name = 'Demo-' || CASE substring(ic.school_id from 8)
   WHEN '1' THEN '马克思主义学院'
   WHEN '2' THEN '计算机学院'
   WHEN '3' THEN '经济管理学院'
@@ -155,15 +155,17 @@ WITH dates AS (
   SELECT CURRENT_DATE - generate_series AS d
   FROM generate_series(0, 13)
 ),
-quotes_sample AS (
+enabled_quotes AS (
   SELECT id, row_number() OVER () AS rn
   FROM quotes
   WHERE is_enabled = true
-  ORDER BY random()
-  LIMIT 14
+),
+quote_count AS (
+  SELECT COUNT(*) AS cnt FROM enabled_quotes
 )
 INSERT INTO daily_quotes (quote_id, date)
-SELECT qs.id, dates.d
+SELECT eq.id, dates.d
 FROM dates
-JOIN quotes_sample qs ON qs.rn = (dates.d - CURRENT_DATE) % 14 + 1
+CROSS JOIN quote_count
+JOIN enabled_quotes eq ON eq.rn = ((dates.d - CURRENT_DATE) % quote_count.cnt + quote_count.cnt) % quote_count.cnt + 1
 ON CONFLICT (date) DO UPDATE SET quote_id = EXCLUDED.quote_id;
