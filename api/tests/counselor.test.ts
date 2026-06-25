@@ -166,6 +166,26 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
     );
   }
 
+  /**
+   * 基于 beforeEach 设置的 REMINDER_TIME_OVERRIDE 计算日期字符串，
+   * 避免硬编码日期在 CI 运行到“当天”时 flaky。
+   */
+  function getReminderDateStr(offsetDays = 0): string {
+    const override = process.env.REMINDER_TIME_OVERRIDE ?? '';
+    const match = override.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) {
+      throw new Error('REMINDER_TIME_OVERRIDE is not set');
+    }
+    const y = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const d = parseInt(match[3], 10);
+    const date = new Date(y, m - 1, d + offsetDays);
+    const yy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  }
+
   it('GET /api/counselor/dashboard returns classes managed by the counselor', async () => {
     const taskA = await createTask(classIdA);
     await createApprovedCheckIn(taskA, studentA1);
@@ -441,14 +461,15 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
   });
 
   it('GET /api/counselor/classes/:id/reminders returns reminder records for the class and date', async () => {
+    const today = getReminderDateStr();
     await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
     await request(app)
       .post(`/api/counselor/classes/${classIdA}/reminders`)
       .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2], date: '2026-06-24' });
+      .send({ student_ids: [studentA2], date: today });
 
     const res = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/reminders?date=2026-06-24`)
+      .get(`/api/counselor/classes/${classIdA}/reminders?date=${today}`)
       .set('Authorization', `Bearer ${counselorToken}`);
 
     expect(res.status).toBe(200);
@@ -485,10 +506,11 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
   });
 
   it('POST /api/counselor/classes/:id/reminders rejects non-today dates', async () => {
+    const tomorrow = getReminderDateStr(1);
     const res = await request(app)
       .post(`/api/counselor/classes/${classIdA}/reminders`)
       .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2], date: '2026-06-25' });
+      .send({ student_ids: [studentA2], date: tomorrow });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
