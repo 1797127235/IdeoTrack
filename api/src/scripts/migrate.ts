@@ -139,6 +139,10 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS guiding_questions JSONB;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS video_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scope_id UUID;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_lat DECIMAL(10, 8);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_lng DECIMAL(11, 8);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 5000);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_address TEXT;
 -- 旧数据可能没有外键约束，安全起见先删除再重建（幂等）
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_source_task_id_fkey;
 ALTER TABLE tasks ADD CONSTRAINT tasks_source_task_id_fkey
