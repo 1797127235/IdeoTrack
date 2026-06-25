@@ -88,12 +88,27 @@ export default function GeofencePicker({ value, onChange }: GeofencePickerProps)
       plugins: ["AMap.PlaceSearch", "AMap.Geocoder"],
     })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then((AMap: any) => {
+      .then(async (AMap: any) => {
         if (!mounted || !mapContainerRef.current) return;
 
-        const initialCenter = value
+        let initialCenter: number[] = value
           ? [value.lng, value.lat]
           : [DEFAULT_CENTER.lng, DEFAULT_CENTER.lat];
+
+        if (!value && navigator.geolocation) {
+          try {
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0,
+              });
+            });
+            initialCenter = [pos.coords.longitude, pos.coords.latitude];
+          } catch {
+            // 定位失败则使用默认中心
+          }
+        }
 
         const map = new AMap.Map(mapContainerRef.current, {
           zoom: 15,
@@ -130,6 +145,11 @@ export default function GeofencePicker({ value, onChange }: GeofencePickerProps)
           const lnglat = e.lnglat as any;
           updateCenter(lnglat.lat, lnglat.lng, true);
         });
+
+        if (!value && navigator.geolocation) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          updateCenter((initialCenter as any)[1], (initialCenter as any)[0], true);
+        }
 
         setReady(true);
       })
