@@ -1,4 +1,5 @@
 import { api, setToken, removeToken } from "./api";
+import { withBasePath } from "./paths";
 
 export type UserRole = "student" | "counselor" | "admin";
 
@@ -35,10 +36,19 @@ export async function fetchMe(): Promise<MeResponse> {
   return api.get<MeResponse>("/auth/me");
 }
 
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export async function changePassword(input: ChangePasswordInput): Promise<void> {
+  await api.post<null>("/auth/change-password", input);
+}
+
 export function logout(): void {
   removeToken();
   if (typeof window !== "undefined") {
-    window.location.href = "/login";
+    window.location.href = withBasePath("/login");
   }
 }
 

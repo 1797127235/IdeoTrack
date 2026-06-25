@@ -1,9 +1,12 @@
-# 将 api.your-domain.com 和 admin.your-domain.com 替换为你的真实域名
-# 当前项目默认使用：api.ideotrack.cc.cd / admin.ideotrack.cc.cd
+# 主域名同时承载后端 API 和管理后台 Web：
+#   - /admin*  → Next.js 管理后台（basePath /admin，见 web/next.config.ts）
+#   - 其余     → 后端 API
+# 管理后台挂在路径下，无需为 admin.ideotrack.cc.cd 单独配子域名 DNS。
 ideotrack.cc.cd {
-  reverse_proxy api:3000
-}
-
-admin.ideotrack.cc.cd {
-  reverse_proxy web:3001
+  handle /admin* {
+    reverse_proxy web:3001
+  }
+  handle {
+    reverse_proxy api:3000
+  }
 }

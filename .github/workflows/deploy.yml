@@ -87,7 +87,7 @@ jobs:
             cd /opt/IdeoTrack
 
             # 确保服务器工作区干净，避免本地未提交修改阻塞 git pull
-            # 注意：这会丢弃对仓库跟踪文件的本地修改；后续会重新生成 .env / Caddyfile
+            # 注意：这会丢弃对仓库跟踪文件的本地修改；后续会重新生成 .env
             git reset --hard HEAD
 
             # 拉取最新代码
@@ -114,16 +114,9 @@ jobs:
             EOF
             chmod 600 .env
 
-            # 配置 API 与管理后台域名，Caddy 会自动申请并续期 HTTPS 证书
-            cat > Caddyfile << 'EOF'
-            ideotrack.cc.cd {
-              reverse_proxy api:3000
-            }
-
-            admin.ideotrack.cc.cd {
-              reverse_proxy web:3001
-            }
-            EOF
+            # Caddyfile 现在由仓库管理（git pull 拉取），不再在此动态生成。
+            # 主域名 ideotrack.cc.cd 同时承载 API（其余路径）和管理后台（/admin*），
+            # 管理后台挂在路径下，避免为 admin 子域名单独配 DNS（见仓库 Caddyfile）。
 
             # 首次切换数据库密码时，旧卷（用默认密码初始化）会导致 postgres 起不来。
             # 用标记文件保证只删一次：之后再部署永远走 up -d，不会丢数据。

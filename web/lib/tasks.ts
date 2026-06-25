@@ -25,7 +25,32 @@ export interface Task {
   completion_rate?: number;
 }
 
-export const listTasks = () => api.get<Task[]>("/tasks");
+export interface TaskFilters {
+  status?: TaskStatus;
+  scopeType?: TaskScopeType;
+  page?: number;
+  limit?: number;
+}
+
+export interface ListTasksResponse {
+  items: Task[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export const listTasks = (filters: TaskFilters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.scopeType) params.set("scope_type", filters.scopeType);
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.limit) params.set("limit", String(filters.limit));
+
+  const query = params.toString();
+  const path = query ? `/tasks?${query}` : "/tasks";
+  return api.get<ListTasksResponse>(path);
+};
+
 export const getTask = (id: string) => api.get<Task>(`/tasks/${id}`);
 export const createTask = (data: {
   title: string;

@@ -2,8 +2,8 @@
 title: 思政打卡 App PRD
 status: draft
 created: 2026-06-22
-updated: 2026-06-23
-changelog: 2026-06-23 应用 sprint-change-proposal-2026-06-23，FR-1/FR-9/§9.6/§5.2/Q10 反映客户端分端策略（AD-17）；2026-06-23 应用 sprint-change-proposal-2026-06-23-v2，辅导员端迁入小程序，管理员端保留 App + Web V2
+updated: 2026-06-25
+changelog: 2026-06-23 应用 sprint-change-proposal-2026-06-23，FR-1/FR-9/§9.6/§5.2/Q10 反映客户端分端策略（AD-17）；2026-06-23 应用 sprint-change-proposal-2026-06-23-v2，辅导员端迁入小程序，管理员端保留 App + Web V2；2026-06-25 文档-代码对齐：FR-32 运维仪表盘标注实现状态（operations 页为 mock，Epic 13 backlog）
 ---
 
 # PRD: 思政打卡 App
@@ -465,6 +465,8 @@ changelog: 2026-06-23 应用 sprint-change-proposal-2026-06-23，FR-1/FR-9/§9.6
 - 管理员可查看最近的错误日志摘要，了解系统异常。
 - 运维数据通过 admin-only API 读取，非管理员不可访问。
 - Realizes NFR-8（日志审计）、NFR-10（每日备份可见性）。
+
+**[实现状态：未实现 / 占位]** 截至 2026-06-25，`web/app/(admin)/operations/page.tsx` 仅渲染 `@/lib/data` 的静态 mock 数据，后端无 `/api/ops` 域，备份挂载也未落地。详见架构文档 AD-18（部分实现）。该 FR 属 Epic 13（运维可见性），当前 sprint-status 中 Epic 13 为 `backlog`。
 
 ---
 

@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { changePassword } from "@/lib/auth";
+import { withBasePath } from "@/lib/paths";
 
 export default function ChangePasswordPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
     if (!oldPassword || !newPassword || !confirm) {
       setError("请填写所有字段");
       return;
@@ -18,11 +23,25 @@ export default function ChangePasswordPage() {
       setError("新密码长度不能少于 8 位");
       return;
     }
+    if (newPassword.length > 64) {
+      setError("新密码长度不能超过 64 位");
+      return;
+    }
     if (newPassword !== confirm) {
       setError("两次输入的新密码不一致");
       return;
     }
-    window.location.href = "/";
+
+    setLoading(true);
+    try {
+      await changePassword({ currentPassword: oldPassword, newPassword });
+      window.location.href = withBasePath("/");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "修改密码失败，请重试";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,7 +71,8 @@ export default function ChangePasswordPage() {
               type="password"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+              disabled={loading}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all disabled:opacity-50"
             />
           </div>
 
@@ -64,7 +84,8 @@ export default function ChangePasswordPage() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+              disabled={loading}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all disabled:opacity-50"
             />
           </div>
 
@@ -76,15 +97,17 @@ export default function ChangePasswordPage() {
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+              disabled={loading}
+              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all disabled:opacity-50"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full h-10 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium transition-colors"
+            disabled={loading}
+            className="w-full h-10 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            确认修改
+            {loading ? "修改中..." : "确认修改"}
           </button>
         </form>
       </div>

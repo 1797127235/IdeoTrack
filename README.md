@@ -1,17 +1,22 @@
 # IdeoTrack — 思政打卡 App
 
-面向高校大学生的思政学习打卡工具。学生和辅导员通过微信小程序完成打卡与管理，管理员通过 App 进行组织管理和数据统计。
+面向高校大学生的思政学习打卡工具。学生和辅导员通过微信小程序完成打卡与管理，管理员通过 Next.js Web 后台进行组织管理和数据统计。
 
 ## 仓库结构
 
 ```
 IdeoTrack/
 ├── api/            # 后端 API（Node.js + Express + TypeScript + PostgreSQL）
-├── mobile/         # 管理员端 App（React Native + Expo）
+├── web/            # 管理员端 Web 后台（Next.js + App Router）★ V1
 ├── miniprogram/    # 学生 + 辅导员端微信小程序（原生开发）
+├── mobile/         # [已弃用] 前管理员端 App（React Native + Expo），仅作参考
 ├── test/           # API 测试集（Bruno）
+├── docker-compose.yml   # postgres + api + web（+ 可选 caddy profile）
+├── Dockerfile.web       # 构建 web/ 管理端镜像
+├── Caddyfile            # 反向代理：ideotrack.cc.cd→api, admin.ideotrack.cc.cd→web
 └── project.config.json  # 微信开发者工具配置
 ```
+
 
 ## 快速开始
 
@@ -36,11 +41,11 @@ npm run dev               # 启动服务，监听 localhost:3000
 
 ### 3. 启动前端（按需）
 
-**管理员端 App**：
+**管理员端 Web 后台**：
 ```bash
-cd mobile
+cd web
 npm install
-npm start                 # Expo 开发服务器
+npm run dev               # Next.js 开发服务器（默认 localhost:3001）
 ```
 
 **学生 + 辅导员端微信小程序**：
@@ -53,10 +58,12 @@ npm start                 # Expo 开发服务器
 | 层 | 技术 |
 |---|---|
 | 后端 | Node.js 24 + Express 5 + TypeScript 6 |
-| 数据库 | PostgreSQL 17（支持 Supabase 托管或自托管）|
+| 数据库 | PostgreSQL 17（自托管，Docker）|
 | 认证 | JWT（账号密码）+ 微信登录（学生端）|
-| 管理端 | React Native 0.85 + Expo SDK 56 |
+| 管理端 | Next.js（App Router）+ TypeScript ★ V1 |
 | 学生 + 辅导员端 | 微信小程序原生（基础库 3.x）|
+| 反向代理 / 部署 | Caddy 2 + Docker Compose |
+
 
 ## 测试账号（由 `npm run db:seed` 创建）
 
