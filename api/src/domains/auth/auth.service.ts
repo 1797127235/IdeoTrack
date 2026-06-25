@@ -295,7 +295,8 @@ async function computeMonthlyOverview(
   const year = currentBeijing.getFullYear();
   const month = currentBeijing.getMonth() + 1;
   const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endOfMonth = `${year}-${String(month).padStart(2, '0')}-31`;
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
 
   const monthApproved = approvedRows.filter((r) => r.day >= startOfMonth && r.day <= endOfMonth);
   const monthPointsRow = await queryOne<{ total: number }>(
