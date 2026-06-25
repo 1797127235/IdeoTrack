@@ -9,8 +9,10 @@
 
 ```bash
 cp .env.example .env
-# 编辑 .env，填写 DATABASE_URL、JWT_SECRET 等
+# 编辑 .env，填写 DATABASE_URL、JWT_SECRET、NEXT_PUBLIC_AMAP_JSAPI_KEY 等
 ```
+
+> `NEXT_PUBLIC_AMAP_JSAPI_KEY` 用于 Web 管理后台的地图选点（高德地图 JS API）。
 
 ## 数据库迁移
 
@@ -40,7 +42,7 @@ npm test
 ```bash
 # 1. 在项目根目录创建并编辑环境变量
 cp .env.example .env
-# 修改 POSTGRES_PASSWORD、JWT_SECRET 等关键配置
+# 修改 POSTGRES_PASSWORD、JWT_SECRET、NEXT_PUBLIC_AMAP_JSAPI_KEY 等关键配置
 
 # 2. 启动服务
 docker compose up -d
@@ -58,6 +60,19 @@ docker compose --profile with-caddy up -d
 ```
 
 > 小程序业务域名必须是**备案域名 + HTTPS**。国外服务器无需备案，但中国大陆访问可能不稳定。
+
+## 任务签到范围
+
+任务表 `tasks` 包含以下字段，用于限定学生签到的地理位置：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `geo_lat` | DECIMAL(10,8) | 签到范围中心纬度 |
+| `geo_lng` | DECIMAL(11,8) | 签到范围中心经度 |
+| `geo_radius_meters` | INTEGER | 签到半径（50-5000 米） |
+| `geo_address` | TEXT | 地点名称/地址 |
+
+创建/更新任务时传入这些字段，学生签到时后端会计算距离，超出范围返回 `CHECKIN_OUTSIDE_GEOFENCE`。
 
 ## API 接口
 
