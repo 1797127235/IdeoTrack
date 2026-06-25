@@ -85,7 +85,6 @@
       <view class="header">
         <view class="header-top">
           <view>
-            <view class="greeting">任务看板</view>
             <view class="date-text">所辖班级任务完成情况</view>
           </view>
           <view class="export-btn" bindtap="goToExport">导出数据</view>
