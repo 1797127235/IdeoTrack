@@ -40,6 +40,10 @@ export interface TaskDetail extends StudentTask {
   ai_review_reason_code?: string;
   reflection_modified?: boolean;
   review_feedback?: string;
+  geo_lat?: number | null;
+  geo_lng?: number | null;
+  geo_radius_meters?: number | null;
+  geo_address?: string | null;
 }
 
 export interface CounselorClass {

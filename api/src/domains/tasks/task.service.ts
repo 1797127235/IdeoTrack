@@ -832,5 +832,9 @@ export async function getMyTaskDetail(userId: string, taskId: string): Promise<T
     reflection_modified: checkIn?.reflection_modified,
     review_feedback: checkIn?.review_feedback ?? undefined,
     completed_at: status === 'completed' ? checkIn?.created_at : undefined,
+    geo_lat: task.geo_lat,
+    geo_lng: task.geo_lng,
+    geo_radius_meters: task.geo_radius_meters,
+    geo_address: task.geo_address,
   };
 }

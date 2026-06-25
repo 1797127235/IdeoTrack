@@ -29,7 +29,7 @@ export const createTaskSchema = z.object({
   deadline_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage),
   geo_lat: z.number().min(-90).max(90).nullable().optional(),
   geo_lng: z.number().min(-180).max(180).nullable().optional(),
-  geo_radius_meters: z.number().int().min(50).max(5000).nullable().optional(),
+  geo_radius_meters: z.number().int().min(50).max(1000).nullable().optional(),
   geo_address: z.string().trim().max(200).nullable().optional(),
 }).refine(
   (data) => {
@@ -90,7 +90,7 @@ export const updateTaskSchema = z.object({
   deadline_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage).optional(),
   geo_lat: z.number().min(-90).max(90).nullable().optional(),
   geo_lng: z.number().min(-180).max(180).nullable().optional(),
-  geo_radius_meters: z.number().int().min(50).max(5000).nullable().optional(),
+  geo_radius_meters: z.number().int().min(50).max(1000).nullable().optional(),
   geo_address: z.string().trim().max(200).nullable().optional(),
   // P1: status 字段保留以兼容前端类型，但 controller 会拒绝通过 update 修改 status
   status: z.enum(['published', 'delisted']).optional(),

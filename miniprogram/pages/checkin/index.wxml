@@ -21,6 +21,15 @@
     <view class="location-card">
       <text class="card-title">当前位置</text>
 
+      <block wx:if="{{geofenceHint}}">
+        <view class="geofence-hint {{outOfRange ? 'danger' : ''}}">
+          <text class="hint-icon">📍</text>
+          <text class="hint-text">{{geofenceHint}}</text>
+          <text wx:if="{{outOfRange}}" class="hint-status">（当前不在范围内）</text>
+          <text wx:elif="{{locationReady}}" class="hint-status success">（已在范围内）</text>
+        </view>
+      </block>
+
       <block wx:if="{{locationLoading}}">
         <view class="location-loading">
           <view class="spinner"></view>
@@ -56,8 +65,8 @@
 
     <view class="footer">
       <button
-        class="submit-btn {{submitting || locationLoading || locationError || taskLoading ? 'disabled' : ''}}"
-        disabled="{{submitting || locationLoading || locationError || taskLoading}}"
+        class="submit-btn {{submitting || locationLoading || locationError || taskLoading || outOfRange ? 'disabled' : ''}}"
+        disabled="{{submitting || locationLoading || locationError || taskLoading || outOfRange}}"
         bindtap="onSubmitCheckIn"
       >
         {{submitting ? '签到中...' : '确认签到'}}

@@ -69,7 +69,7 @@ docker compose --profile with-caddy up -d
 |------|------|------|
 | `geo_lat` | DECIMAL(10,8) | 签到范围中心纬度 |
 | `geo_lng` | DECIMAL(11,8) | 签到范围中心经度 |
-| `geo_radius_meters` | INTEGER | 签到半径（50-5000 米） |
+| `geo_radius_meters` | INTEGER | 签到半径（50-1000 米） |
 | `geo_address` | TEXT | 地点名称/地址 |
 
 创建/更新任务时传入这些字段，学生签到时后端会计算距离，超出范围返回 `CHECKIN_OUTSIDE_GEOFENCE`。

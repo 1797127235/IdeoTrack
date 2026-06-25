@@ -2,6 +2,17 @@ import { createCheckIn } from '../../services/checkinApi';
 import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
 import { formatDeadline } from '../../utils/format';
 
+function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return 6371000 * c;
+}
+
 Page({
   data: {
     taskId: '',
@@ -17,6 +28,8 @@ Page({
     locationReady: false,
     locationError: '',
     submitting: false,
+    geofenceHint: '',
+    outOfRange: false,
   },
 
   onLoad(options: { taskId?: string; title?: string }) {
@@ -40,7 +53,10 @@ Page({
       if (res.success && res.data) {
         const task = res.data;
         wx.setNavigationBarTitle({ title: task.title });
-        this.setData({ task, taskTitle: task.title, deadlineText: formatDeadline(task.deadline_at), taskLoading: false });
+        const geofenceHint = task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null
+          ? `该任务需在「${task.geo_address || '指定位置'}」${task.geo_radius_meters} 米范围内签到`
+          : '';
+        this.setData({ task, taskTitle: task.title, deadlineText: formatDeadline(task.deadline_at), taskLoading: false, geofenceHint });
       } else {
         this.setData({
           taskError: res.error?.message || '获取任务详情失败',
@@ -59,11 +75,23 @@ Page({
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
+        const { task } = this.data;
+        let outOfRange = false;
+        if (task?.geo_lat != null && task?.geo_lng != null && task?.geo_radius_meters != null) {
+          const distance = haversineDistance(
+            res.latitude,
+            res.longitude,
+            task.geo_lat,
+            task.geo_lng
+          );
+          outOfRange = distance > task.geo_radius_meters;
+        }
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
           locationLoading: false,
           locationReady: true,
+          outOfRange,
         });
         this.reverseGeocode(res.latitude, res.longitude);
       },
@@ -110,11 +138,15 @@ Page({
   },
 
   async onSubmitCheckIn() {
-    const { taskId, latitude, longitude, address, locationReady, submitting } = this.data;
+    const { taskId, latitude, longitude, address, locationReady, submitting, outOfRange } = this.data;
 
     if (submitting) return;
     if (!locationReady) {
       wx.showToast({ title: '请等待定位完成', icon: 'none' });
+      return;
+    }
+    if (outOfRange) {
+      wx.showToast({ title: '当前不在签到范围内', icon: 'none' });
       return;
     }
 
