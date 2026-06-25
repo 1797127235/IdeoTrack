@@ -201,7 +201,7 @@ async function listVisibleTaskIds(scope: UserScope): Promise<Task[]> {
      WHERE status = 'published'
        AND published_at <= $1
        AND (${orConditions.join(' OR ')})
-     ORDER BY deadline_at DESC`,
+     ORDER BY deadline_at ASC, published_at DESC`,
     params
   );
 }
