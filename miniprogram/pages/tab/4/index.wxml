@@ -21,21 +21,21 @@
       <view class="stats-card">
         <view class="stat-item">
           <view class="stat-label">积分</view>
-          <view class="stat-value">{{statsLoading ? '-' : stats.points}}</view>
+          <view class="stat-value">{{stats.points}}</view>
         </view>
         <view class="stat-divider"></view>
 
         <view class="stat-item">
           <view class="stat-label">等级</view>
-          <view class="stat-value">Lv.{{statsLoading ? '-' : stats.level.level}}</view>
-          <view class="stat-sub">{{statsLoading ? '' : stats.level.title}}</view>
+          <view class="stat-value">Lv.{{stats.level.level}}</view>
+          <view class="stat-sub">{{stats.level.title}}</view>
         </view>
 
         <view class="stat-divider"></view>
 
         <view class="stat-item" bindtap="goToAchievements">
           <view class="stat-label">勋章</view>
-          <view class="stat-value">{{statsLoading ? '-' : stats.earnedBadgeCount}}</view>
+          <view class="stat-value">{{stats.earnedBadgeCount}}</view>
           <view class="stat-sub">已获得</view>
         </view>
       </view>
@@ -45,15 +45,15 @@
           <view class="streak-main">
             <text class="streak-icon">打卡</text>
             <view class="streak-text">
-              <view class="streak-title">连续打卡 <text class="streak-days">{{statsLoading ? '-' : stats.currentStreak}}</text> 天</view>
+              <view class="streak-title">连续打卡 <text class="streak-days">{{stats.currentStreak}}</text> 天</view>
               <view class="streak-desc">继续加油，养成学习好习惯！</view>
             </view>
           </view>
-          <view class="streak-best">最佳 {{statsLoading ? '-' : stats.maxStreak}} 天</view>
+          <view class="streak-best">最佳 {{stats.maxStreak}} 天</view>
         </view>
 
         <view class="week-days">
-          <view wx:for="{{statsLoading ? [] : stats.recent7Days}}" wx:key="date" class="week-day {{item.checkedIn ? 'checked' : ''}}">
+          <view wx:for="{{stats.recent7Days}}" wx:key="date" class="week-day {{item.checkedIn ? 'checked' : ''}}">
             <view class="day-dot">
               <text wx:if="{{item.checkedIn}}" class="day-check">✓</text>
             </view>
@@ -62,14 +62,15 @@
         </view>
       </view>
 
-      <view class="badges-card" wx:if="{{!statsLoading}}">
+      <view class="badges-card">
         <view class="section-title">我的勋章</view>
-        <view class="badges-list">
+        <view class="badges-list" wx:if="{{stats.badges.length > 0}}">
           <view wx:for="{{stats.badges}}" wx:key="id" class="badge-item {{item.earned ? '' : 'locked'}}">
             <text class="badge-icon">{{item.name[0]}}</text>
             <text class="badge-name">{{item.name}}</text>
           </view>
         </view>
+        <view wx:else class="badges-empty">暂无勋章，快去打卡获得吧~</view>
       </view>
     </block>
 

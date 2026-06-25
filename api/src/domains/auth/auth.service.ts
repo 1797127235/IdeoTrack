@@ -110,19 +110,19 @@ export async function getMe(userId: string): Promise<{
     managed_classes_count: number;
     college_names: string | null;
   }>(
-    `SELECT
-       u.id,
-       u.role,
-       u.name,
-       u.school_id,
-       COUNT(DISTINCT cc.class_id)::int AS managed_classes_count,
-       STRING_AGG(DISTINCT co.name, ', ') AS college_names
-     FROM users u
-     LEFT JOIN counselor_classes cc ON cc.counselor_id = u.id
-     LEFT JOIN classes c ON c.id = cc.class_id
-     LEFT JOIN colleges co ON co.id = c.college_id
-     WHERE u.id = $1
-     GROUP BY u.id, u.role, u.name, u.school_id`,
+     `SELECT
+        u.id,
+        u.role,
+        COALESCE(NULLIF(u.name, ''), u.school_id) AS name,
+        u.school_id,
+        COUNT(DISTINCT cc.class_id)::int AS managed_classes_count,
+        STRING_AGG(DISTINCT co.name, ', ') AS college_names
+      FROM users u
+      LEFT JOIN counselor_classes cc ON cc.counselor_id = u.id
+      LEFT JOIN classes c ON c.id = cc.class_id
+      LEFT JOIN colleges co ON co.id = c.college_id
+      WHERE u.id = $1
+      GROUP BY u.id, u.role, u.name, u.school_id`,
     [userId]
   );
   if (!row) {

@@ -2,13 +2,28 @@ import { logout, getUserRole } from '../../../utils/auth';
 import { getMe, getMeStats, type MeResponse, type MeStatsResponse } from '../../../services/authApi';
 import { updateTabBarSelected } from '../../../utils/tabBar';
 
+const defaultStats: MeStatsResponse = {
+  points: 0,
+  level: { level: 1, title: '学习新兵', minPoints: 0, maxPoints: 99 },
+  badges: [],
+  earnedBadgeCount: 0,
+  currentStreak: 0,
+  maxStreak: 0,
+  totalApproved: 0,
+  recent7Days: Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return { date: d.toISOString().slice(0, 10), checkedIn: false };
+  }),
+};
+
 Page({
   data: {
     role: '' as 'student' | 'counselor' | 'admin' | '',
     showReviewEntry: false,
     profile: null as MeResponse | null,
     profileLoading: true,
-    stats: null as MeStatsResponse | null,
+    stats: defaultStats as MeStatsResponse,
     statsLoading: true,
   },
 
@@ -18,6 +33,7 @@ Page({
     this.setData({
       role,
       showReviewEntry: role === 'counselor' || role === 'admin',
+      stats: defaultStats,
     });
     this.loadProfile();
     if (role === 'student') {
@@ -31,7 +47,9 @@ Page({
       const profile = await getMe();
       this.setData({ profile, profileLoading: false });
     } catch (err) {
+      const message = err instanceof Error ? err.message : '获取用户信息失败';
       console.error('获取用户信息失败:', err);
+      wx.showToast({ title: message, icon: 'none' });
       this.setData({ profile: null, profileLoading: false });
     }
   },
@@ -42,8 +60,10 @@ Page({
       const stats = await getMeStats();
       this.setData({ stats, statsLoading: false });
     } catch (err) {
+      const message = err instanceof Error ? err.message : '获取统计数据失败';
       console.error('获取用户统计失败:', err);
-      this.setData({ stats: null, statsLoading: false });
+      wx.showToast({ title: message, icon: 'none' });
+      this.setData({ stats: defaultStats, statsLoading: false });
     }
   },
 

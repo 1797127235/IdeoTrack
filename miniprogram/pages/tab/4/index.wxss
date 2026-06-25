@@ -345,6 +345,13 @@
   color: #94A3B8;
 }
 
+.badges-empty {
+  font-size: 26rpx;
+  color: #94A3B8;
+  text-align: center;
+  padding: 24rpx 0;
+}
+
 /*  */
 .menu-list {
   background-color: #FFFFFF;
