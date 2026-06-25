@@ -13,6 +13,8 @@ import type {
   SubmitReflectionInput,
   CalendarDay,
   CalendarMonth,
+  StudyRecordsResult,
+  StudyRecordItem,
 } from './checkins.types.js';
 import type { AIReviewResult } from '../reviews/reviews.types.js';
 
@@ -372,4 +374,72 @@ export async function submitReflection(
   }
 
   return toCheckInResponse(finalRows[0]);
+}
+
+export async function getStudyRecords(
+  userId: string,
+  type: string | undefined,
+  page = 1,
+  limit = 20
+): Promise<StudyRecordsResult> {
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(50, Math.max(1, limit));
+  const offset = (safePage - 1) * safeLimit;
+
+  const whereType = type === 'reflection'
+    ? "AND ci.reflection_content IS NOT NULL AND ci.reflection_content <> ''"
+    : type === 'task'
+    ? "AND ci.status IN ('approved', 'ai_approved')"
+    : '';
+
+  const items = await query<{
+    id: string;
+    task_id: string;
+    task_title: string;
+    status: string;
+    checked_in_at: string;
+    reflection_content: string | null;
+    points: number;
+  }>(
+    `SELECT ci.id,
+            ci.task_id,
+            t.title AS task_title,
+            ci.status,
+            ci.checked_in_at,
+            ci.reflection_content,
+            COALESCE(SUM(pr.points), 0)::int AS points
+     FROM check_ins ci
+     JOIN tasks t ON ci.task_id = t.id
+     LEFT JOIN point_records pr ON pr.check_in_id = ci.id
+     WHERE ci.user_id = $1
+       ${whereType}
+     GROUP BY ci.id, ci.task_id, t.title, ci.status, ci.checked_in_at, ci.reflection_content
+     ORDER BY ci.checked_in_at DESC
+     LIMIT $2 OFFSET $3`,
+    [userId, safeLimit, offset]
+  );
+
+  const countRow = await queryOne<{ total: number }>(
+    `SELECT COUNT(*)::int AS total
+     FROM check_ins ci
+     JOIN tasks t ON ci.task_id = t.id
+     WHERE ci.user_id = $1
+       ${whereType}`,
+    [userId]
+  );
+
+  return {
+    items: items.map((row) => ({
+      id: row.id,
+      taskId: row.task_id,
+      taskTitle: row.task_title,
+      status: row.status as StudyRecordItem['status'],
+      checkedInAt: row.checked_in_at,
+      reflectionContent: row.reflection_content,
+      points: row.points,
+    })),
+    total: countRow?.total ?? 0,
+    page: safePage,
+    limit: safeLimit,
+  };
 }

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
-import { createOrUpdateCheckIn, getCheckInResult, getStudentCalendar, submitReflection } from './checkins.service.js';
+import { createOrUpdateCheckIn, getCheckInResult, getStudentCalendar, submitReflection, getStudyRecords } from './checkins.service.js';
 import { createCheckInSchema, submitReflectionSchema } from './checkins.schema.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -117,6 +117,31 @@ export async function getStudentCalendarController(
     }
 
     const result = await getStudentCalendar(req.user.userId, year, month);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getStudyRecordsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const type = req.query.type as string | undefined;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 20;
+
+    const result = await getStudyRecords(req.user.userId, type, page, limit);
 
     res.status(200).json({
       success: true,

@@ -1,64 +1,117 @@
-<view class="container calendar-container">
-  <!-- 月份切换 -->
-  <view class="calendar-header">
-    <view class="nav-btn" bindtap="prevMonth">
-      <text class="nav-icon">‹</text>
-    </view>
-    <view class="month-title">{{year}}年{{monthText}}</view>
-    <view class="nav-btn" bindtap="nextMonth">
-      <text class="nav-icon">›</text>
-    </view>
-  </view>
-
-  <!-- 星期标题 -->
-  <view class="weekdays">
-    <view class="weekday" wx:for="{{weekdays}}" wx:key="*this">{{item}}</view>
-  </view>
-
-  <!-- 日历网格 -->
-  <view class="calendar-grid">
+<view class="page">
+  <!-- Tab 切换 -->
+  <view class="tab-header">
     <view
-      class="day-cell {{item.inMonth ? '' : 'out-month'}} {{item.checkedIn ? 'checked-in' : ''}}"
-      wx:for="{{days}}"
-      wx:key="dayString"
-      data-daystring="{{item.dayString}}"
-      bindtap="onSelectDay"
+      wx:for="{{[{key:'calendar',label:'日历视图'},{key:'tasks',label:'任务记录'},{key:'reflections',label:'心得记录'}]}}"
+      wx:key="key"
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      data-tab="{{item.key}}"
+      bindtap="switchTab"
     >
-      <text class="day-number">{{item.day}}</text>
+      {{item.label}}
     </view>
   </view>
 
-  <!-- 加载/错误 -->
-  <view class="loading-state" wx:if="{{loading}}">
-    <view class="spinner"></view>
-    <text class="loading-text">加载中...</text>
-  </view>
-
-  <view class="error-state" wx:if="{{error}}">
-    <text>{{error}}</text>
-  </view>
-
-  <!-- 详情弹窗 -->
-  <view class="detail-mask" wx:if="{{showDetail}}" bindtap="closeDetail">
-    <view class="detail-card" catchtap="noop">
-      <view class="detail-header">
-        <text class="detail-date">{{selectedDay.dayString}}</text>
-        <view class="detail-close" bindtap="closeDetail">✕</view>
+  <!-- 日历视图 -->
+  <view class="tab-content" wx:if="{{activeTab === 'calendar'}}">
+    <view class="calendar-header">
+      <view class="nav-btn" bindtap="prevMonth">
+        <text class="nav-icon">‹</text>
       </view>
-      <view class="detail-body">
-        <view class="detail-row">
-          <text class="detail-label">任务</text>
-          <text class="detail-value">{{selectedDay.taskTitle || '未记录'}}</text>
+      <view class="month-title">{{year}}年{{monthText}}</view>
+      <view class="nav-btn" bindtap="nextMonth">
+        <text class="nav-icon">›</text>
+      </view>
+    </view>
+
+    <view class="weekdays">
+      <view class="weekday" wx:for="{{weekdays}}" wx:key="*this">{{item}}</view>
+    </view>
+
+    <view class="calendar-grid">
+      <view
+        class="day-cell {{item.inMonth ? '' : 'out-month'}} {{item.checkedIn ? 'checked-in' : ''}}"
+        wx:for="{{days}}"
+        wx:key="dayString"
+        data-daystring="{{item.dayString}}"
+        bindtap="onSelectDay"
+      >
+        <text class="day-number">{{item.day}}</text>
+      </view>
+    </view>
+
+    <view class="loading-state" wx:if="{{calendarLoading}}">
+      <view class="spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view class="error-state" wx:if="{{calendarError}}">{{calendarError}}</view>
+
+    <!-- 详情弹窗 -->
+    <view class="detail-mask" wx:if="{{showDetail}}" bindtap="closeDetail">
+      <view class="detail-card" catchtap="noop">
+        <view class="detail-header">
+          <text class="detail-date">{{selectedDay.dayString}}</text>
+          <view class="detail-close" bindtap="closeDetail">✕</view>
         </view>
-        <view class="detail-row">
-          <text class="detail-label">状态</text>
-          <text class="detail-value status">{{selectedDay.status || '已打卡'}}</text>
-        </view>
-        <view class="detail-row reflection">
-          <text class="detail-label">心得</text>
-          <text class="detail-reflection">{{selectedDay.reflectionContent || '无'}}</text>
+        <view class="detail-body">
+          <view class="detail-row">
+            <text class="detail-label">任务</text>
+            <text class="detail-value">{{selectedDay.taskTitle || '未记录'}}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">状态</text>
+            <text class="detail-value status">{{selectedDay.status || '已打卡'}}</text>
+          </view>
+          <view class="detail-row reflection">
+            <text class="detail-label">心得</text>
+            <text class="detail-reflection">{{selectedDay.reflectionContent || '无'}}</text>
+          </view>
         </view>
       </view>
     </view>
+  </view>
+
+  <!-- 任务记录 -->
+  <view class="tab-content" wx:elif="{{activeTab === 'tasks'}}">
+    <view class="loading-state" wx:if="{{recordsLoading}}">
+      <view class="spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view class="record-list" wx:elif="{{taskRecords.length > 0}}">
+      <view class="record-card" wx:for="{{taskRecords}}" wx:key="id">
+        <view class="record-header">
+          <text class="record-title">{{item.taskTitle}}</text>
+          <view class="record-status">{{item.status === 'approved' || item.status === 'ai_approved' ? '已完成' : '进行中'}}</view>
+        </view>
+        <view class="record-meta">{{formatDateTime(item.checkedInAt)}}</view>
+        <view class="record-points">获得 {{item.points}} 积分</view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>暂无任务记录</view>
+  </view>
+
+  <!-- 心得记录 -->
+  <view class="tab-content" wx:elif="{{activeTab === 'reflections'}}">
+    <view class="loading-state" wx:if="{{recordsLoading}}">
+      <view class="spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view class="record-list" wx:elif="{{reflectionRecords.length > 0}}">
+      <view class="record-card" wx:for="{{reflectionRecords}}" wx:key="id">
+        <view class="record-header">
+          <text class="record-title">{{item.taskTitle}}</text>
+          <view class="record-status pending" wx:if="{{item.status === 'pending_manual_review' || item.status === 'ai_reviewing'}}">审核中</view>
+          <view class="record-status" wx:else>{{item.status === 'approved' || item.status === 'ai_approved' ? '已通过' : '已提交'}}</view>
+        </view>
+        <view class="record-meta">{{formatDateTime(item.checkedInAt)}}</view>
+        <view class="record-reflection">{{item.reflectionContent}}</view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>暂无心得记录</view>
   </view>
 </view>

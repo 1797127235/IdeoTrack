@@ -76,3 +76,20 @@ export interface CalendarMonth {
   month: number;
   days: CalendarDay[];
 }
+
+export interface StudyRecordItem {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  status: CheckInStatus;
+  checkedInAt: string;
+  reflectionContent: string | null;
+  points: number;
+}
+
+export interface StudyRecordsResult {
+  items: StudyRecordItem[];
+  total: number;
+  page: number;
+  limit: number;
+}

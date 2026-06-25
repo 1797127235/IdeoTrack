@@ -1,5 +1,17 @@
 import { get } from '../../services/api';
-import { updateTabBarSelected } from '../../utils/tabBar';
+import { getStudyRecords, type StudyRecordItem } from '../../services/studyApi';
+
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+interface CalendarCell {
+  day: number;
+  dayString: string;
+  inMonth: boolean;
+  checkedIn: boolean;
+  status?: string;
+  reflectionContent?: string | null;
+  taskTitle?: string | null;
+}
 
 interface CalendarDayData {
   day: string;
@@ -15,22 +27,6 @@ interface CalendarMonth {
   days: CalendarDayData[];
 }
 
-async function fetchStudentCalendar(year: number, month: number) {
-  return get<CalendarMonth>(`/api/checkins/calendar?year=${year}&month=${month}`);
-}
-
-interface CalendarCell {
-  day: number;
-  dayString: string;
-  inMonth: boolean;
-  checkedIn: boolean;
-  status?: string;
-  reflectionContent?: string | null;
-  taskTitle?: string | null;
-}
-
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
-
 function formatDateString(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
@@ -43,10 +39,8 @@ function generateCalendarDays(
   const firstDay = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
   const startWeekday = firstDay.getDay();
-
   const cells: CalendarCell[] = [];
 
-  // 上月填充
   const prevMonthDays = new Date(year, month - 1, 0).getDate();
   for (let i = startWeekday - 1; i >= 0; i--) {
     const day = prevMonthDays - i;
@@ -54,7 +48,6 @@ function generateCalendarDays(
     cells.push({ day, dayString, inMonth: false, checkedIn: false });
   }
 
-  // 当月
   for (let day = 1; day <= daysInMonth; day++) {
     const dayString = formatDateString(year, month, day);
     const data = checkedInMap[dayString];
@@ -69,7 +62,6 @@ function generateCalendarDays(
     });
   }
 
-  // 下月填充，补齐 6 行共 42 格
   const remaining = 42 - cells.length;
   for (let day = 1; day <= remaining; day++) {
     const dayString = formatDateString(month === 12 ? year + 1 : year, month === 12 ? 1 : month + 1, day);
@@ -81,41 +73,77 @@ function generateCalendarDays(
 
 Page({
   data: {
+    activeTab: 'calendar' as 'calendar' | 'tasks' | 'reflections',
     year: 2026,
     month: 1,
     monthText: '1月',
     weekdays: WEEKDAYS,
     days: [] as CalendarCell[],
-    loading: true,
-    error: '',
+    calendarLoading: true,
+    calendarError: '',
     selectedDay: null as CalendarCell | null,
     showDetail: false,
+    taskRecords: [] as StudyRecordItem[],
+    reflectionRecords: [] as StudyRecordItem[],
+    recordsLoading: true,
   },
 
-  onShow() {
-    updateTabBarSelected();
+  onLoad() {
     const now = new Date();
     this.setData({ year: now.getFullYear(), month: now.getMonth() + 1 });
     this.loadCalendar(this.data.year, this.data.month);
+    this.loadRecords();
+  },
+
+  onShow() {
+    if (this.data.days.length > 0) {
+      this.loadCalendar(this.data.year, this.data.month);
+    }
+    this.loadRecords();
+  },
+
+  switchTab(e: WechatMiniprogram.TouchEvent) {
+    const tab = e.currentTarget.dataset.tab as 'calendar' | 'tasks' | 'reflections';
+    this.setData({ activeTab: tab });
   },
 
   async loadCalendar(year: number, month: number) {
-    this.setData({ loading: true, error: '', monthText: `${month}月` });
+    this.setData({ calendarLoading: true, calendarError: '', monthText: `${month}月` });
     try {
-      const res = await fetchStudentCalendar(year, month);
+      const res = await get<CalendarMonth>(`/api/checkins/calendar?year=${year}&month=${month}`);
       if (res.success && res.data) {
         const checkedInMap: Record<string, CalendarDayData> = {};
         res.data.days.forEach((d) => {
           checkedInMap[d.day] = d;
         });
         const days = generateCalendarDays(year, month, checkedInMap);
-        this.setData({ days, loading: false });
+        this.setData({ days, calendarLoading: false });
       } else {
-        this.setData({ error: res.error?.message || '获取日历失败', loading: false, days: [] });
+        this.setData({ calendarError: res.error?.message || '获取日历失败', calendarLoading: false, days: [] });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '获取日历失败';
-      this.setData({ error: message, loading: false, days: [] });
+      this.setData({ calendarError: message, calendarLoading: false, days: [] });
+    }
+  },
+
+  async loadRecords() {
+    this.setData({ recordsLoading: true });
+    try {
+      const [taskRes, reflectionRes] = await Promise.all([
+        getStudyRecords('task'),
+        getStudyRecords('reflection'),
+      ]);
+      this.setData({
+        taskRecords: taskRes.items,
+        reflectionRecords: reflectionRes.items,
+        recordsLoading: false,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '获取记录失败';
+      console.error('获取学习记录失败:', err);
+      wx.showToast({ title: message, icon: 'none' });
+      this.setData({ recordsLoading: false });
     }
   },
 
@@ -150,5 +178,10 @@ Page({
 
   noop() {
     // 阻止弹窗内容点击冒泡到遮罩
+  },
+
+  formatDateTime(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   },
 });
