@@ -85,7 +85,7 @@ export default function GeofencePicker({ value, onChange }: GeofencePickerProps)
     AMapLoader.load({
       key: AMAP_KEY,
       version: "2.0",
-      plugins: ["AMap.PlaceSearch", "AMap.Geocoder"],
+      plugins: ["AMap.PlaceSearch", "AMap.Geocoder", "AMap.Geolocation"],
     })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then(async (AMap: any) => {
@@ -95,16 +95,23 @@ export default function GeofencePicker({ value, onChange }: GeofencePickerProps)
           ? [value.lng, value.lat]
           : [DEFAULT_CENTER.lng, DEFAULT_CENTER.lat];
 
-        if (!value && navigator.geolocation) {
+        if (!value) {
           try {
-            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0,
+            const geolocation = new AMap.Geolocation({
+              enableHighAccuracy: true,
+              timeout: 5000,
+              noIpLocate: 0,
+            });
+            const result = await new Promise<{ position: { lat: number; lng: number }; accuracy: number }>((resolve, reject) => {
+              geolocation.getCurrentPosition((status: string, res: Record<string, unknown>) => {
+                if (status === 'complete' && res.position) {
+                  resolve(res as { position: { lat: number; lng: number }; accuracy: number });
+                } else {
+                  reject(new Error(String(res.message || '定位失败')));
+                }
               });
             });
-            initialCenter = [pos.coords.longitude, pos.coords.latitude];
+            initialCenter = [result.position.lng, result.position.lat];
           } catch {
             // 定位失败则使用默认中心
           }
@@ -146,7 +153,7 @@ export default function GeofencePicker({ value, onChange }: GeofencePickerProps)
           updateCenter(lnglat.lat, lnglat.lng, true);
         });
 
-        if (!value && navigator.geolocation) {
+        if (!value) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           updateCenter((initialCenter as any)[1], (initialCenter as any)[0], true);
         }
