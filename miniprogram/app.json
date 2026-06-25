@@ -5,7 +5,6 @@
     "pages/tab/0/index",
     "pages/tab/1/index",
     "pages/tab/2/index",
-    "pages/tab/3/index",
     "pages/tab/4/index",
     "pages/home/index",
     "pages/leaderboard/index",
@@ -50,10 +49,6 @@
       {
         "pagePath": "pages/tab/2/index",
         "text": "日历"
-      },
-      {
-        "pagePath": "pages/tab/3/index",
-        "text": "统计"
       },
       {
         "pagePath": "pages/tab/4/index",
