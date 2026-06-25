@@ -26,7 +26,7 @@ WHERE c.name LIKE 'Demo-%学院';
 
 -- 创建辅导员（每学院 1 名，带该学院所有班级）
 WITH ranked_colleges AS (
-  SELECT id, name, row_number() OVER (ORDER BY id) AS rn
+  SELECT id, name AS college_name, row_number() OVER (ORDER BY id) AS rn
   FROM colleges
   WHERE name LIKE 'Demo-%学院'
 ),
@@ -39,12 +39,12 @@ inserted_counselors AS (
          true,
          true
   FROM ranked_colleges rc
-  RETURNING id, name
+  RETURNING id, school_id
 )
 INSERT INTO counselor_classes (counselor_id, class_id)
 SELECT ic.id, cl.id
 FROM inserted_counselors ic
-JOIN ranked_colleges rc ON rc.name = ic.name
+JOIN ranked_colleges rc ON rc.rn = CAST(substring(ic.school_id from 'DEMO-C([0-9]+)') AS INT)
 JOIN classes cl ON cl.college_id = rc.id;
 
 -- 创建学生（每班 25 人）
