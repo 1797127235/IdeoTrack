@@ -1,5 +1,10 @@
 import { getMeStats, type MeStatsResponse } from '../../../services/authApi';
-import { getClassLeaderboard, type LeaderboardResult } from '../../../services/leaderboardApi';
+import {
+  getClassLeaderboard,
+  getCollegeLeaderboard,
+  getSchoolLeaderboard,
+  type LeaderboardResult,
+} from '../../../services/leaderboardApi';
 import { getUserRole } from '../../../utils/auth';
 import { updateTabBarSelected } from '../../../utils/tabBar';
 
@@ -102,7 +107,6 @@ Page({
 
   async loadLeaderboard(scope: 'class' | 'college' | 'school') {
     try {
-      const { getClassLeaderboard, getCollegeLeaderboard, getSchoolLeaderboard } = await import('../../../services/leaderboardApi');
       const fetcher =
         scope === 'class'
           ? getClassLeaderboard
