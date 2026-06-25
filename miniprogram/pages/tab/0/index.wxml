@@ -43,22 +43,28 @@
 
       <view class="tasks-section">
         <view class="section-header">
-          <text class="section-title"></text>
-          <view class="sort-control" bindtap="toggleSort">
-            <text class="sort-text">{{sortAsc ? '' : ''}}</text>
-            <view class="sort-arrow {{sortAsc ? 'asc' : 'desc'}}"></view>
+          <text class="section-title">打卡任务</text>
+          <view class="section-actions">
+            <view class="action-btn {{showSearch ? 'active' : ''}}" bindtap="toggleSearch">
+              <text class="action-icon">搜</text>
+              <text class="action-text">搜索</text>
+            </view>
+            <view class="action-btn" bindtap="toggleSort">
+              <text class="action-icon">排</text>
+              <text class="action-text">{{sortAsc ? '最早' : '最晚'}}</text>
+            </view>
           </view>
         </view>
 
-        <view class="search-bar">
-          <text class="search-icon">搜</text>
+        <view class="search-bar" wx:if="{{showSearch}}">
           <input
             class="search-input"
             type="text"
-            placeholder="搜索任务"
+            placeholder="搜索任务标题或内容"
             placeholder-class="search-placeholder"
             value="{{searchKeyword}}"
             bindinput="onSearchInput"
+            focus="{{showSearch}}"
           />
           <view wx:if="{{searchKeyword}}" class="search-clear" bindtap="clearSearch">✕</view>
         </view>

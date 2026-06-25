@@ -82,6 +82,7 @@ Page({
     tasks: [] as TaskItem[],
     displayedTasks: [] as TaskItem[],
     searchKeyword: '',
+    showSearch: false,
     tasksLoading: true,
     sortAsc: true,
     streakDays: 5,
@@ -183,6 +184,14 @@ Page({
       this.setData({ homeError: message, tasks: [], displayedTasks: [] });
     } finally {
       this.setData({ tasksLoading: false });
+    }
+  },
+
+  toggleSearch() {
+    const showSearch = !this.data.showSearch;
+    this.setData({ showSearch });
+    if (!showSearch) {
+      this.clearSearch();
     }
   },
 

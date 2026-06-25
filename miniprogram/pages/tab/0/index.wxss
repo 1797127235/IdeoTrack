@@ -170,40 +170,54 @@
   color: var(--color-text);
 }
 
-.sort-control {
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background-color: #FFFFFF;
+  border: 2rpx solid #CBD5E1;
+  border-radius: 999rpx;
+  padding: 12rpx 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.action-btn.active {
+  background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%);
+  border-color: #0891B2;
+}
+
+.action-icon {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%);
+  color: #FFFFFF;
+  font-size: 16rpx;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
-  background-color: #FFFFFF;
-  padding: 0 18rpx;
-  border-radius: 999rpx;
-  border: 2rpx solid #CBD5E1;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-  height: 52rpx;
-  box-sizing: border-box;
 }
 
-.sort-text {
+.action-btn.active .action-icon {
+  background: #FFFFFF;
+  color: #0891B2;
+}
+
+.action-text {
   font-size: 24rpx;
   color: #64748B;
   font-weight: 500;
-  white-space: nowrap;
-  line-height: 1;
 }
 
-.sort-arrow {
-  width: 0;
-  height: 0;
-  border-left: 8rpx solid transparent;
-  border-right: 8rpx solid transparent;
-  border-bottom: 10rpx solid #64748B;
-  transition: transform 0.2s ease;
-  flex-shrink: 0;
-}
-
-.sort-arrow.desc {
-  transform: rotate(180deg);
+.action-btn.active .action-text {
+  color: #FFFFFF;
 }
 
 .search-bar {
@@ -219,24 +233,9 @@
   box-sizing: border-box;
 }
 
-.search-icon {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%);
-  color: #FFFFFF;
-  font-size: 18rpx;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16rpx;
-  flex-shrink: 0;
-}
-
 .search-input {
   flex: 1;
-  height: 76rpx;
+  height: 72rpx;
   font-size: 28rpx;
   color: var(--color-text);
 }
@@ -246,12 +245,12 @@
 }
 
 .search-clear {
-  width: 40rpx;
-  height: 40rpx;
+  width: 36rpx;
+  height: 36rpx;
   border-radius: 50%;
   background-color: #CBD5E1;
   color: #FFFFFF;
-  font-size: 22rpx;
+  font-size: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
