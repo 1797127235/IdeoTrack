@@ -2,10 +2,7 @@ import { getDailyQuote, type Quote } from '../../../services/quoteApi';
 import { listMyTasks, type StudentTask } from '../../../services/taskApi';
 import {
   getCounselorDashboard,
-  getClassStudentList,
-  type ClassDashboardItem,
   type CounselorTaskDashboardItem,
-  type ClassStudentItem,
 } from '../../../services/counselorApi';
 import { getUserRole } from '../../../utils/auth';
 import { updateTabBarSelected } from '../../../utils/tabBar';
@@ -17,10 +14,8 @@ interface TaskItem extends StudentTask {
   statusMeta: { label: string; color: string; bgColor: string };
 }
 
-interface DashboardSummary {
-  total_students: number;
-  checked_in_count: number;
-  check_in_rate: number;
+interface DashboardTaskItem extends CounselorTaskDashboardItem {
+  deadlineText: string;
 }
 
 function getGreeting(): string {
@@ -66,13 +61,10 @@ function buildTaskItem(task: StudentTask): TaskItem {
   };
 }
 
-function buildSummary(classes: ClassDashboardItem[]): DashboardSummary {
-  const total = classes.reduce((sum, c) => sum + c.total_students, 0);
-  const checked = classes.reduce((sum, c) => sum + c.checked_in_count, 0);
+function buildDashboardTaskItem(task: CounselorTaskDashboardItem): DashboardTaskItem {
   return {
-    total_students: total,
-    checked_in_count: checked,
-    check_in_rate: total > 0 ? Math.round((checked / total) * 100) : 0,
+    ...task,
+    deadlineText: formatDeadline(task.deadline_at),
   };
 }
 
@@ -100,11 +92,7 @@ Page({
     ],
     homeError: '',
     // Counselor dashboard
-    currentTask: null as CounselorTaskDashboardItem | null,
-    summary: null as DashboardSummary | null,
-    classes: [] as ClassDashboardItem[],
-    focusStudents: [] as ClassStudentItem[],
-    focusLoading: false,
+    dashTasks: [] as DashboardTaskItem[],
     dashLoading: true,
     dashErrorMsg: '',
     // Common
@@ -117,7 +105,7 @@ Page({
     this.setData({ role });
     this.setGreeting();
     if (role === 'counselor') {
-      this.loadCounselorData();
+      this.loadCounselorDashboard();
     } else {
       this.loadStudentData();
     }
@@ -125,7 +113,7 @@ Page({
 
   onPullDownRefresh() {
     this.setData({ refreshing: true });
-    const promise = this.data.role === 'counselor' ? this.loadCounselorData() : this.loadStudentData();
+    const promise = this.data.role === 'counselor' ? this.loadCounselorDashboard() : this.loadStudentData();
     promise.finally(() => {
       this.setData({ refreshing: false });
       wx.stopPullDownRefresh();
@@ -182,45 +170,20 @@ Page({
     }
   },
 
-  async loadCounselorData() {
+  async loadCounselorDashboard() {
     this.setData({ dashLoading: true, dashErrorMsg: '' });
     try {
       const data = await getCounselorDashboard();
-      const currentTask = data.tasks[0] ?? null;
-      const classes = currentTask?.classes ?? [];
       this.setData({
-        currentTask,
-        classes,
-        summary: currentTask ? buildSummary(classes) : null,
+        dashTasks: data.tasks.map(buildDashboardTaskItem),
       });
-      if (classes.length > 0 && currentTask) {
-        this.loadFocusStudents(classes[0].class_id, currentTask.task_id);
-      } else {
-        this.setData({ focusStudents: [] });
-      }
     } catch (err) {
       this.setData({
         dashErrorMsg: err instanceof Error ? err.message : '加载失败',
-        classes: [],
-        summary: null,
-        currentTask: null,
-        focusStudents: [],
+        dashTasks: [],
       });
     } finally {
       this.setData({ dashLoading: false });
-    }
-  },
-
-  async loadFocusStudents(classId: string, taskId: string) {
-    this.setData({ focusLoading: true });
-    try {
-      const data = await getClassStudentList(classId, taskId, 'absent');
-      this.setData({ focusStudents: data.students.slice(0, 5) });
-    } catch (err) {
-      console.error('加载重点关注学生失败:', err);
-      this.setData({ focusStudents: [] });
-    } finally {
-      this.setData({ focusLoading: false });
     }
   },
 
@@ -240,29 +203,13 @@ Page({
     wx.navigateTo({ url: `/pages/checkin/index?taskId=${id}` });
   },
 
-  remindStudent(event: WechatMiniprogram.BaseEvent) {
-    const { studentId, studentName } = event.currentTarget.dataset as { studentId?: string; studentName?: string };
-    if (!studentId) return;
-    wx.showModal({
-      title: '发送提醒',
-      content: `确定要提醒 ${studentName || '该学生'} 打卡吗？`,
-      success: (res) => {
-        if (res.confirm) {
-          wx.showToast({ title: '提醒已发送', icon: 'success' });
-        }
-      },
-    });
-  },
-
-  goToClassDetail(event: WechatMiniprogram.BaseEvent) {
-    const { id, name } = event.currentTarget.dataset as { id?: string; name?: string };
-    const taskId = this.data.currentTask?.task_id;
-    if (!id || !taskId) {
-      wx.showToast({ title: '班级或任务信息缺失', icon: 'none' });
+  goToTaskClasses(event: WechatMiniprogram.BaseEvent) {
+    const { id, title } = event.currentTarget.dataset as { id?: string; title?: string };
+    if (!id) {
+      wx.showToast({ title: '任务信息缺失', icon: 'none' });
       return;
     }
-    const className = name || '班级详情';
-    const url = `/pages/counselor/class-detail/index?classId=${encodeURIComponent(id)}&className=${encodeURIComponent(className)}&taskId=${encodeURIComponent(taskId)}`;
+    const url = `/pages/counselor/classes/index?taskId=${encodeURIComponent(id)}&taskName=${encodeURIComponent(title || '任务详情')}`;
     wx.navigateTo({
       url,
       fail: (err) => {

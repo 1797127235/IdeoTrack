@@ -79,14 +79,14 @@
     </view>
   </block>
 
-  <!-- Counselor Dashboard -->
+  <!-- Counselor Dashboard: task-centric -->
   <block wx:elif="{{role === 'counselor'}}">
     <view class="dashboard-container">
       <view class="header">
         <view class="header-top">
           <view>
-            <view class="greeting">班级数据概览</view>
-            <view class="date-text" wx:if="{{currentTask}}">{{currentTask.title}} · 截止 {{currentTask.deadline_at}}</view>
+            <view class="greeting">任务看板</view>
+            <view class="date-text">所辖班级任务完成情况</view>
           </view>
           <view class="export-btn" bindtap="goToExport">导出数据</view>
         </view>
@@ -94,110 +94,44 @@
 
       <view wx:if="{{dashErrorMsg}}" class="error-tip">{{dashErrorMsg}}</view>
 
-      <view class="kpi-section" wx:if="{{summary}}">
-        <view class="kpi-main">
-          <view class="kpi-label">今日整体打卡率</view>
-          <view class="kpi-value">{{summary.check_in_rate}}%</view>
-          <view class="kpi-sub">较昨日 +6%</view>
-        </view>
-        <view class="kpi-chart">
-          <view class="donut-chart">
-            <view class="donut-center">
-              <text class="donut-rate">{{summary.check_in_rate}}%</text>
-              <text class="donut-label">已打卡</text>
-            </view>
-            <view class="donut-ring" style="background: conic-gradient(var(--color-cta) 0deg, var(--color-cta) {{summary.check_in_rate * 3.6}}deg, var(--color-border) {{summary.check_in_rate * 3.6}}deg);"></view>
-          </view>
-        </view>
-      </view>
-
-      <view class="summary-grid" wx:if="{{summary}}">
-        <view class="summary-card">
-          <view class="summary-value">{{summary.total_students}}</view>
-          <view class="summary-label">应打卡人数</view>
-        </view>
-        <view class="summary-card">
-          <view class="summary-value text-success">{{summary.checked_in_count}}</view>
-          <view class="summary-label">已打卡人数</view>
-        </view>
-        <view class="summary-card">
-          <view class="summary-value text-error">{{summary.total_students - summary.checked_in_count}}</view>
-          <view class="summary-label">未打卡人数</view>
-        </view>
-      </view>
-
-      <view class="focus-section" wx:if="{{!dashLoading}}">
-        <view class="section-header">
-          <text class="section-title">重点关注（未打卡学生）</text>
-          <text class="section-meta" wx:if="{{focusStudents.length > 0}}">共 {{focusStudents.length}} 人</text>
-        </view>
-
-        <view wx:if="{{focusLoading}}" class="skeleton focus-skeleton"></view>
-
-        <block wx:elif="{{focusStudents.length > 0}}">
-          <view class="focus-student" wx:for="{{focusStudents}}" wx:key="student_id">
-            <view class="student-avatar">{{item.student_name[0]}}</view>
-            <view class="student-info">
-              <view class="student-name">{{item.student_name}}</view>
-              <view class="student-meta">{{item.student_school_id}} · 连续 {{item.consecutive_absent_days || 1}} 天未打卡</view>
-            </view>
-            <button class="remind-btn {{item.reminded ? 'reminded' : ''}}" disabled="{{item.reminded}}" data-student-id="{{item.student_id}}" data-student-name="{{item.student_name}}" bindtap="remindStudent">
-              {{item.reminded ? '已提醒' : '提醒'}}
-            </button>
-          </view>
-        </block>
-
-        <view wx:else class="empty-hint">暂无需要重点关注的学生</view>
-      </view>
-
-      <view class="section-header">
-        <text class="section-title">所辖班级</text>
-      </view>
-
-      <view wx:if="{{dashLoading && classes.length === 0}}" class="skeleton-list">
+      <view wx:if="{{dashLoading && dashTasks.length === 0}}" class="skeleton-list">
         <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton class-skeleton"></view>
       </view>
 
-      <block wx:if="{{classes.length > 0}}">
-        <view wx:for="{{classes}}" wx:key="class_id" class="class-card" data-id="{{item.class_id}}" data-name="{{item.class_name}}" bindtap="goToClassDetail">
-          <view class="class-header">
-            <view class="class-title">{{item.class_name}}</view>
-            <view class="college-tag">{{item.college_name}}</view>
+      <block wx:if="{{dashTasks.length > 0}}">
+        <view
+          wx:for="{{dashTasks}}"
+          wx:key="task_id"
+          class="task-card"
+          data-id="{{item.task_id}}"
+          data-title="{{item.title}}"
+          bindtap="goToTaskClasses"
+        >
+          <view class="task-header">
+            <view class="task-title">{{item.title}}</view>
+            <view class="task-deadline">{{item.deadlineText}}</view>
           </view>
 
-          <view class="rate-row">
-            <view class="rate-bar-bg">
-              <view class="rate-bar-fill" style="width: {{item.check_in_rate}}%;"></view>
+          <view wx:for="{{item.classes}}" wx:key="class_id" wx:for-item="cls" class="class-row">
+            <view class="class-info">
+              <view class="class-name">{{cls.class_name}}</view>
+              <view class="class-meta">{{cls.college_name}}</view>
             </view>
-            <view class="rate-value">{{item.check_in_rate}}%</view>
-          </view>
-
-          <view class="stats-row">
-            <view class="stat">
-              <view class="stat-value">{{item.total_students}}</view>
-              <view class="stat-label">应打卡</view>
-            </view>
-            <view class="stat">
-              <view class="stat-value text-success">{{item.checked_in_count}}</view>
-              <view class="stat-label">已打卡</view>
-            </view>
-            <view class="stat">
-              <view class="stat-value text-error">{{item.absent_count}}</view>
-              <view class="stat-label">未打卡</view>
-            </view>
-            <view class="stat">
-              <view class="stat-value text-primary">{{item.reminded_count}}</view>
-              <view class="stat-label">已提醒</view>
+            <view class="class-stats">
+              <view class="rate-bar-bg">
+                <view class="rate-bar-fill" style="width: {{cls.check_in_rate}}%;"></view>
+              </view>
+              <view class="rate-value">{{cls.check_in_rate}}%</view>
             </view>
           </view>
 
-          <view class="card-hint">点击查看学生名单</view>
+          <view class="card-hint">点击查看班级明细</view>
         </view>
       </block>
 
-      <view wx:if="{{!dashLoading && classes.length === 0 && !dashErrorMsg}}" class="empty-state">
-        <view>暂无所辖班级</view>
-        <view class="text-secondary">当前账号未关联班级数据</view>
+      <view wx:if="{{!dashLoading && dashTasks.length === 0 && !dashErrorMsg}}" class="empty-state">
+        <view>暂无负责的任务</view>
+        <view class="text-secondary">管理员发布任务后即可查看</view>
       </view>
     </view>
   </block>
