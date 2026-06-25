@@ -35,7 +35,7 @@
 
         <view class="stat-item" bindtap="goToAchievements">
           <view class="stat-label">勋章</view>
-          <view class="stat-value">{{statsLoading ? '-' : stats.badges.filter(b => b.earned).length}}</view>
+          <view class="stat-value">{{statsLoading ? '-' : stats.earnedBadgeCount}}</view>
           <view class="stat-sub">已获得</view>
         </view>
       </view>

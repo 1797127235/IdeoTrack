@@ -113,6 +113,7 @@ export interface MeStatsResponse {
   points: number;
   level: LevelInfo;
   badges: Badge[];
+  earnedBadgeCount: number;
   currentStreak: number;
   maxStreak: number;
   totalApproved: number;

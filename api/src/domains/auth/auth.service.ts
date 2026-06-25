@@ -211,6 +211,7 @@ export async function getMeStats(userId: string): Promise<{
   points: number;
   level: LevelInfo;
   badges: Badge[];
+  earnedBadgeCount: number;
   currentStreak: number;
   maxStreak: number;
   totalApproved: number;
@@ -237,6 +238,7 @@ export async function getMeStats(userId: string): Promise<{
   const maxStreak = computeMaxStreak(approvedDays);
   const level = computeLevel(points);
   const badges = computeBadges(totalApproved, currentStreak, maxStreak);
+  const earnedBadgeCount = badges.filter((b) => b.earned).length;
 
   const today = new Date();
   const recent7Days: Array<{ date: string; checkedIn: boolean }> = [];
@@ -251,6 +253,7 @@ export async function getMeStats(userId: string): Promise<{
     points,
     level,
     badges,
+    earnedBadgeCount,
     currentStreak,
     maxStreak,
     totalApproved,
