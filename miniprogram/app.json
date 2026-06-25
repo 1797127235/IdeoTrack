@@ -3,7 +3,6 @@
     "pages/auth/login/index",
     "pages/auth/bind/index",
     "pages/tab/0/index",
-    "pages/tab/1/index",
     "pages/tab/2/index",
     "pages/tab/4/index",
     "pages/home/index",
@@ -17,6 +16,7 @@
     "pages/notifications/index",
     "pages/review/index",
     "pages/review/detail/index",
+    "pages/counselor/high-risk-students/index",
     "pages/counselor/dashboard/index",
     "pages/counselor/class-detail/index",
     "pages/counselor/export/index",
@@ -41,10 +41,6 @@
       {
         "pagePath": "pages/tab/0/index",
         "text": "首页"
-      },
-      {
-        "pagePath": "pages/tab/1/index",
-        "text": "排行"
       },
       {
         "pagePath": "pages/tab/2/index",

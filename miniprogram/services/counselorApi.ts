@@ -65,6 +65,24 @@ export interface ClassReminderList {
   reminders: ReminderRecord[];
 }
 
+export interface HighRiskStudent {
+  student_id: string;
+  student_name: string;
+  student_school_id: string;
+  class_id: string;
+  class_name: string;
+  college_name: string;
+  total_tasks: number;
+  absent_count: number;
+  absent_rate: number;
+}
+
+export interface HighRiskStudentList {
+  window_size: number;
+  absent_threshold: number;
+  students: HighRiskStudent[];
+}
+
 export type StudentFilterStatus = 'all' | 'checked_in' | 'absent';
 
 export interface ExportCheckInsInput {
@@ -76,6 +94,22 @@ export interface ExportCheckInsInput {
 export interface ExportJobResult {
   download_url: string;
   expires_at: string;
+}
+
+/**
+ * 获取辅导员所辖班级中，最近 windowSize 个已截止任务里缺卡次数达到阈值的学生。
+ */
+export async function getHighRiskStudents(
+  windowSize = 7,
+  absentThreshold = 3
+): Promise<HighRiskStudentList> {
+  const res = await get<HighRiskStudentList>(
+    `/api/counselor/high-risk-students?window_size=${windowSize}&absent_threshold=${absentThreshold}`
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message || '获取重点关注学生失败');
+  }
+  return res.data;
 }
 
 /**

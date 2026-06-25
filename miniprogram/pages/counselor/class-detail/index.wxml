@@ -41,7 +41,7 @@
     <view
       wx:for="{{students}}"
       wx:key="student_id"
-      class="student-card {{item.checked_in ? 'checked-in' : 'absent'}} {{item.isHighRisk ? 'high-risk' : ''}}"
+      class="student-card {{item.checked_in ? 'checked-in' : 'absent'}}"
     >
       <view
         class="student-row"
@@ -70,12 +70,6 @@
       <view wx:if="{{item.checked_in && item.checkInTimeText}}" class="student-meta">
         打卡时间：{{item.checkInTimeText}}
       </view>
-
-      <view wx:if="{{!item.checked_in}}" class="student-meta">
-        连续未打卡 {{item.consecutive_absent_days}} 天
-      </view>
-
-      <view wx:if="{{item.isHighRisk}}" class="warning-badge">重点关注</view>
 
       <view wx:if="{{item.reflection_content}}" class="reflection">
         {{item.reflection_content}}

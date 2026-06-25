@@ -461,3 +461,58 @@
   height: 180rpx;
   margin-bottom: 20rpx;
 }
+
+/* High risk students card */
+.high-risk-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  margin: 20rpx 32rpx;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+.high-risk-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.high-risk-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.high-risk-count {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #cf1322;
+}
+
+.high-risk-loading {
+  font-size: 26rpx;
+  color: #8c8c8c;
+}
+
+.high-risk-desc {
+  font-size: 24rpx;
+  color: #8c8c8c;
+}
+
+.high-risk-arrow {
+  position: absolute;
+  right: 28rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 28rpx;
+  color: #bfbfbf;
+}
+
+.high-risk-card .high-risk-main,
+.high-risk-card .high-risk-desc {
+  padding-right: 40rpx;
+}

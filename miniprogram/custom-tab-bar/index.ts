@@ -8,14 +8,12 @@ interface TabItem {
 
 const STUDENT_TABS: TabItem[] = [
   { pagePath: 'pages/tab/0/index', text: '首页', iconKey: 'home' },
-  { pagePath: 'pages/tab/1/index', text: '排行', iconKey: 'leaderboard' },
   { pagePath: 'pages/tab/2/index', text: '日历', iconKey: 'calendar' },
   { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
 ];
 
 const COUNSELOR_TABS: TabItem[] = [
   { pagePath: 'pages/tab/0/index', text: '看板', iconKey: 'dashboard' },
-  { pagePath: 'pages/tab/1/index', text: '班级', iconKey: 'students' },
   { pagePath: 'pages/tab/2/index', text: '任务', iconKey: 'tasks' },
   { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
 ];

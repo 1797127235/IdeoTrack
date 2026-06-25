@@ -19,6 +19,8 @@ import type {
   ExportCheckInsInput,
   ExportJobResult,
   ExportRowItem,
+  HighRiskStudent,
+  HighRiskStudentList,
   ReminderRecord,
   ReminderStatus,
   SendRemindersInput,
@@ -645,6 +647,112 @@ export async function getClassReminders(
 
 const MAX_EXPORT_RANGE_DAYS = 90;
 export const MAX_EXPORT_CLASS_IDS = 50;
+
+/**
+ * 获取辅导员所辖班级中，在最近 N 个已截止任务里缺卡次数达到阈值的学生。
+ */
+interface HighRiskRow {
+  student_id: string;
+  student_name: string;
+  student_school_id: string;
+  class_id: string;
+  class_name: string;
+  college_name: string;
+}
+
+export async function getHighRiskStudents(
+  counselorId: string,
+  windowSize: number,
+  absentThreshold: number
+): Promise<HighRiskStudentList> {
+  const managedClasses = await query<{ class_id: string }>(
+    `SELECT class_id FROM counselor_classes WHERE counselor_id = $1`,
+    [counselorId]
+  );
+  const classIds = managedClasses.map((c) => c.class_id);
+
+  if (classIds.length === 0) {
+    return { window_size: windowSize, absent_threshold: absentThreshold, students: [] };
+  }
+
+  const recentTasks = await query<{ task_id: string }>(
+    `SELECT id AS task_id
+     FROM tasks
+     WHERE status = 'published'
+       AND deadline_at <= NOW()
+       AND (
+         scope_type = 'school'
+         OR (scope_type = 'college' AND target_college_id IN (
+           SELECT college_id FROM classes WHERE id = ANY($1::uuid[])
+         ))
+         OR (scope_type = 'class' AND target_class_id = ANY($1::uuid[]))
+       )
+     ORDER BY deadline_at DESC
+     LIMIT $2`,
+    [classIds, windowSize]
+  );
+  const taskIds = recentTasks.map((t) => t.task_id);
+
+  if (taskIds.length === 0) {
+    return { window_size: windowSize, absent_threshold: absentThreshold, students: [] };
+  }
+
+  const students = await query<HighRiskRow>(
+    `SELECT
+       s.id AS student_id,
+       COALESCE(NULLIF(s.name, ''), s.school_id) AS student_name,
+       s.school_id AS student_school_id,
+       c.id AS class_id,
+       c.name AS class_name,
+       co.name AS college_name
+     FROM users s
+     JOIN classes c ON c.id = s.class_id
+     JOIN colleges co ON co.id = c.college_id
+     WHERE s.class_id = ANY($1::uuid[])
+       AND s.role = 'student'`,
+    [classIds]
+  );
+
+  const absentCounts = await query<{ student_id: string; absent_count: number }>(
+    `SELECT
+       s.id AS student_id,
+       COUNT(*)::int AS absent_count
+     FROM users s
+     CROSS JOIN UNNEST($2::uuid[]) AS task_id
+     WHERE s.class_id = ANY($1::uuid[])
+       AND s.role = 'student'
+       AND NOT EXISTS (
+         SELECT 1 FROM check_ins ci
+         WHERE ci.user_id = s.id
+           AND ci.task_id = task_id
+           AND ci.status = 'approved'
+       )
+     GROUP BY s.id`,
+    [classIds, taskIds]
+  );
+
+  const absentMap = new Map(absentCounts.map((r) => [r.student_id, r.absent_count]));
+
+  const result: HighRiskStudent[] = students
+    .map((s) => {
+      const absent = absentMap.get(s.student_id) ?? 0;
+      return {
+        student_id: s.student_id,
+        student_name: s.student_name,
+        student_school_id: s.student_school_id,
+        class_id: s.class_id,
+        class_name: s.class_name,
+        college_name: s.college_name,
+        total_tasks: taskIds.length,
+        absent_count: absent,
+        absent_rate: taskIds.length > 0 ? Math.round((absent / taskIds.length) * 100) : 0,
+      };
+    })
+    .filter((s) => s.absent_count >= absentThreshold)
+    .sort((a, b) => b.absent_count - a.absent_count || b.absent_rate - a.absent_rate);
+
+  return { window_size: windowSize, absent_threshold: absentThreshold, students: result };
+}
 
 /**
  * 校验日期范围参数（复用严格 YYYY-MM-DD 正则，不调 parseDate 因为那是单日）。

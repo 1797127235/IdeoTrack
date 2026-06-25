@@ -84,6 +84,18 @@
     <view class="dashboard-container">
       <view wx:if="{{dashErrorMsg}}" class="error-tip">{{dashErrorMsg}}</view>
 
+      <view class="high-risk-card" bindtap="goToHighRiskStudents">
+        <view class="high-risk-main">
+          <view class="high-risk-title">重点关注学生</view>
+          <view class="high-risk-count" wx:if="{{!highRiskLoading}}">{{highRisk.students.length}} 人</view>
+          <view class="high-risk-loading" wx:else>加载中...</view>
+        </view>
+        <view class="high-risk-desc">
+          最近 {{highRisk.window_size}} 个任务中缺卡 ≥{{highRisk.absent_threshold}} 次
+        </view>
+        <view class="high-risk-arrow">></view>
+      </view>
+
       <view wx:if="{{dashLoading && dashTasks.length === 0}}" class="skeleton-list">
         <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton class-skeleton"></view>
       </view>

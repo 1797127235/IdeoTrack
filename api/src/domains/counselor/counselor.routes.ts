@@ -7,6 +7,7 @@ import {
   getClassStudentsController,
   getCounselorClassesController,
   getDashboardController,
+  getHighRiskStudentsController,
   getTaskClassesController,
   sendRemindersController,
 } from './counselor.controller.js';
@@ -15,6 +16,7 @@ const router = Router();
 
 router.get('/dashboard', authenticate, requireRoles('counselor'), getDashboardController);
 router.get('/classes', authenticate, requireRoles('counselor'), getCounselorClassesController);
+router.get('/high-risk-students', authenticate, requireRoles('counselor'), getHighRiskStudentsController);
 router.get('/tasks/:id/classes', authenticate, requireRoles('counselor'), getTaskClassesController);
 router.get('/classes/:id/students', authenticate, requireRoles('counselor'), getClassStudentsController);
 router.post(

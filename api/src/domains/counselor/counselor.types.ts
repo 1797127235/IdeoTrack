@@ -72,6 +72,24 @@ export interface ClassReminderList {
   reminders: ReminderRecord[];
 }
 
+export interface HighRiskStudent {
+  student_id: string;
+  student_name: string;
+  student_school_id: string;
+  class_id: string;
+  class_name: string;
+  college_name: string;
+  total_tasks: number;
+  absent_count: number;
+  absent_rate: number;
+}
+
+export interface HighRiskStudentList {
+  window_size: number;
+  absent_threshold: number;
+  students: HighRiskStudent[];
+}
+
 /**
  * 导出打卡数据的请求输入（FR-24）。
  * class_ids：辅导员所带班级（后端逐个校验归属）；

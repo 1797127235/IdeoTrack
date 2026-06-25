@@ -7,6 +7,7 @@ import {
   getClassStudentList,
   getCounselorClasses,
   getCounselorDashboard,
+  getHighRiskStudents,
   getTaskClassStats,
   sendReminders,
   MAX_EXPORT_CLASS_IDS,
@@ -20,6 +21,11 @@ const MAX_BATCH_SIZE = 100;
 const sendRemindersSchema = z.object({
   student_ids: z.array(z.string().uuid()).min(1).max(MAX_BATCH_SIZE),
   task_id: z.string().uuid('task_id 必须是 UUID'),
+});
+
+const highRiskQuerySchema = z.object({
+  window_size: z.coerce.number().int().min(1).max(30).default(7),
+  absent_threshold: z.coerce.number().int().min(1).max(30).default(3),
 });
 
 function parseClassId(raw: unknown): string {
@@ -92,6 +98,33 @@ export async function getClassStudentsController(
       : 'all';
 
     const data = await getClassStudentList(req.user.userId, classId, taskId, status);
+
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getHighRiskStudentsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const parsed = highRiskQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues.map((i) => i.message).join('; '), 400);
+    }
+
+    const data = await getHighRiskStudents(
+      req.user.userId,
+      parsed.data.window_size,
+      parsed.data.absent_threshold
+    );
 
     res.status(200).json({ success: true, data });
   } catch (err) {

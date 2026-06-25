@@ -8,7 +8,6 @@ import { formatDateTime } from '../../../utils/format';
 
 interface StudentViewItem extends ClassStudentItem {
   checkInTimeText: string;
-  isHighRisk: boolean;
 }
 
 const STATUS_OPTIONS: { value: StudentFilterStatus; label: string }[] = [
@@ -77,7 +76,6 @@ Page({
       const students = data.students.map<StudentViewItem>((s) => ({
         ...s,
         checkInTimeText: s.checked_in_at ? formatDateTime(s.checked_in_at) : '',
-        isHighRisk: !s.checked_in && s.consecutive_absent_days >= 3,
       }));
       const total = students.length;
       const checkedCount = students.filter((s) => s.checked_in).length;

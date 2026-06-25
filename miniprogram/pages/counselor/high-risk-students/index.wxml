@@ -1,0 +1,53 @@
+<view class="page">
+  <view class="summary-bar">
+    <view class="summary-item">
+      <view class="summary-value">{{list.window_size}}</view>
+      <view class="summary-label">近期任务</view>
+    </view>
+    <view class="summary-item">
+      <view class="summary-value">{{list.absent_threshold}}</view>
+      <view class="summary-label">缺卡阈值</view>
+    </view>
+    <view class="summary-item">
+      <view class="summary-value">{{list.students.length}}</view>
+      <view class="summary-label">重点关注</view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && list.students.length === 0}}" class="skeleton-list">
+    <view wx:for="{{[1,2,3,4]}}" wx:key="*this" class="skeleton student-skeleton"></view>
+  </view>
+
+  <view wx:elif="{{list.students.length > 0}}" class="student-list">
+    <view
+      wx:for="{{list.students}}"
+      wx:key="student_id"
+      class="student-card"
+      data-id="{{item.student_id}}"
+      data-class-id="{{item.class_id}}"
+      bindtap="goToClassDetail"
+    >
+      <view class="student-row">
+        <view class="student-info">
+          <view class="student-name">{{item.student_name}}</view>
+          <view class="student-school-id">{{item.student_school_id}}</view>
+          <view class="student-class">{{item.college_name}} · {{item.class_name}}</view>
+        </view>
+        <view class="stat-badge">
+          <view class="stat-value">{{item.absent_count}}/{{item.total_tasks}}</view>
+          <view class="stat-label">缺卡</view>
+        </view>
+      </view>
+      <view class="rate-bar-bg">
+        <view class="rate-bar-fill" style="width: {{item.absent_rate}}%;"></view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="empty-state">
+    <view>暂无重点关注学生</view>
+    <view class="empty-sub">近期任务缺卡次数少于 {{list.absent_threshold}} 次</view>
+  </view>
+
+  <view wx:if="{{errorMsg}}" class="error-tip">{{errorMsg}}</view>
+</view>

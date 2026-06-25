@@ -2,7 +2,9 @@ import { getDailyQuote, type Quote } from '../../../services/quoteApi';
 import { listMyTasks, type StudentTask } from '../../../services/taskApi';
 import {
   getCounselorDashboard,
+  getHighRiskStudents,
   type CounselorTaskDashboardItem,
+  type HighRiskStudentList,
 } from '../../../services/counselorApi';
 import { getUserRole } from '../../../utils/auth';
 import { updateTabBarSelected } from '../../../utils/tabBar';
@@ -95,6 +97,13 @@ Page({
     dashTasks: [] as DashboardTaskItem[],
     dashLoading: true,
     dashErrorMsg: '',
+    highRisk: {
+      window_size: 7,
+      absent_threshold: 3,
+      students: [],
+    } as HighRiskStudentList,
+    highRiskLoading: true,
+    highRiskErrorMsg: '',
     // Common
     refreshing: false,
   },
@@ -171,20 +180,35 @@ Page({
   },
 
   async loadCounselorDashboard() {
-    this.setData({ dashLoading: true, dashErrorMsg: '' });
-    try {
-      const data = await getCounselorDashboard();
-      this.setData({
-        dashTasks: data.tasks.map(buildDashboardTaskItem),
+    this.setData({ dashLoading: true, dashErrorMsg: '', highRiskLoading: true, highRiskErrorMsg: '' });
+
+    const dashPromise = getCounselorDashboard()
+      .then((data) => {
+        this.setData({ dashTasks: data.tasks.map(buildDashboardTaskItem) });
+      })
+      .catch((err) => {
+        this.setData({
+          dashErrorMsg: err instanceof Error ? err.message : '加载失败',
+          dashTasks: [],
+        });
       });
-    } catch (err) {
-      this.setData({
-        dashErrorMsg: err instanceof Error ? err.message : '加载失败',
-        dashTasks: [],
+
+    const highRiskPromise = getHighRiskStudents()
+      .then((data) => {
+        this.setData({ highRisk: data });
+      })
+      .catch((err) => {
+        this.setData({
+          highRiskErrorMsg: err instanceof Error ? err.message : '加载失败',
+        });
       });
-    } finally {
-      this.setData({ dashLoading: false });
-    }
+
+    await Promise.all([dashPromise, highRiskPromise]);
+    this.setData({ dashLoading: false, highRiskLoading: false });
+  },
+
+  goToHighRiskStudents() {
+    wx.navigateTo({ url: '/pages/counselor/high-risk-students/index' });
   },
 
   goToCalendar() {
