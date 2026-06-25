@@ -109,6 +109,22 @@ export interface LevelInfo {
   maxPoints: number | null;
 }
 
+export interface MonthlyOverview {
+  completedTasks: number;
+  totalTasks: number;
+  completionRate: number;
+  currentStreak: number;
+  maxStreak: number;
+  reflections: number;
+  points: number;
+}
+
+export interface WeeklyBarItem {
+  day: string;
+  label: string;
+  completed: number;
+}
+
 export interface MeStatsResponse {
   points: number;
   level: LevelInfo;
@@ -118,6 +134,8 @@ export interface MeStatsResponse {
   maxStreak: number;
   totalApproved: number;
   recent7Days: Array<{ date: string; checkedIn: boolean }>;
+  monthly: MonthlyOverview;
+  weekly: WeeklyBarItem[];
 }
 
 /**

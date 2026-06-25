@@ -8,7 +8,7 @@ interface TabItem {
 
 const STUDENT_TABS: TabItem[] = [
   { pagePath: 'pages/tab/0/index', text: '首页', iconKey: 'home' },
-  { pagePath: 'pages/tab/2/index', text: '日历', iconKey: 'calendar' },
+  { pagePath: 'pages/tab/2/index', text: '成长', iconKey: 'stats' },
   { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
 ];
 

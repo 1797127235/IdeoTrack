@@ -212,7 +212,7 @@ Page({
   },
 
   goToCalendar() {
-    wx.switchTab({ url: '/pages/tab/2/index' });
+    wx.navigateTo({ url: '/pages/calendar/index' });
   },
 
   goToTask(event: WechatMiniprogram.BaseEvent) {

@@ -1,111 +1,126 @@
-<view class="tab-page">
-  <!-- Student Calendar -->
-  <block wx:if="{{role === 'student'}}">
-    <view class="container calendar-container">
-      <view class="calendar-header">
-        <view class="nav-btn" bindtap="prevMonth">
-          <text class="nav-icon">‹</text>
-        </view>
-        <view class="month-title">{{year}}年{{monthText}}</view>
-        <view class="nav-btn" bindtap="nextMonth">
-          <text class="nav-icon">›</text>
-        </view>
+<view class="page">
+  <view class="header-bg"></view>
+
+  <view class="content">
+    <!-- 本月成长概览 -->
+    <view class="overview-card">
+      <view class="overview-header">
+        <view class="overview-title">本月成长概览</view>
+        <view class="overview-month">本月 ›</view>
       </view>
 
-      <view class="weekdays">
-        <view class="weekday" wx:for="{{weekdays}}" wx:key="*this">{{item}}</view>
-      </view>
-
-      <view class="calendar-grid">
-        <view
-          class="day-cell {{item.inMonth ? '' : 'out-month'}} {{item.checkedIn ? 'checked-in' : ''}}"
-          wx:for="{{days}}"
-          wx:key="dayString"
-          data-daystring="{{item.dayString}}"
-          bindtap="onSelectDay"
-        >
-          <text class="day-number">{{item.day}}</text>
+      <view class="overview-main">
+        <view class="medal">
+          <text class="medal-icon">勋章</text>
+        </view>
+        <view class="overview-text">
+          <view class="overview-percent"><text class="highlight">0%</text> 完成率</view>
+          <view class="overview-desc">继续保持，遇见更好的自己！</view>
         </view>
       </view>
 
-      <view class="loading-state" wx:if="{{calendarLoading}}">
-        <view class="spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
+      <view class="overview-grid">
+        <view class="overview-item">
+          <text class="overview-icon task-icon">任务</text>
+          <view class="overview-value">{{loading ? '-' : stats.monthly.completedTasks}}/{{loading ? '-' : stats.monthly.totalTasks}}</view>
+          <view class="overview-label">完成任务</view>
+          <view class="overview-sub">完成率 {{loading ? '-' : stats.monthly.completionRate}}%</view>
+        </view>
 
-      <view class="error-state" wx:if="{{calendarError}}">
-        <text>{{calendarError}}</text>
-      </view>
+        <view class="overview-item">
+          <text class="overview-icon streak-icon">打卡</text>
+          <view class="overview-value">{{loading ? '-' : stats.monthly.maxStreak}}</view>
+          <view class="overview-label">连续打卡</view>
+          <view class="overview-sub">最长 {{loading ? '-' : stats.monthly.maxStreak}} 天</view>
+        </view>
 
-      <view class="detail-mask" wx:if="{{showDetail}}" bindtap="closeDetail">
-        <view class="detail-card" catchtap="noop">
-          <view class="detail-header">
-            <text class="detail-date">{{selectedDay.dayString}}</text>
-            <view class="detail-close" bindtap="closeDetail">✕</view>
-          </view>
-          <view class="detail-body">
-            <view class="detail-row">
-              <text class="detail-label">任务</text>
-              <text class="detail-value">{{selectedDay.taskTitle || '未记录'}}</text>
-            </view>
-            <view class="detail-row">
-              <text class="detail-label">状态</text>
-              <text class="detail-value status">{{selectedDay.status || '已打卡'}}</text>
-            </view>
-            <view class="detail-row reflection">
-              <text class="detail-label">心得</text>
-              <text class="detail-reflection">{{selectedDay.reflectionContent || '无'}}</text>
-            </view>
-          </view>
+        <view class="overview-item">
+          <text class="overview-icon reflection-icon">心得</text>
+          <view class="overview-value">{{loading ? '-' : stats.monthly.reflections}}</view>
+          <view class="overview-label">提交心得</view>
+          <view class="overview-sub">本月提交</view>
+        </view>
+
+        <view class="overview-item">
+          <text class="overview-icon points-icon">积分</text>
+          <view class="overview-value">{{loading ? '-' : stats.monthly.points}}</view>
+          <view class="overview-label">累计积分</view>
+          <view class="overview-sub">+{{loading ? '-' : stats.monthly.points}} 本月</view>
         </view>
       </view>
     </view>
-  </block>
 
-  <!-- Counselor Tasks -->
-  <block wx:elif="{{role === 'counselor'}}">
-    <view class="page">
-      <view class="container">
-        <view class="section">
-          <view class="section-header">
-            <view class="section-title">任务池</view>
-            <view class="section-count">{{poolTasks.length}} 个可派发</view>
-          </view>
-          <view class="task-list" wx:if="{{poolTasks.length > 0}}">
-            <view wx:for="{{poolTasks}}" wx:key="id" class="task-card">
-              <view class="task-info">
-                <view class="task-title">{{item.title}}</view>
-                <view class="task-meta">截止 {{item.deadline_at}}</view>
-              </view>
-              <view class="dispatch-btn" data-id="{{item.id}}" bindtap="dispatchTask">派发</view>
-            </view>
-          </view>
-          <view class="empty-state" wx:else>
-            <view class="empty-icon empty-icon-pool"></view>
-            <view class="empty-text">暂无任务池任务</view>
-          </view>
+    <!-- 等级进度 -->
+    <view class="level-card">
+      <view class="level-main">
+        <view class="level-badge-lg">Lv.{{stats.level.level}}</view>
+        <view class="level-info">
+          <view class="level-title">Lv.{{stats.level.level}} {{stats.level.title}}</view>
+          <view class="level-desc" wx:if="{{stats.level.maxPoints}}">距离 Lv.{{stats.level.level + 1}} 还差 {{stats.level.maxPoints - stats.points}} 积分</view>
+          <view class="level-desc" wx:else>已达到最高等级</view>
         </view>
+      </view>
 
-        <view class="section">
-          <view class="section-header">
-            <view class="section-title">已派发</view>
-            <view class="section-count">{{dispatchedTasks.length}} 个任务</view>
+      <view class="progress-wrap">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{loading ? 0 : levelProgress}}%"></view>
+        </view>
+        <view class="progress-text">{{loading ? '-' : levelProgress}}%</view>
+      </view>
+    </view>
+
+    <!-- 近7天完成情况 -->
+    <view class="weekly-card">
+      <view class="section-title">近7天完成情况</view>
+
+      <view class="weekly-chart">
+        <view wx:for="{{stats.weekly}}" wx:key="day" class="weekly-item">
+          <view class="weekly-bar-wrap">
+            <view class="weekly-bar" style="height: {{maxWeekly > 0 ? (item.completed / maxWeekly * 120) : 0}}rpx"></view>
+            <view class="weekly-count" wx:if="{{item.completed > 0}}">{{item.completed}}</view>
           </view>
-          <view class="task-list" wx:if="{{dispatchedTasks.length > 0}}">
-            <view wx:for="{{dispatchedTasks}}" wx:key="id" class="task-card">
-              <view class="task-info">
-                <view class="task-title">{{item.title}}</view>
-                <view class="task-meta">截止 {{item.deadline_at}}</view>
-              </view>
-              <view class="task-status {{item.status}}">{{item.status === 'published' ? '进行中' : '已下架'}}</view>
-            </view>
-          </view>
-          <view class="empty-state" wx:else>
-            <view class="empty-icon empty-icon-dispatched"></view>
-            <view class="empty-text">暂无已派发任务</view>
-          </view>
+          <view class="weekly-label">{{item.label}}</view>
+        </view>
+      </view>
+
+      <view class="chart-legend">
+        <view class="legend-dot"></view>
+        <view class="legend-text">完成任务数（个）</view>
+      </view>
+    </view>
+
+    <!-- 班级排行榜 -->
+    <view class="leaderboard-card" bindtap="goToLeaderboard">
+      <view class="section-title">班级排行榜</view>
+
+      <view class="leaderboard-self">
+        <view class="self-rank">
+          <view class="self-label">我的排名</view>
+          <view class="self-value">第 - 名</view>
+        </view>
+        <view class="self-beat">
+          超过了 <text class="beat-rate">- %</text> 的同学
+        </view>
+      </view>
+
+      <view class="leaderboard-list">
+        <view class="leaderboard-item placeholder">
+          <view class="rank">1</view>
+          <view class="avatar">-</view>
+          <view class="name">排行榜开发中</view>
+          <view class="score">-</view>
         </view>
       </view>
     </view>
-  </block>
+
+    <!-- 学习记录入口 -->
+    <view class="menu-card" bindtap="goToCalendar">
+      <text class="menu-icon-text menu-icon-calendar">历</text>
+      <view class="menu-content">
+        <view class="menu-title">学习记录</view>
+        <view class="menu-desc">查看历史打卡、任务完成和心得记录</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+  </view>
 </view>

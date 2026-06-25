@@ -207,6 +207,22 @@ function computeBadges(totalApproved: number, currentStreak: number, maxStreak: 
   return badges;
 }
 
+interface MonthlyOverview {
+  completedTasks: number;
+  totalTasks: number;
+  completionRate: number;
+  currentStreak: number;
+  maxStreak: number;
+  reflections: number;
+  points: number;
+}
+
+interface WeeklyBarItem {
+  day: string;
+  label: string;
+  completed: number;
+}
+
 export async function getMeStats(userId: string): Promise<{
   points: number;
   level: LevelInfo;
@@ -216,6 +232,8 @@ export async function getMeStats(userId: string): Promise<{
   maxStreak: number;
   totalApproved: number;
   recent7Days: Array<{ date: string; checkedIn: boolean }>;
+  monthly: MonthlyOverview;
+  weekly: WeeklyBarItem[];
 }> {
   const pointsRow = await queryOne<{ total: number }>(
     'SELECT COALESCE(SUM(points), 0)::int AS total FROM point_records WHERE user_id = $1',
@@ -241,13 +259,17 @@ export async function getMeStats(userId: string): Promise<{
   const earnedBadgeCount = badges.filter((b) => b.earned).length;
 
   const today = new Date();
-  const recent7Days: Array<{ date: string; checkedIn: boolean }> = [];
   const beijingOffset = 8 * 60 * 60 * 1000;
+
+  const recent7Days: Array<{ date: string; checkedIn: boolean }> = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today.getTime() + beijingOffset - i * 24 * 60 * 60 * 1000);
     const dateStr = d.toISOString().slice(0, 10);
     recent7Days.push({ date: dateStr, checkedIn: approvedDays.includes(dateStr) });
   }
+
+  const monthly = await computeMonthlyOverview(userId, approvedDaysRows);
+  const weekly = computeWeeklyBar(today, approvedDaysRows);
 
   return {
     points,
@@ -258,7 +280,91 @@ export async function getMeStats(userId: string): Promise<{
     maxStreak,
     totalApproved,
     recent7Days,
+    monthly,
+    weekly,
   };
+}
+
+async function computeMonthlyOverview(
+  userId: string,
+  approvedRows: Array<{ day: string; approved_count: number }>
+): Promise<MonthlyOverview> {
+  const now = new Date();
+  const beijingOffset = 8 * 60 * 60 * 1000;
+  const currentBeijing = new Date(now.getTime() + beijingOffset);
+  const year = currentBeijing.getFullYear();
+  const month = currentBeijing.getMonth() + 1;
+  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endOfMonth = `${year}-${String(month).padStart(2, '0')}-31`;
+
+  const monthApproved = approvedRows.filter((r) => r.day >= startOfMonth && r.day <= endOfMonth);
+  const monthPointsRow = await queryOne<{ total: number }>(
+    `SELECT COALESCE(SUM(points), 0)::int AS total
+     FROM point_records
+     WHERE user_id = $1
+       AND created_at >= $2::timestamptz
+       AND created_at < ($2::timestamptz + INTERVAL '1 month')`,
+    [userId, `${startOfMonth}T00:00:00+08:00`]
+  );
+
+  const reflectionsRow = await queryOne<{ count: number }>(
+    `SELECT COUNT(*)::int AS count
+     FROM check_ins
+     WHERE user_id = $1
+       AND reflection_content IS NOT NULL
+       AND reflection_content <> ''
+       AND checked_in_at >= $2::timestamptz
+       AND checked_in_at < ($2::timestamptz + INTERVAL '1 month')`,
+    [userId, `${startOfMonth}T00:00:00+08:00`]
+  );
+
+  const totalTasksRow = await queryOne<{ count: number }>(
+    `SELECT COUNT(*)::int AS count
+     FROM tasks
+     WHERE status = 'published'
+       AND published_at <= $2::timestamptz
+       AND deadline_at >= $1::timestamptz
+       AND (
+         scope_type = 'school'
+         OR (scope_type = 'college' AND target_college_id = (SELECT college_id FROM classes WHERE id = (SELECT class_id FROM users WHERE id = $3)))
+         OR (scope_type = 'class' AND target_class_id = (SELECT class_id FROM users WHERE id = $3))
+       )`,
+    [`${startOfMonth}T00:00:00+08:00`, `${endOfMonth}T23:59:59+08:00`, userId]
+  );
+
+  const completedTasks = monthApproved.reduce((sum, r) => sum + r.approved_count, 0);
+  const totalTasks = totalTasksRow?.count ?? 0;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  return {
+    completedTasks,
+    totalTasks,
+    completionRate,
+    currentStreak: computeStreakDays(approvedRows.map((r) => r.day)),
+    maxStreak: computeMaxStreak(approvedRows.map((r) => r.day)),
+    reflections: reflectionsRow?.count ?? 0,
+    points: monthPointsRow?.total ?? 0,
+  };
+}
+
+function computeWeeklyBar(
+  today: Date,
+  approvedRows: Array<{ day: string; approved_count: number }>
+): WeeklyBarItem[] {
+  const beijingOffset = 8 * 60 * 60 * 1000;
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  const counts = new Map(approvedRows.map((r) => [r.day, r.approved_count]));
+  const result: WeeklyBarItem[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today.getTime() + beijingOffset - i * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().slice(0, 10);
+    result.push({
+      day: dateStr,
+      label: weekdays[d.getUTCDay()],
+      completed: counts.get(dateStr) ?? 0,
+    });
+  }
+  return result;
 }
 
 export async function changePassword(
