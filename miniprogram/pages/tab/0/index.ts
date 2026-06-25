@@ -81,6 +81,7 @@ Page({
     quoteLoading: true,
     tasks: [] as TaskItem[],
     tasksLoading: true,
+    sortAsc: true,
     streakDays: 5,
     totalPoints: 256,
     weekDays: [
@@ -164,9 +165,12 @@ Page({
   async loadTasks() {
     this.setData({ tasksLoading: true });
     try {
-      const res = await listMyTasks(1, 10);
+      const res = await listMyTasks(1, 50);
       if (res.success && res.data) {
-        const tasks = res.data.map(buildTaskItem);
+        const tasks = res.data.map(buildTaskItem).sort((a, b) => {
+          const deadlineDiff = new Date(a.deadline_at).getTime() - new Date(b.deadline_at).getTime();
+          return this.data.sortAsc ? deadlineDiff : -deadlineDiff;
+        });
         this.setData({ tasks });
       } else {
         this.setData({ tasks: [] });
@@ -177,6 +181,12 @@ Page({
     } finally {
       this.setData({ tasksLoading: false });
     }
+  },
+
+  toggleSort() {
+    const sortAsc = !this.data.sortAsc;
+    this.setData({ sortAsc });
+    this.loadTasks();
   },
 
   async loadCounselorDashboard() {

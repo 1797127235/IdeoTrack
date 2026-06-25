@@ -43,8 +43,11 @@
 
       <view class="tasks-section">
         <view class="section-header">
-          <text class="section-title">今日任务</text>
-          <text class="section-meta" wx:if="{{tasks.length > 0}}">共 {{tasks.length}} 个</text>
+          <text class="section-title">打卡任务</text>
+          <view class="sort-control" bindtap="toggleSort">
+            <text class="sort-text">{{sortAsc ? '最早截止' : '最晚截止'}}</text>
+            <view class="sort-arrow {{sortAsc ? 'asc' : 'desc'}}"></view>
+          </view>
         </view>
 
         <view class="loading-state" wx:if="{{tasksLoading}}">
