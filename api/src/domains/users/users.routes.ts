@@ -15,6 +15,9 @@ import {
   updateUserController,
   deleteUserController,
   batchImportUsersController,
+  listCounselorsController,
+  getManagedClassesController,
+  setManagedClassesController,
 } from './users.controller.js';
 
 const router = Router();
@@ -39,5 +42,10 @@ router.post('/', createUserController);
 router.post('/batch-import', batchImportUsersController);
 router.put('/:id', updateUserController);
 router.delete('/:id', deleteUserController);
+
+// Counselor class assignments
+router.get('/counselors', listCounselorsController);
+router.get('/:id/managed-classes', getManagedClassesController);
+router.put('/:id/managed-classes', setManagedClassesController);
 
 export default router;

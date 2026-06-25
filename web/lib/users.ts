@@ -101,6 +101,13 @@ export const batchImportUsers = (data: { users: Array<{
   classId?: string;
 }> }) => api.post<{ success: number; failed: number; errors: Array<{ row: number; message: string }> }>("/users/batch-import", data);
 
+// Counselor class assignments
+export const listCounselors = () => api.get<Counselor[]>("/users/counselors");
+export const getManagedClasses = (counselorId: string) =>
+  api.get<ManagedClass[]>(`/users/${counselorId}/managed-classes`);
+export const setManagedClasses = (counselorId: string, classIds: string[]) =>
+  api.put<ManagedClass[]>(`/users/${counselorId}/managed-classes`, { classIds });
+
 export function roleLabel(role: UserRole): string {
   const map: Record<UserRole, string> = {
     student: "学生",
@@ -108,4 +115,17 @@ export function roleLabel(role: UserRole): string {
     admin: "管理员",
   };
   return map[role];
+}
+
+export interface Counselor {
+  id: string;
+  schoolId: string;
+  name: string | null;
+}
+
+export interface ManagedClass {
+  id: string;
+  name: string;
+  collegeId: string;
+  collegeName: string;
 }

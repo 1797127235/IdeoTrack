@@ -172,3 +172,35 @@ export async function batchImportUsersController(req: Request, res: Response, ne
     next(err);
   }
 }
+
+export async function listCounselorsController(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const data = await usersService.listCounselors();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getManagedClassesController(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const data = await usersService.getManagedClasses(id);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function setManagedClassesController(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!req.body || !Array.isArray(req.body.classIds)) {
+      throw new AppError('VALIDATION_ERROR', 'classIds 必须是数组', 400);
+    }
+    const data = await usersService.setManagedClasses(id, { classIds: req.body.classIds });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}

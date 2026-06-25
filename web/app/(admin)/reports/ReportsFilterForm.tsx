@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type MultiDimStats, type ReportScope } from "@/lib/reports";
 import { type College, type Class } from "@/lib/users";
@@ -31,13 +31,6 @@ export default function ReportsFilterForm({
   const [scopeId, setScopeId] = useState(initialScopeId);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
-
-  useEffect(() => {
-    setScope(initialScope);
-    setScopeId(initialScopeId);
-    setStartDate(initialStartDate);
-    setEndDate(initialEndDate);
-  }, [initialScope, initialScopeId, initialStartDate, initialEndDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

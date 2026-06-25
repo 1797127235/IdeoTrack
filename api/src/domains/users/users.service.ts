@@ -5,6 +5,9 @@ import type {
   College,
   Class,
   User,
+  Counselor,
+  ManagedClass,
+  SetManagedClassesInput,
   CreateCollegeInput,
   UpdateCollegeInput,
   CreateClassInput,
@@ -401,4 +404,80 @@ export async function deleteUser(id: string): Promise<boolean> {
     [id]
   );
   return !!result;
+}
+
+// ===== Counselor Class Assignments =====
+
+export async function listCounselors(): Promise<Counselor[]> {
+  const rows = await query<Counselor>(
+    `SELECT id, school_id AS "schoolId", name
+     FROM users
+     WHERE role = 'counselor' AND is_enabled = true
+     ORDER BY name, school_id`
+  );
+  return rows;
+}
+
+export async function getManagedClasses(counselorId: string): Promise<ManagedClass[]> {
+  const rows = await query<ManagedClass>(
+    `SELECT c.id,
+            c.name,
+            c.college_id AS "collegeId",
+            co.name AS "collegeName"
+     FROM counselor_classes cc
+     JOIN classes c ON cc.class_id = c.id
+     JOIN colleges co ON c.college_id = co.id
+     WHERE cc.counselor_id = $1
+     ORDER BY co.name, c.name`,
+    [counselorId]
+  );
+  return rows;
+}
+
+export async function setManagedClasses(
+  counselorId: string,
+  input: SetManagedClassesInput
+): Promise<ManagedClass[]> {
+  const user = await queryOne<{ id: string; role: UserRole }>(
+    'SELECT id, role FROM users WHERE id = $1 LIMIT 1',
+    [counselorId]
+  );
+  if (!user) {
+    throw new AppError('USER_NOT_FOUND', '用户不存在', 404);
+  }
+  if (user.role !== 'counselor') {
+    throw new AppError('VALIDATION_ERROR', '只能为辅导员分配班级', 400);
+  }
+
+  const validClassIds: string[] = [];
+  if (input.classIds.length > 0) {
+    const placeholders = input.classIds.map((_, i) => `$${i + 2}`).join(', ');
+    const existing = await query<{ id: string }>(
+      `SELECT id FROM classes WHERE id IN (${placeholders})`,
+      input.classIds
+    );
+    const existingSet = new Set(existing.map((r) => r.id));
+    for (const classId of input.classIds) {
+      if (existingSet.has(classId)) {
+        validClassIds.push(classId);
+      }
+    }
+  }
+
+  await query('BEGIN', []);
+  try {
+    await query('DELETE FROM counselor_classes WHERE counselor_id = $1', [counselorId]);
+    for (const classId of validClassIds) {
+      await query(
+        'INSERT INTO counselor_classes (counselor_id, class_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [counselorId, classId]
+      );
+    }
+    await query('COMMIT', []);
+  } catch (err) {
+    await query('ROLLBACK', []);
+    throw err;
+  }
+
+  return getManagedClasses(counselorId);
 }

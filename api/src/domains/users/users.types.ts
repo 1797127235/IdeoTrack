@@ -93,3 +93,20 @@ export interface BatchImportResult {
   failed: number;
   errors: Array<{ row: number; message: string }>;
 }
+
+export interface Counselor {
+  id: string;
+  schoolId: string;
+  name: string | null;
+}
+
+export interface ManagedClass {
+  id: string;
+  name: string;
+  collegeId: string;
+  collegeName: string;
+}
+
+export interface SetManagedClassesInput {
+  classIds: string[];
+}

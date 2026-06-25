@@ -10,15 +10,28 @@ import {
   createClass,
   updateClass,
   deleteClass,
+  listCounselors,
+  getManagedClasses,
+  setManagedClasses as saveManagedClasses,
   type College,
   type Class,
+  type Counselor,
+  type ManagedClass,
 } from "@/lib/users";
 
 export default function OrganizationsPage() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [counselors, setCounselors] = useState<Counselor[]>([]);
+  const [managedClasses, setManagedClasses] = useState<ManagedClass[]>([]);
+  const managedClassCount = managedClasses.length;
+  const [selectedCounselorId, setSelectedCounselorId] = useState<string>("");
+  const [selectedClassIds, setSelectedClassIds] = useState<Set<string>>(new Set());
+  const [savingAssignments, setSavingAssignments] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [assignmentError, setAssignmentError] = useState("");
+  const [assignmentSuccess, setAssignmentSuccess] = useState(false);
 
   const [collegeName, setCollegeName] = useState("");
   const [editingCollege, setEditingCollege] = useState<College | null>(null);
@@ -28,10 +41,11 @@ export default function OrganizationsPage() {
   const [editingClass, setEditingClass] = useState<Class | null>(null);
 
   const loadData = () => {
-    Promise.all([listColleges(), listClasses()])
-      .then(([c, cl]) => {
+    Promise.all([listColleges(), listClasses(), listCounselors()])
+      .then(([c, cl, counselorsData]) => {
         setColleges(c);
         setClasses(cl);
+        setCounselors(counselorsData);
         setError("");
       })
       .catch((err) => {
@@ -45,6 +59,57 @@ export default function OrganizationsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleCounselorChange = async (counselorId: string) => {
+    setSelectedCounselorId(counselorId);
+    setAssignmentError("");
+    setAssignmentSuccess(false);
+    if (!counselorId) {
+      setManagedClasses([]);
+      setSelectedClassIds(new Set());
+      return;
+    }
+    try {
+      const data = await getManagedClasses(counselorId);
+      setManagedClasses(data);
+      setSelectedClassIds(new Set(data.map((c) => c.id)));
+    } catch (err) {
+      setAssignmentError(err instanceof Error ? err.message : "加载失败");
+      setManagedClasses([]);
+      setSelectedClassIds(new Set());
+    }
+  };
+
+  const handleSaveAssignments = async () => {
+    if (!selectedCounselorId) return;
+    setSavingAssignments(true);
+    setAssignmentError("");
+    setAssignmentSuccess(false);
+    try {
+      const data = await saveManagedClasses(
+        selectedCounselorId,
+        Array.from(selectedClassIds)
+      );
+      setManagedClasses(data);
+      setAssignmentSuccess(true);
+    } catch (err) {
+      setAssignmentError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSavingAssignments(false);
+    }
+  };
+
+  const toggleClass = (classId: string) => {
+    setSelectedClassIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(classId)) {
+        next.delete(classId);
+      } else {
+        next.add(classId);
+      }
+      return next;
+    });
+  };
 
   const handleCreateCollege = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -286,6 +351,87 @@ export default function OrganizationsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">辅导员班级分配</h2>
+
+        {assignmentError ? (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+            {assignmentError}
+          </div>
+        ) : null}
+        {assignmentSuccess ? (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--color-success-subtle)] text-sm text-[var(--color-success)]">
+            保存成功
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="block text-xs text-[var(--color-ink-muted)] mb-1.5">选择辅导员</label>
+            <select
+              value={selectedCounselorId}
+              onChange={(e) => handleCounselorChange(e.target.value)}
+              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] min-w-[240px]"
+            >
+              <option value="">请选择</option>
+              {counselors.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name || c.schoolId}（{c.schoolId}）
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedCounselorId && (
+            <>
+              <div>
+                <label className="block text-xs text-[var(--color-ink-muted)] mb-2">所带班级</label>
+                {classes.length === 0 ? (
+                  <p className="text-sm text-[var(--color-ink-secondary)]">暂无班级</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {classes.map((cls) => (
+                      <label
+                        key={cls.id}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
+                          selectedClassIds.has(cls.id)
+                            ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                            : "border-[var(--color-border)] text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)]"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedClassIds.has(cls.id)}
+                          onChange={() => toggleClass(cls.id)}
+                        />
+                        <span>{cls.collegeName} - {cls.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveAssignments}
+                  disabled={savingAssignments}
+                  className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium transition-colors"
+                >
+                  {savingAssignments ? "保存中…" : "保存分配"}
+                </button>
+                {managedClassCount > 0 && (
+                  <span className="text-sm text-[var(--color-ink-secondary)]">
+                    当前已分配 {managedClassCount} 个班级
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
