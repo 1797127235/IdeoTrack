@@ -23,6 +23,10 @@ export interface Task {
   target_college_id: string | null;  // 学院 ID（兼容旧 schema）
   target_class_id: string | null;  // 班级 ID（兼容旧 schema）
   source_task_id: string | null;  // AD-21: 派发实例指向源任务
+  geo_lat: number | null;
+  geo_lng: number | null;
+  geo_radius_meters: number | null;
+  geo_address: string | null;
   created_by: string;
   published_at: string;
   deadline_at: string;
@@ -71,6 +75,10 @@ export interface CreateTaskInput {
   scope_id?: string | null;  // school_id / college_id / class_id (pool 时为 NULL)
   target_college_id?: string | null;  // 学院 ID（兼容旧 schema）
   target_class_id?: string | null;  // 班级 ID（兼容旧 schema）
+  geo_lat?: number | null;
+  geo_lng?: number | null;
+  geo_radius_meters?: number | null;
+  geo_address?: string | null;
   published_at: string;
   deadline_at: string;
 }
@@ -90,6 +98,10 @@ export interface UpdateTaskInput {
   scope_id?: string | null;
   target_college_id?: string | null;
   target_class_id?: string | null;
+  geo_lat?: number | null;
+  geo_lng?: number | null;
+  geo_radius_meters?: number | null;
+  geo_address?: string | null;
   published_at?: string;
   deadline_at?: string;
   status?: TaskStatus;

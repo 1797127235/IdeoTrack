@@ -242,8 +242,9 @@ export async function createTask(
     `INSERT INTO tasks (
       title, content, guiding_questions, source_url, video_url,
       scope_type, scope_id, target_college_id, target_class_id, source_task_id,
-      created_by, published_at, deadline_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      created_by, published_at, deadline_at,
+      geo_lat, geo_lng, geo_radius_meters, geo_address
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     RETURNING *`,
     [
       input.title,
@@ -259,6 +260,10 @@ export async function createTask(
       userId,
       input.published_at,
       input.deadline_at,
+      input.geo_lat ?? null,
+      input.geo_lng ?? null,
+      input.geo_radius_meters ?? null,
+      input.geo_address ?? null,
     ]
   );
 
@@ -315,8 +320,9 @@ export async function dispatchTask(
     `INSERT INTO tasks (
       title, content, guiding_questions, source_url, video_url,
       scope_type, scope_id, target_college_id, target_class_id, source_task_id,
-      created_by, published_at, deadline_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      created_by, published_at, deadline_at,
+      geo_lat, geo_lng, geo_radius_meters, geo_address
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     RETURNING *`,
     [
       sourceTask.title,  // 快照：从源任务拷贝
@@ -332,6 +338,10 @@ export async function dispatchTask(
       userId,
       new Date().toISOString(),  // 发布时间为当前时间
       sourceTask.deadline_at,  // 截止时间继承源任务
+      sourceTask.geo_lat ?? null,
+      sourceTask.geo_lng ?? null,
+      sourceTask.geo_radius_meters ?? null,
+      sourceTask.geo_address ?? null,
     ]
   );
 
@@ -579,6 +589,10 @@ export async function updateTask(
   }
   if (input.published_at !== undefined) addSet('published_at', input.published_at);
   if (input.deadline_at !== undefined) addSet('deadline_at', input.deadline_at);
+  if (input.geo_lat !== undefined) addSet('geo_lat', input.geo_lat ?? null);
+  if (input.geo_lng !== undefined) addSet('geo_lng', input.geo_lng ?? null);
+  if (input.geo_radius_meters !== undefined) addSet('geo_radius_meters', input.geo_radius_meters ?? null);
+  if (input.geo_address !== undefined) addSet('geo_address', input.geo_address ?? null);
   if (input.status !== undefined) addSet('status', input.status);
 
   if (updates.length === 0) {

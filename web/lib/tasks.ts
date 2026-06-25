@@ -15,6 +15,10 @@ export interface Task {
   target_college_id: string | null;
   target_class_id: string | null;
   source_task_id: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  geo_radius_meters: number | null;
+  geo_address: string | null;
   published_at: string;
   deadline_at: string;
   status: TaskStatus;
@@ -62,6 +66,10 @@ export const createTask = (data: {
   scope_id?: string;
   target_college_id?: string;
   target_class_id?: string;
+  geo_lat?: number | null;
+  geo_lng?: number | null;
+  geo_radius_meters?: number | null;
+  geo_address?: string | null;
   published_at: string;
   deadline_at: string;
 }) => api.post<Task>("/tasks", data);
@@ -77,6 +85,10 @@ export const updateTask = (
     scope_id: string | null;
     target_college_id: string | null;
     target_class_id: string | null;
+    geo_lat: number | null;
+    geo_lng: number | null;
+    geo_radius_meters: number | null;
+    geo_address: string | null;
     published_at: string;
     deadline_at: string;
     status: TaskStatus;

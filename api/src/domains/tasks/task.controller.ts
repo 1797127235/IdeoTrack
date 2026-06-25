@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
 import * as taskService from './task.service.js';
-import { createTaskSchema, dispatchTaskSchema, updateTaskSchema } from './task.schema.js';
+import { createTaskSchema, dispatchTaskSchema, updateTaskSchema, type CreateTaskInput, type UpdateTaskInput } from './task.schema.js';
 
 export async function createTaskController(
   req: Request,
@@ -22,7 +22,7 @@ export async function createTaskController(
       throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
     }
 
-    const task = await taskService.createTask(req.user.userId, req.user.role, parseResult.data);
+    const task = await taskService.createTask(req.user.userId, req.user.role, parseResult.data as CreateTaskInput);
     res.status(201).json({ success: true, data: task });
   } catch (error) {
     next(error);
@@ -112,7 +112,7 @@ export async function updateTaskController(
         400
       );
     }
-    const task = await taskService.updateTask(req.user.userId, req.user.role, id, parseResult.data);
+    const task = await taskService.updateTask(req.user.userId, req.user.role, id, parseResult.data as UpdateTaskInput);
     res.json({ success: true, data: task });
   } catch (error) {
     next(error);

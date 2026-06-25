@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createTask, type TaskScopeType } from "@/lib/tasks";
 import { listColleges, listClasses, type College, type Class } from "@/lib/users";
+import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
 
 export default function CreateTaskPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function CreateTaskPage() {
   const [scopeId, setScopeId] = useState("");
   const [publishedAt, setPublishedAt] = useState("");
   const [deadlineAt, setDeadlineAt] = useState("");
+  const [geofence, setGeofence] = useState<GeofenceValue | null>(null);
   const [colleges, setColleges] = useState<College[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [error, setError] = useState("");
@@ -53,6 +55,14 @@ export default function CreateTaskPage() {
         scope_id: scopeType === "school" || scopeType === "pool" ? undefined : scopeId,
         published_at: new Date(publishedAt).toISOString(),
         deadline_at: new Date(deadlineAt).toISOString(),
+        ...(geofence
+          ? {
+              geo_lat: geofence.lat,
+              geo_lng: geofence.lng,
+              geo_radius_meters: geofence.radius,
+              geo_address: geofence.address,
+            }
+          : {}),
       });
       router.push("/tasks");
     } catch (err) {
@@ -230,6 +240,13 @@ export default function CreateTaskPage() {
               required
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+            签到范围（可选）
+          </label>
+          <GeofencePicker value={geofence} onChange={setGeofence} />
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border)]">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getTask, updateTask, type TaskScopeType } from "@/lib/tasks";
 import { listColleges, listClasses, type College, type Class } from "@/lib/users";
+import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
 
 export default function EditTaskPage() {
   const params = useParams();
@@ -21,6 +22,7 @@ export default function EditTaskPage() {
   const [scopeId, setScopeId] = useState("");
   const [publishedAt, setPublishedAt] = useState("");
   const [deadlineAt, setDeadlineAt] = useState("");
+  const [geofence, setGeofence] = useState<GeofenceValue | null>(null);
   const [colleges, setColleges] = useState<College[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [error, setError] = useState("");
@@ -43,6 +45,16 @@ export default function EditTaskPage() {
         setScopeId(task.scope_id || task.target_college_id || task.target_class_id || "");
         setPublishedAt(formatDateTimeLocal(task.published_at));
         setDeadlineAt(formatDateTimeLocal(task.deadline_at));
+        if (task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null) {
+          setGeofence({
+            lat: task.geo_lat,
+            lng: task.geo_lng,
+            radius: task.geo_radius_meters,
+            address: task.geo_address || "",
+          });
+        } else {
+          setGeofence(null);
+        }
         setError("");
       })
       .catch((err) => {
@@ -71,13 +83,17 @@ export default function EditTaskPage() {
       await updateTask(taskId, {
         title: title.trim(),
         content: content.trim(),
-        guiding_questions: questions.length > 0 ? questions : undefined,
+        guiding_questions: questions.length > 0 ? questions : null,
         source_url: sourceUrl.trim() || null,
         video_url: videoUrl.trim() || null,
         scope_type: scopeType,
         scope_id: scopeType === "school" || scopeType === "pool" ? null : scopeId,
         published_at: new Date(publishedAt).toISOString(),
         deadline_at: new Date(deadlineAt).toISOString(),
+        geo_lat: geofence?.lat ?? null,
+        geo_lng: geofence?.lng ?? null,
+        geo_radius_meters: geofence?.radius ?? null,
+        geo_address: geofence?.address ?? null,
       });
       router.push("/tasks");
     } catch (err) {
@@ -254,6 +270,13 @@ export default function EditTaskPage() {
               required
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
+            签到范围（可选）
+          </label>
+          <GeofencePicker value={geofence} onChange={setGeofence} />
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border)]">

@@ -116,6 +116,10 @@ CREATE TABLE IF NOT EXISTS tasks (
   target_college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
   target_class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
   source_task_id UUID REFERENCES tasks(id) ON DELETE SET NULL,  -- AD-21: 派发实例指向源任务
+  geo_lat DECIMAL(10, 8),
+  geo_lng DECIMAL(11, 8),
+  geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 5000),
+  geo_address TEXT,
   created_by UUID NOT NULL REFERENCES users(id),
   published_at TIMESTAMPTZ NOT NULL,
   deadline_at TIMESTAMPTZ NOT NULL,
@@ -135,7 +139,6 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS guiding_questions JSONB;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS video_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scope_id UUID;
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_task_id UUID;
 -- 旧数据可能没有外键约束，安全起见先删除再重建（幂等）
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_source_task_id_fkey;
 ALTER TABLE tasks ADD CONSTRAINT tasks_source_task_id_fkey
