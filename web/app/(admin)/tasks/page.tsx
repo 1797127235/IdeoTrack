@@ -188,7 +188,12 @@ export default function TasksPage() {
                   <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">发布时间</th>
                   <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">截止时间</th>
                   <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
-                  <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">完成率</th>
+                  <th
+                    className="text-left py-2 text-[var(--color-ink-muted)] font-medium"
+                    title="完成率 = 人工终审通过(approved)人数 / 应打卡人数。与首页「累计完成打卡」(含 AI 通过)口径不同。"
+                  >
+                    完成率
+                  </th>
                   <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
                 </tr>
               </thead>

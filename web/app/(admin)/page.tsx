@@ -3,24 +3,34 @@ import { redirect } from "next/navigation";
 import { getDashboardStats, type DashboardStats } from "@/lib/server/reports";
 import { ServerApiError } from "@/lib/server-api";
 
-function TrendChart() {
-  const data = [65, 68, 72, 70, 75, 78, 82, 80, 85, 83, 87, 87];
-  const max = Math.max(...data);
-  const min = Math.min(...data);
+const TREND_WIDTH = 600;
+const TREND_HEIGHT = 200;
+const TREND_PADDING = 24;
+
+// 近 12 天每日有效打卡数折线图（真实数据）
+function TrendChart({ trend }: { trend: DashboardStats["dailyCheckInTrend"] }) {
+  if (trend.length === 0) {
+    return (
+      <div className="h-52 flex items-center justify-center text-sm text-[var(--color-ink-muted)]">
+        暂无数据
+      </div>
+    );
+  }
+
+  const data = trend.map((d) => d.checkInCount);
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
   const range = max - min || 1;
-  const width = 600;
-  const height = 200;
-  const padding = 24;
 
   const points = data.map((d, i) => {
-    const x = padding + (i / (data.length - 1)) * (width - padding * 2);
-    const y = height - padding - ((d - min) / range) * (height - padding * 2);
+    const x = TREND_PADDING + (i / (data.length - 1)) * (TREND_WIDTH - TREND_PADDING * 2);
+    const y = TREND_HEIGHT - TREND_PADDING - ((d - min) / range) * (TREND_HEIGHT - TREND_PADDING * 2);
     return `${x},${y}`;
   });
 
   return (
     <div className="w-full h-52 relative">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+      <svg viewBox={`0 0 ${TREND_WIDTH} ${TREND_HEIGHT}`} className="w-full h-full">
         <defs>
           <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#2563eb" stopOpacity="0.12" />
@@ -30,7 +40,7 @@ function TrendChart() {
         <polyline
           fill="url(#trendFill)"
           stroke="none"
-          points={`${padding},${height - padding} ${points.join(" ")} ${width - padding},${height - padding}`}
+          points={`${TREND_PADDING},${TREND_HEIGHT - TREND_PADDING} ${points.join(" ")} ${TREND_WIDTH - TREND_PADDING},${TREND_HEIGHT - TREND_PADDING}`}
         />
         <polyline
           fill="none"
@@ -41,8 +51,8 @@ function TrendChart() {
           points={points.join(" ")}
         />
         {data.map((d, i) => {
-          const x = padding + (i / (data.length - 1)) * (width - padding * 2);
-          const y = height - padding - ((d - min) / range) * (height - padding * 2);
+          const x = TREND_PADDING + (i / (data.length - 1)) * (TREND_WIDTH - TREND_PADDING * 2);
+          const y = TREND_HEIGHT - TREND_PADDING - ((d - min) / range) * (TREND_HEIGHT - TREND_PADDING * 2);
           return (
             <circle
               key={i}
@@ -57,58 +67,13 @@ function TrendChart() {
         })}
       </svg>
       <div className="absolute bottom-0 left-0 right-0 flex justify-between px-6 text-xs text-[var(--color-ink-muted)]">
-        {["6/13", "6/14", "6/15", "6/16", "6/17", "6/18", "6/19", "6/20", "6/21", "6/22", "6/23", "6/24"].map((d) => (
-          <span key={d}>{d}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DistributionChart() {
-  const data = [
-    { label: "已完成", value: 65, color: "#2563eb" },
-    { label: "进行中", value: 22, color: "#94a3b8" },
-    { label: "未开始", value: 13, color: "#e2e8f0" },
-  ];
-  const total = data.reduce((a, b) => a + b.value, 0);
-  let cumulative = 0;
-
-  return (
-    <div className="flex flex-col items-center justify-center h-52">
-      <svg viewBox="0 0 120 120" className="w-36 h-36 -rotate-90">
-        {data.map((d, i) => {
-          const start = (cumulative / total) * 360;
-          cumulative += d.value;
-          const end = (cumulative / total) * 360;
-          const largeArc = end - start > 180 ? 1 : 0;
-          const x1 = 60 + 48 * Math.cos((Math.PI * start) / 180);
-          const y1 = 60 + 48 * Math.sin((Math.PI * start) / 180);
-          const x2 = 60 + 48 * Math.cos((Math.PI * end) / 180);
-          const y2 = 60 + 48 * Math.sin((Math.PI * end) / 180);
+        {trend.map((d) => {
+          // 'YYYY-MM-DD' -> 'M/D'
+          const [, m, day] = d.date.split("-");
           return (
-            <path
-              key={i}
-              d={`M60 60 L${x1} ${y1} A48 48 0 ${largeArc} 1 ${x2} ${y2} Z`}
-              fill={d.color}
-              stroke="#fff"
-              strokeWidth="2"
-            />
+            <span key={d.date}>{`${parseInt(m, 10)}/${parseInt(day, 10)}`}</span>
           );
         })}
-        <circle cx="60" cy="60" r="28" fill="#fff" />
-      </svg>
-      <div className="mt-4 flex gap-4">
-        {data.map((d) => (
-          <div key={d.label} className="flex items-center gap-1.5 text-xs">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: d.color }}
-            />
-            <span className="text-[var(--color-ink-secondary)]">{d.label}</span>
-            <span className="font-medium text-[var(--color-ink)]">{d.value}%</span>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -117,27 +82,27 @@ function DistributionChart() {
 function DashboardContent({ stats }: { stats: DashboardStats }) {
   const statCards = [
     {
-      label: "今日打卡率",
-      value: `${stats.todayCheckInRate}%`,
-      trend: `${stats.todayCheckInCount} / ${stats.todayTotalStudents}`,
-      good: stats.todayCheckInRate >= 80,
-    },
-    {
-      label: "今日打卡人数",
-      value: String(stats.todayCheckInCount),
-      trend: `未打卡 ${stats.todayAbsentCount}`,
+      label: "进行中任务",
+      value: String(stats.activeTaskCount),
+      trend: "当前可打卡的任务",
       good: true,
     },
     {
-      label: "未打卡人数",
-      value: String(stats.todayAbsentCount),
-      trend: "需重点关注",
-      good: false,
+      label: "待完成人次",
+      value: String(stats.pendingCompletionCount),
+      trend: "活跃任务下尚未完成",
+      good: stats.pendingCompletionCount === 0,
     },
     {
-      label: "累计心得数",
-      value: String(stats.totalReflections),
-      trend: `累计打卡 ${stats.totalCheckIns}`,
+      label: "今日新增打卡",
+      value: String(stats.todayCheckInCount),
+      trend: "今日有效打卡总数",
+      good: true,
+    },
+    {
+      label: "累计完成打卡",
+      value: String(stats.totalCompletedCount),
+      trend: "AI 通过 + 人工通过",
       good: true,
     },
   ];
@@ -170,45 +135,57 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
           <h2 className="text-base font-semibold text-[var(--color-ink)] mb-4">
             近 12 天打卡趋势
           </h2>
-          <TrendChart />
+          <TrendChart trend={stats.dailyCheckInTrend} />
         </div>
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
           <h2 className="text-base font-semibold text-[var(--color-ink)] mb-4">
-            任务完成分布
+            学院完成率 Top 5
           </h2>
-          <DistributionChart />
+          <CollegeRankingCompact ranking={stats.collegeRanking} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-[var(--color-ink)]">
-              学院打卡排名
-            </h2>
-            <Link
-              href="/reports"
-              className="text-sm text-[var(--color-accent)] hover:underline"
-            >
-              查看全部
-            </Link>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--color-border)]">
-                <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  排名
-                </th>
-                <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  学院
-                </th>
-                <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  打卡率
-                </th>
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-[var(--color-ink)]">
+            学院完成率排行（活跃任务）
+          </h2>
+          <Link
+            href="/reports"
+            className="text-sm text-[var(--color-accent)] hover:underline"
+          >
+            查看全部
+          </Link>
+        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--color-border)]">
+              <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                排名
+              </th>
+              <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                学院
+              </th>
+              <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                应打卡
+              </th>
+              <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                已完成
+              </th>
+              <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                完成率
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.collegeRanking.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-sm text-[var(--color-ink-secondary)]">
+                  暂无活跃任务数据
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {stats.collegeRanking.map((r, idx) => (
+            ) : (
+              stats.collegeRanking.map((r, idx) => (
                 <tr
                   key={r.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)]"
@@ -233,62 +210,121 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
                     )}
                   </td>
                   <td className="py-3 text-sm text-[var(--color-ink)]">{r.name}</td>
+                  <td className="py-3 text-sm text-right text-[var(--color-ink-secondary)]">
+                    {r.totalAssignees}
+                  </td>
+                  <td className="py-3 text-sm text-right text-[var(--color-ink-secondary)]">
+                    {r.completedCount}
+                  </td>
                   <td className="py-3 text-sm text-right font-medium text-[var(--color-ink)]">
-                    {r.rate}%
+                    {r.completionRate}%
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-[var(--color-ink)]">
-              长期未打卡学生
-            </h2>
-            <Link
-              href="/users"
-              className="text-sm text-[var(--color-accent)] hover:underline"
-            >
-              查看全部
-            </Link>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--color-border)]">
-                <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  姓名
-                </th>
-                <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  学院
-                </th>
-                <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  连续未打卡
-                </th>
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-[var(--color-ink)]">
+            当前任务未完成学生
+          </h2>
+          <Link
+            href="/users"
+            className="text-sm text-[var(--color-accent)] hover:underline"
+          >
+            查看全部
+          </Link>
+        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--color-border)]">
+              <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                姓名
+              </th>
+              <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                学院
+              </th>
+              <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                未完成任务
+              </th>
+              <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                截止时间
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.pendingStudents.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-sm text-[var(--color-ink-secondary)]">
+                  暂无未完成学生
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {stats.recentAbsentStudents.map((s) => (
+            ) : (
+              stats.pendingStudents.map((s) => (
                 <tr
-                  key={s.id}
+                  key={`${s.id}-${s.taskId}`}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)]"
                 >
                   <td className="py-3 text-sm text-[var(--color-ink)]">{s.name || s.schoolId}</td>
                   <td className="py-3 text-sm text-[var(--color-ink-secondary)]">
                     {s.collegeName || "-"}
                   </td>
+                  <td className="py-3 text-sm text-[var(--color-ink-secondary)]">{s.taskTitle}</td>
                   <td className="py-3 text-sm text-right font-medium text-[var(--color-danger)]">
-                    {s.consecutiveAbsentDays} 天
+                    {formatDateTime(s.taskDeadline)}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
+}
+
+// 右侧紧凑型 Top 5 列表（仅完成率柱状对比）
+function CollegeRankingCompact({ ranking }: { ranking: DashboardStats["collegeRanking"] }) {
+  const top = ranking.slice(0, 5);
+  if (top.length === 0) {
+    return (
+      <div className="h-40 flex items-center justify-center text-sm text-[var(--color-ink-muted)]">
+        暂无数据
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {top.map((r, idx) => (
+        <div key={r.id} className="flex items-center gap-3">
+          <span className="text-xs text-[var(--color-ink-muted)] w-4">{idx + 1}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm text-[var(--color-ink)] truncate">{r.name}</span>
+              <span className="text-sm font-medium text-[var(--color-ink)] ml-2">
+                {r.completionRate}%
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-[var(--color-bg)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[var(--color-accent)]"
+                style={{ width: `${Math.min(100, r.completionRate)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default async function DashboardPage() {

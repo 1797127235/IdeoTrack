@@ -1,23 +1,9 @@
 .page {
   min-height: 100vh;
-  background-color: #ECFEFF;
-  position: relative;
-}
-
-.header-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 320rpx;
-  background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%);
-  border-bottom-left-radius: 48rpx;
-  border-bottom-right-radius: 48rpx;
+  background-color: #F8FAFC;
 }
 
 .content {
-  position: relative;
-  z-index: 1;
   padding: 32rpx 32rpx 48rpx;
 }
 

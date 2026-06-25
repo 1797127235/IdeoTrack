@@ -7,140 +7,170 @@ import type {
   ExportResult,
 } from './reports.types.js';
 
-function getTodayRange(): { start: string; end: string } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return { start: start.toISOString(), end: end.toISOString() };
-}
+// 任务驱动口径：当前"进行中"的任务 = status='published' 且 now 在 published_at/deadline_at 窗口内。
+// 活跃任务不应包含 'pool'（任务池本身不直接面向学生打卡）。
+const ACTIVE_TASKS_CTE = `
+  active_tasks AS (
+    SELECT t.id, t.title, t.deadline_at, t.scope_type,
+           t.target_college_id, t.target_class_id
+    FROM tasks t
+    WHERE t.status = 'published'
+      AND t.published_at <= NOW()
+      AND t.deadline_at > NOW()
+      AND t.scope_type <> 'pool'
+  )
+`;
+
+// 把每个活跃任务展开成 (task_id, user_id) 的"应打卡"明细。
+// 应打卡人数定义与 task.service.ts 的 batchTaskStats 完全一致：
+//   school  = 全校启用学生
+//   college = 该学院下的启用学生
+//   class   = 该班级的启用学生
+// pool 不展开（已在上游过滤）。
+const ACTIVE_ASSIGNMENTS_CTE = `
+  active_assignments AS (
+    SELECT a.id AS task_id, a.title AS task_title, a.deadline_at AS task_deadline,
+           u.id AS user_id, co.id AS college_id, co.name AS college_name
+    FROM active_tasks a
+    JOIN users u ON u.role = 'student' AND u.is_enabled = true
+    LEFT JOIN classes cl ON u.class_id = cl.id
+    LEFT JOIN colleges co ON cl.college_id = co.id
+    WHERE
+      (a.scope_type = 'school')
+      OR (a.scope_type = 'college' AND co.id = a.target_college_id)
+      OR (a.scope_type = 'class'   AND u.class_id = a.target_class_id)
+  )
+`;
+
+// "已完成打卡"宽口径：ai_approved（AI 自动通过）+ approved（人工终审通过）。
+// 注意这与任务列表 completion_rate（仅 approved）有意不同：此处取学生"打完卡"视角。
+const COMPLETED_STATUS = "('ai_approved', 'approved')";
+// "有效打卡"口径：除 rejected 外都算（含进行中的各审核中间态）。
+const VALID_STATUS = "<> 'rejected'";
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const { start, end } = getTodayRange();
+  // 一次性把活跃任务及其应打卡明细展开，后续所有 KPI 都基于这套 CTE 复用。
+  // check_ins 只取关联到活跃任务、且为已完成态的，用于完成度统计。
+  const baseQuery = `
+    WITH ${ACTIVE_TASKS_CTE},
+         ${ACTIVE_ASSIGNMENTS_CTE},
+         completed_checkins AS (
+           SELECT aa.task_id, aa.user_id
+           FROM active_assignments aa
+           JOIN check_ins ci ON ci.task_id = aa.task_id AND ci.user_id = aa.user_id
+           WHERE ci.status IN ${COMPLETED_STATUS}
+         )
+    SELECT
+      (SELECT COUNT(*)::int FROM active_tasks) AS active_task_count,
+      -- 待完成人次 = 应打卡明细总数 - 已完成数
+      (SELECT COUNT(*)::int FROM active_assignments)
+        - (SELECT COUNT(*)::int FROM completed_checkins) AS pending_completion_count,
+      -- 今日新增的有效打卡（不限任务，status<>rejected）
+      (SELECT COUNT(*)::int FROM check_ins
+         WHERE checked_in_at >= CURRENT_DATE AND status ${VALID_STATUS}) AS today_check_in_count,
+      -- 系统累计完成打卡（不限任务/时间）
+      (SELECT COUNT(*)::int FROM check_ins WHERE status IN ${COMPLETED_STATUS}) AS total_completed_count
+  `;
+  const kpi = await queryOne<{
+    active_task_count: number;
+    pending_completion_count: number;
+    today_check_in_count: number;
+    total_completed_count: number;
+  }>(baseQuery);
 
-  const totalStudentsResult = await queryOne<{ count: number }>(
-    `SELECT COUNT(*)::int AS count FROM users WHERE role = 'student' AND is_enabled = true`
-  );
-  const todayTotalStudents = totalStudentsResult?.count ?? 0;
-
-  const checkInResult = await queryOne<{ count: number }>(
-    `SELECT COUNT(DISTINCT user_id)::int AS count
-     FROM check_ins
-     WHERE checked_in_at >= $1 AND checked_in_at < $2
-       AND status <> 'rejected'`,
-    [start, end]
-  );
-  const todayCheckInCount = checkInResult?.count ?? 0;
-  const todayAbsentCount = todayTotalStudents - todayCheckInCount;
-  const todayCheckInRate = todayTotalStudents > 0
-    ? Math.round((todayCheckInCount / todayTotalStudents) * 1000) / 10
-    : 0;
-
-  const totalCheckInsResult = await queryOne<{ count: number }>(
-    `SELECT COUNT(*)::int AS count FROM check_ins WHERE status <> 'rejected'`
-  );
-  const totalReflectionsResult = await queryOne<{ count: number }>(
-    `SELECT COUNT(*)::int AS count FROM check_ins WHERE reflection_content IS NOT NULL`
-  );
-
-  const collegeRanking = await query<{
+  // 学院完成率排行：按学院聚合应打卡人次与已完成人次
+  const collegeRankingRows = await query<{
     id: string;
     name: string;
-    check_in_count: number;
-    total_students: number;
+    total_assignees: number;
+    completed_count: number;
   }>(
-    `WITH college_students AS (
-       SELECT u.id AS user_id, c.id AS college_id, c.name AS college_name
-       FROM users u
-       JOIN classes cl ON u.class_id = cl.id
-       JOIN colleges c ON cl.college_id = c.id
-       WHERE u.role = 'student' AND u.is_enabled = true
-     ),
-     today_checkins AS (
-       SELECT DISTINCT user_id
-       FROM check_ins
-       WHERE checked_in_at >= $1 AND checked_in_at < $2
-         AND status <> 'rejected'
-     )
-     SELECT
-       cs.college_id AS id,
-       cs.college_name AS name,
-       COUNT(DISTINCT cs.user_id)::int AS total_students,
-       COUNT(DISTINCT tc.user_id)::int AS check_in_count
-     FROM college_students cs
-     LEFT JOIN today_checkins tc ON cs.user_id = tc.user_id
-     GROUP BY cs.college_id, cs.college_name
-     ORDER BY check_in_count DESC`,
-    [start, end]
+    `WITH ${ACTIVE_TASKS_CTE}, ${ACTIVE_ASSIGNMENTS_CTE}, completed_checkins AS (
+        SELECT aa.task_id, aa.user_id
+        FROM active_assignments aa
+        JOIN check_ins ci ON ci.task_id = aa.task_id AND ci.user_id = aa.user_id
+        WHERE ci.status IN ${COMPLETED_STATUS}
+      )
+     SELECT aa.college_id AS id, aa.college_name AS name,
+            COUNT(*)::int AS total_assignees,
+            COUNT(cc.user_id)::int AS completed_count
+     FROM active_assignments aa
+     LEFT JOIN completed_checkins cc ON cc.task_id = aa.task_id AND cc.user_id = aa.user_id
+     WHERE aa.college_id IS NOT NULL
+     GROUP BY aa.college_id, aa.college_name
+     ORDER BY completed_count DESC`,
+    []
   );
 
-  const ranking = collegeRanking.map((c) => ({
-    id: c.id,
-    name: c.name,
-    checkInCount: c.check_in_count,
-    totalStudents: c.total_students,
-    rate: c.total_students > 0
-      ? Math.round((c.check_in_count / c.total_students) * 1000) / 10
-      : 0,
-  }));
-
-  const absentStudents = await query<{
+  // 当前活跃任务下尚未完成打卡的学生（按截止时间升序，最紧迫优先）
+  const pendingRows = await query<{
     id: string;
     name: string | null;
     school_id: string;
     college_name: string | null;
     class_name: string | null;
-    last_check_in_date: string | null;
+    task_id: string;
+    task_title: string;
+    task_deadline: string;
   }>(
-    `WITH last_checkin AS (
-       SELECT user_id, MAX(checked_in_at::date) AS last_date
-       FROM check_ins
-       WHERE status <> 'rejected'
-       GROUP BY user_id
-     )
-     SELECT
-       u.id,
-       u.name,
-       u.school_id,
-       co.name AS college_name,
-       cl.name AS class_name,
-       lc.last_date AS last_check_in_date
-     FROM users u
-     JOIN classes cl ON u.class_id = cl.id
-     JOIN colleges co ON cl.college_id = co.id
-     LEFT JOIN last_checkin lc ON u.id = lc.user_id
-     WHERE u.role = 'student' AND u.is_enabled = true
-       AND (lc.last_date IS NULL OR lc.last_date < CURRENT_DATE)
-     ORDER BY lc.last_date NULLS FIRST
-     LIMIT 10`
+    `WITH ${ACTIVE_TASKS_CTE}, ${ACTIVE_ASSIGNMENTS_CTE}, completed_checkins AS (
+        SELECT aa.task_id, aa.user_id
+        FROM active_assignments aa
+        JOIN check_ins ci ON ci.task_id = aa.task_id AND ci.user_id = aa.user_id
+        WHERE ci.status IN ${COMPLETED_STATUS}
+      )
+     SELECT aa.user_id AS id, u.name, u.school_id,
+            aa.college_name, cl.name AS class_name,
+            aa.task_id, aa.task_title, aa.task_deadline
+     FROM active_assignments aa
+     JOIN users u ON u.id = aa.user_id
+     LEFT JOIN classes cl ON u.class_id = cl.id
+     LEFT JOIN completed_checkins cc ON cc.task_id = aa.task_id AND cc.user_id = aa.user_id
+     WHERE cc.user_id IS NULL
+     ORDER BY aa.task_deadline ASC, u.school_id
+     LIMIT 10`,
+    []
   );
 
-  const recentAbsentStudents = absentStudents.map((s) => {
-    const lastDate = s.last_check_in_date ? new Date(s.last_check_in_date) : null;
-    const today = new Date();
-    const diffDays = lastDate
-      ? Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-      : 30;
-    return {
+  // 近 12 天每日有效打卡趋势
+  const trendRows = await query<{ date: string; check_in_count: number }>(
+    `SELECT to_char(day, 'YYYY-MM-DD') AS date,
+            COUNT(ci.id)::int AS check_in_count
+     FROM generate_series(CURRENT_DATE - INTERVAL '11 days', CURRENT_DATE, INTERVAL '1 day') AS day
+     LEFT JOIN check_ins ci ON ci.checked_in_at::date = day AND ci.status ${VALID_STATUS}
+     GROUP BY day
+     ORDER BY day`,
+    []
+  );
+
+  return {
+    activeTaskCount: kpi?.active_task_count ?? 0,
+    pendingCompletionCount: kpi?.pending_completion_count ?? 0,
+    todayCheckInCount: kpi?.today_check_in_count ?? 0,
+    totalCompletedCount: kpi?.total_completed_count ?? 0,
+    collegeRanking: collegeRankingRows.map((c) => ({
+      id: c.id,
+      name: c.name,
+      totalAssignees: c.total_assignees,
+      completedCount: c.completed_count,
+      completionRate: c.total_assignees > 0
+        ? Math.round((c.completed_count / c.total_assignees) * 1000) / 10
+        : 0,
+    })),
+    pendingStudents: pendingRows.map((s) => ({
       id: s.id,
       name: s.name,
       schoolId: s.school_id,
       collegeName: s.college_name,
       className: s.class_name,
-      consecutiveAbsentDays: diffDays,
-      lastCheckInDate: s.last_check_in_date,
-    };
-  });
-
-  return {
-    todayCheckInRate,
-    todayCheckInCount,
-    todayTotalStudents,
-    todayAbsentCount,
-    totalStudents: todayTotalStudents,
-    totalCheckIns: totalCheckInsResult?.count ?? 0,
-    totalReflections: totalReflectionsResult?.count ?? 0,
-    collegeRanking: ranking,
-    recentAbsentStudents,
+      taskId: s.task_id,
+      taskTitle: s.task_title,
+      taskDeadline: s.task_deadline,
+    })),
+    dailyCheckInTrend: trendRows.map((d) => ({
+      date: d.date,
+      checkInCount: d.check_in_count,
+    })),
   };
 }
 
@@ -198,15 +228,18 @@ export async function getMultiDimStats(filters: StatsFilters): Promise<MultiDimS
     `SELECT
        ${selectScope},
        COUNT(DISTINCT u.id)::int AS total_students,
-       COUNT(DISTINCT ci.user_id)::int AS check_in_count,
-       COUNT(ci.id)::int AS reflection_count,
+       -- 有效打卡：DISTINCT user_id，排除 rejected
+       COUNT(DISTINCT CASE WHEN ci.status <> 'rejected' THEN ci.user_id END)::int AS check_in_count,
+       COUNT(CASE WHEN ci.status <> 'rejected' THEN ci.id END)::int AS reflection_count,
        COUNT(CASE WHEN ci.status = 'ai_approved' THEN 1 END)::int AS ai_approved_count,
-       COUNT(CASE WHEN ci.status IN ('pending_manual_review', 'approved', 'rejected', 'requires_modification') THEN 1 END)::int AS manual_review_count,
+       COUNT(CASE WHEN ci.status IN ('pending_manual_review', 'approved', 'requires_modification') THEN 1 END)::int AS manual_review_count,
        COUNT(CASE WHEN ci.status = 'approved' THEN 1 END)::int AS manual_approved_count,
        COUNT(CASE WHEN ci.status = 'rejected' THEN 1 END)::int AS manual_rejected_count
      FROM users u
      ${joinClass}
-     LEFT JOIN check_ins ci ON u.id = ci.user_id AND ci.status <> 'rejected' ${dateCondition}
+     -- JOIN 保留所有状态（含 rejected），让下方 CASE 能分别计数；
+     -- 各指标再用 CASE 显式按状态归类，避免 rejected 被算入"有效打卡"。
+     LEFT JOIN check_ins ci ON u.id = ci.user_id ${dateCondition}
      WHERE ${whereConditions.join(' AND ')}
      GROUP BY ${groupBy}`,
     params

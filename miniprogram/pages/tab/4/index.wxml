@@ -1,6 +1,4 @@
 <view class="page">
-  <view class="header-bg"></view>
-
   <view class="content">
     <block wx:if="{{role === 'student'}}">
       <view class="profile-card">
@@ -15,28 +13,6 @@
             <view class="profile-slogan">每一次努力，都是成长的足迹。</view>
           </view>
           <view class="profile-arrow">›</view>
-        </view>
-      </view>
-
-      <view class="stats-card">
-        <view class="stat-item">
-          <view class="stat-label">积分</view>
-          <view class="stat-value">{{stats.points}}</view>
-        </view>
-        <view class="stat-divider"></view>
-
-        <view class="stat-item">
-          <view class="stat-label">等级</view>
-          <view class="stat-value">Lv.{{stats.level.level}}</view>
-          <view class="stat-sub">{{stats.level.title}}</view>
-        </view>
-
-        <view class="stat-divider"></view>
-
-        <view class="stat-item" bindtap="goToAchievements">
-          <view class="stat-label">勋章</view>
-          <view class="stat-value">{{stats.earnedBadgeCount}}</view>
-          <view class="stat-sub">已获得</view>
         </view>
       </view>
 
