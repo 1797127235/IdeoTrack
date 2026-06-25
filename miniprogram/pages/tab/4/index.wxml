@@ -14,7 +14,7 @@
             <view class="profile-meta">学号：{{profile.schoolId || '-'}}</view>
             <view class="profile-slogan">每一次努力，都是成长的足迹。</view>
           </view>
-          <view class="profile-arrow">&#8250;</view>
+          <view class="profile-arrow">›</view>
         </view>
       </view>
 
@@ -98,7 +98,7 @@
             <view class="menu-title">心得复核</view>
             <view class="menu-desc">查看待复核的学生心得并处理</view>
           </view>
-          <view class="menu-arrow">&#8250;</view>
+          <view class="menu-arrow">›</view>
         </view>
 
         <view class="menu-card" bindtap="goToExport">
@@ -107,7 +107,7 @@
             <view class="menu-title">数据导出</view>
             <view class="menu-desc">导出 Excel 打卡报表</view>
           </view>
-          <view class="menu-arrow">&#8250;</view>
+          <view class="menu-arrow">›</view>
         </view>
       </view>
     </block>
@@ -118,7 +118,7 @@
         <view class="menu-content">
           <view class="menu-title">学习日历</view>
         </view>
-        <view class="menu-arrow">&#8250;</view>
+        <view class="menu-arrow">›</view>
       </view>
 
       <view class="menu-card" bindtap="goToLeaderboard">
@@ -126,7 +126,7 @@
         <view class="menu-content">
           <view class="menu-title">排行榜</view>
         </view>
-        <view class="menu-arrow">&#8250;</view>
+        <view class="menu-arrow">›</view>
       </view>
 
       <view class="menu-card" bindtap="goToSettings">
@@ -134,7 +134,7 @@
         <view class="menu-content">
           <view class="menu-title">设置</view>
         </view>
-        <view class="menu-arrow">&#8250;</view>
+        <view class="menu-arrow">›</view>
       </view>
     </view>
 
