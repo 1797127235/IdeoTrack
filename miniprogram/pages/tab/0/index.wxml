@@ -51,14 +51,16 @@
         </view>
 
         <view class="search-bar">
+          <text class="search-icon">搜</text>
           <input
             class="search-input"
             type="text"
-            placeholder=""
+            placeholder="搜索任务"
+            placeholder-class="search-placeholder"
             value="{{searchKeyword}}"
             bindinput="onSearchInput"
           />
-          <view wx:if="{{searchKeyword}}" class="search-clear" bindtap="clearSearch"></view>
+          <view wx:if="{{searchKeyword}}" class="search-clear" bindtap="clearSearch">✕</view>
         </view>
 
         <view class="loading-state" wx:if="{{tasksLoading}}">

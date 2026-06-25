@@ -202,32 +202,49 @@
   align-items: center;
   background-color: #FFFFFF;
   border-radius: var(--radius-full, 999rpx);
-  padding: 0 var(--space-3);
+  padding: 0 20rpx;
   margin-bottom: var(--space-3);
-  border: 1rpx solid var(--color-border, #e2e8f0);
+  border: 2rpx solid #CBD5E1;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.search-icon {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%);
+  color: #FFFFFF;
+  font-size: 18rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
-  height: 72rpx;
+  height: 76rpx;
   font-size: 28rpx;
   color: var(--color-text);
 }
 
-.search-input::placeholder {
-  color: var(--color-text-disabled, #94a3b8);
+.search-placeholder {
+  color: #94A3B8;
 }
 
 .search-clear {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background-color: var(--color-border, #e2e8f0);
+  background-color: #CBD5E1;
   color: #FFFFFF;
   font-size: 22rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .task-card {
