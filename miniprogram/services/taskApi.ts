@@ -42,10 +42,15 @@ export interface TaskDetail extends StudentTask {
   review_feedback?: string;
 }
 
+export interface CounselorClass {
+  class_id: string;
+  class_name: string;
+  college_name: string;
+}
+
 export interface DispatchTaskInput {
   source_task_id: string;
   target_class_id: string;
-  deadline_at: string;
 }
 
 export async function listMyTasks(page = 1, limit = 20) {
@@ -62,4 +67,8 @@ export async function fetchTaskPool(page = 1, limit = 20) {
 
 export async function dispatchTask(input: DispatchTaskInput) {
   return post<Task>('/api/tasks/dispatch', input);
+}
+
+export async function getCounselorClasses() {
+  return get<CounselorClass[]>('/api/counselor/classes');
 }

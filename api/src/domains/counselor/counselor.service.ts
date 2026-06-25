@@ -136,6 +136,25 @@ interface TaskDashboardRow {
 /**
  * 获取辅导员任务看板：列出其可见任务，以及每个任务在所辖班级的完成情况。
  */
+interface CounselorClass {
+  class_id: string;
+  class_name: string;
+  college_name: string;
+}
+
+export async function getCounselorClasses(counselorId: string): Promise<CounselorClass[]> {
+  const rows = await query<CounselorClass>(
+    `SELECT c.id AS class_id, c.name AS class_name, co.name AS college_name
+     FROM counselor_classes cc
+     JOIN classes c ON c.id = cc.class_id
+     JOIN colleges co ON co.id = c.college_id
+     WHERE cc.counselor_id = $1
+     ORDER BY c.name`,
+    [counselorId]
+  );
+  return rows;
+}
+
 export async function getCounselorDashboard(counselorId: string): Promise<CounselorTaskDashboard> {
   const rows = await query<TaskDashboardRow>(
     `WITH managed_classes AS (

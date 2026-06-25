@@ -1,28 +1,27 @@
-import { dispatchTask, fetchTaskPool } from '../../../services/taskApi';
+import {
+  dispatchTask,
+  fetchTaskPool,
+  getCounselorClasses,
+  type Task,
+  type CounselorClass,
+} from '../../../services/taskApi';
+import { formatDeadline } from '../../../utils/format';
 
-interface Task {
-  id: string;
-  title: string;
-  content: string;
-  guiding_questions: string[] | null;
-  source_url: string | null;
-  video_url: string | null;
-  published_at: string;
+interface ClassSelectItem extends CounselorClass {
+  selected: boolean;
 }
 
-interface ClassInfo {
-  id: string;
-  name: string;
+interface TaskView extends Task {
+  deadlineText: string;
 }
 
 Page({
   data: {
-    taskPool: [] as Task[],
-    selectedTask: null as Task | null,
-    classes: [] as ClassInfo[],
-    selectedClassId: '',
-    deadlineDate: '',
-    deadlineTime: '',
+    taskPool: [] as TaskView[],
+    selectedTask: null as TaskView | null,
+    classes: [] as ClassSelectItem[],
+    allSelected: false,
+    selectedCount: 0,
     loading: false,
     submitting: false,
     error: '',
@@ -31,7 +30,6 @@ Page({
   onLoad() {
     this.loadTaskPool();
     this.loadClasses();
-    this.setDefaultDeadline();
   },
 
   async loadTaskPool() {
@@ -39,7 +37,11 @@ Page({
     try {
       const res = await fetchTaskPool();
       if (res.success && res.data) {
-        this.setData({ taskPool: res.data.items });
+        const taskPool = res.data.items.map<TaskView>((t) => ({
+          ...t,
+          deadlineText: formatDeadline(t.deadline_at),
+        }));
+        this.setData({ taskPool });
       }
     } catch (err) {
       console.error('加载任务池失败:', err);
@@ -51,85 +53,79 @@ Page({
 
   async loadClasses() {
     try {
-      // TODO: 从 API 获取辅导员所带班级
-      // 临时使用模拟数据
-      this.setData({
-        classes: [
-          { id: '1', name: '计算机2024-1班' },
-          { id: '2', name: '计算机2024-2班' },
-        ]
-      });
+      const res = await getCounselorClasses();
+      if (res.success && res.data) {
+        const classes: ClassSelectItem[] = res.data.map((c) => ({ ...c, selected: false }));
+        this.setData({ classes });
+      } else {
+        this.setData({ error: res.error?.message || '加载班级失败' });
+      }
     } catch (err) {
       console.error('加载班级失败:', err);
+      this.setData({ error: '加载班级失败' });
     }
   },
 
-  setDefaultDeadline() {
-    const now = new Date();
-    now.setDate(now.getDate() + 7); // 默认7天后截止
+  selectTask(e: WechatMiniprogram.TouchEvent) {
+    const taskId = e.currentTarget.dataset.id as string;
+    const task = this.data.taskPool.find((t) => t.id === taskId) || null;
+    this.setData({ selectedTask: task });
+  },
+
+  toggleClass(e: WechatMiniprogram.TouchEvent) {
+    const idx = e.currentTarget.dataset.idx as number;
+    const key = `classes[${idx}].selected`;
+    const current = this.data.classes[idx].selected;
+    this.setData({ [key]: !current } as Record<string, boolean>);
+    const selectedCount = this.data.classes.filter((c) => c.selected).length;
     this.setData({
-      deadlineDate: now.toISOString().slice(0, 10),
-      deadlineTime: '23:59',
+      allSelected: selectedCount === this.data.classes.length,
+      selectedCount,
     });
   },
 
-  selectTask(e: WechatMiniprogram.TouchEvent) {
-    const taskId = e.currentTarget.dataset.id;
-    const task = this.data.taskPool.find(t => t.id === taskId);
-    this.setData({ selectedTask: task || null });
-  },
-
-  selectClass(e: WechatMiniprogram.PickerChange) {
-    const classIndex = parseInt(e.detail.value as string, 10);
-    this.setData({ selectedClassId: this.data.classes[classIndex].id });
-  },
-
-  onDeadlineDateChange(e: WechatMiniprogram.PickerChange) {
-    this.setData({ deadlineDate: e.detail.value as string });
-  },
-
-  onDeadlineTimeChange(e: WechatMiniprogram.PickerChange) {
-    this.setData({ deadlineTime: e.detail.value as string });
+  toggleSelectAll() {
+    const allSelected = !this.data.allSelected;
+    const classes = this.data.classes.map((c) => ({ ...c, selected: allSelected }));
+    this.setData({
+      classes,
+      allSelected,
+      selectedCount: allSelected ? classes.length : 0,
+    });
   },
 
   async submitDispatch() {
-    const { selectedTask, selectedClassId, deadlineDate, deadlineTime } = this.data;
+    const { selectedTask, classes } = this.data;
+    const selectedClassIds = classes.filter((c) => c.selected).map((c) => c.class_id);
 
     if (!selectedTask) {
       wx.showToast({ title: '请选择任务', icon: 'none' });
       return;
     }
 
-    if (!selectedClassId) {
+    if (this.data.selectedCount === 0) {
       wx.showToast({ title: '请选择班级', icon: 'none' });
-      return;
-    }
-
-    if (!deadlineDate || !deadlineTime) {
-      wx.showToast({ title: '请设置截止时间', icon: 'none' });
       return;
     }
 
     this.setData({ submitting: true });
     try {
-      const deadline_at = `${deadlineDate}T${deadlineTime}:00.000Z`;
-      const res = await dispatchTask({
-        source_task_id: selectedTask.id,
-        target_class_id: selectedClassId,
-        deadline_at,
-      });
-
-      if (res.success) {
-        wx.showToast({ title: '派发成功', icon: 'success' });
-        setTimeout(() => {
-          wx.navigateBack();
-        }, 1500);
-      } else {
-        wx.showToast({ title: res.error?.message || '派发失败', icon: 'none' });
+      for (const classId of selectedClassIds) {
+        const res = await dispatchTask({
+          source_task_id: selectedTask.id,
+          target_class_id: classId,
+        });
+        if (!res.success) {
+          throw new Error(res.error?.message || '派发失败');
+        }
       }
+      wx.showToast({ title: '派发成功', icon: 'success' });
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1500);
     } catch (err) {
       console.error('派发任务失败:', err);
-      wx.showToast({ title: '派发失败', icon: 'none' });
+      wx.showToast({ title: err instanceof Error ? err.message : '派发失败', icon: 'none' });
     } finally {
       this.setData({ submitting: false });
     }

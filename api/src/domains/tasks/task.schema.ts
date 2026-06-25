@@ -53,7 +53,6 @@ export const createTaskSchema = z.object({
 export const dispatchTaskSchema = z.object({
   source_task_id: z.string().uuid('源任务 ID 格式无效'),  // AD-21: 必填
   target_class_id: z.string().uuid('班级 ID 格式无效'),  // AD-21: 必填
-  deadline_at: z.string().datetime({ message: '截止时间格式无效' }),
 });
 
 export const updateTaskSchema = z.object({

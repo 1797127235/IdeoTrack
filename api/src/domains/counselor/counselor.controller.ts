@@ -5,6 +5,7 @@ import {
   exportClassCheckIns,
   getClassReminders,
   getClassStudentList,
+  getCounselorClasses,
   getCounselorDashboard,
   getTaskClassStats,
   sendReminders,
@@ -40,6 +41,24 @@ export async function getDashboardController(
     }
 
     const data = await getCounselorDashboard(req.user.userId);
+
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getCounselorClassesController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const data = await getCounselorClasses(req.user.userId);
 
     res.status(200).json({ success: true, data });
   } catch (err) {

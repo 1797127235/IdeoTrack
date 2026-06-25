@@ -78,7 +78,6 @@ export interface CreateTaskInput {
 export interface DispatchTaskInput {
   source_task_id: string;  // AD-21: 必填
   target_class_id: string;
-  deadline_at: string;
 }
 
 export interface UpdateTaskInput {

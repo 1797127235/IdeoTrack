@@ -8,7 +8,7 @@
   <view class="section">
     <text class="section-title">选择任务</text>
     <view class="task-list" wx:if="{{taskPool.length > 0}}">
-      <view 
+      <view
         class="task-item {{selectedTask.id === item.id ? 'selected' : ''}}"
         wx:for="{{taskPool}}"
         wx:key="id"
@@ -17,7 +17,7 @@
       >
         <view class="task-info">
           <text class="task-title">{{item.title}}</text>
-          <text class="task-date">发布于 {{item.published_at}}</text>
+          <text class="task-date">截止 {{item.deadlineText}}</text>
         </view>
         <view class="task-check" wx:if="{{selectedTask.id === item.id}}">
           <text class="check-icon">✓</text>
@@ -35,7 +35,12 @@
     <view class="task-detail">
       <text class="detail-title">{{selectedTask.title}}</text>
       <text class="detail-content">{{selectedTask.content}}</text>
-      
+
+      <view class="detail-row">
+        <text class="detail-label">截止时间：</text>
+        <text class="detail-value">{{selectedTask.deadlineText}}</text>
+      </view>
+
       <!-- 思考题 -->
       <view class="detail-questions" wx:if="{{selectedTask.guiding_questions && selectedTask.guiding_questions.length > 0}}">
         <text class="questions-title">思考题：</text>
@@ -58,47 +63,38 @@
 
   <!-- 班级选择 -->
   <view class="section">
-    <text class="section-title">选择班级</text>
-    <picker 
-      mode="selector" 
-      range="{{classes}}" 
-      range-key="name"
-      bindchange="selectClass"
-    >
-      <view class="picker">
-        <text class="picker-text">
-          {{selectedClassId ? classes[selectedClassId - 1].name : '请选择班级'}}
-        </text>
-        <text class="picker-arrow">▼</text>
+    <view class="section-header">
+      <text class="section-title">选择班级</text>
+      <text class="select-all" bindtap="toggleSelectAll">{{allSelected ? '取消全选' : '全选'}}</text>
+    </view>
+    <view class="class-list" wx:if="{{classes.length > 0}}">
+      <view
+        class="class-item {{item.selected ? 'selected' : ''}}"
+        wx:for="{{classes}}"
+        wx:key="class_id"
+        bindtap="toggleClass"
+        data-idx="{{index}}"
+      >
+        <view class="class-info">
+          <text class="class-name">{{item.class_name}}</text>
+          <text class="class-meta">{{item.college_name}}</text>
+        </view>
+        <view class="class-check" wx:if="{{item.selected}}">
+          <text class="check-icon">✓</text>
+        </view>
       </view>
-    </picker>
-  </view>
-
-  <!-- 截止时间 -->
-  <view class="section">
-    <text class="section-title">截止时间</text>
-    <view class="deadline-row">
-      <picker mode="date" value="{{deadlineDate}}" bindchange="onDeadlineDateChange">
-        <view class="picker">
-          <text class="picker-text">{{deadlineDate || '选择日期'}}</text>
-          <text class="picker-arrow">▼</text>
-        </view>
-      </picker>
-      <picker mode="time" value="{{deadlineTime}}" bindchange="onDeadlineTimeChange">
-        <view class="picker">
-          <text class="picker-text">{{deadlineTime || '选择时间'}}</text>
-          <text class="picker-arrow">▼</text>
-        </view>
-      </picker>
+    </view>
+    <view class="empty" wx:else>
+      <text class="empty-text">暂无所辖班级</text>
     </view>
   </view>
 
   <!-- 提交按钮 -->
   <view class="submit-section">
-    <button 
-      class="submit-btn" 
+    <button
+      class="submit-btn"
       bindtap="submitDispatch"
-      disabled="{{submitting || !selectedTask || !selectedClassId}}"
+      disabled="{{submitting || !selectedTask || selectedCount === 0}}"
     >
       {{submitting ? '派发中...' : '确认派发'}}
     </button>

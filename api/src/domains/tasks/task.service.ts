@@ -305,14 +305,9 @@ export async function dispatchTask(
     throw new AppError('ACCESS_DENIED', '您没有该班级的派发权限', 403);
   }
 
-  // 校验截止时间
-  if (new Date(input.deadline_at) <= new Date()) {
-    throw new AppError('VALIDATION_ERROR', '截止时间必须晚于当前时间', 400);
-  }
-
-  // DN-3: 校验派发截止时间不能晚于源任务截止时间
-  if (new Date(input.deadline_at) > new Date(sourceTask.deadline_at)) {
-    throw new AppError('VALIDATION_ERROR', '派发截止时间不能晚于源任务截止时间', 400);
+  // 截止时间由管理员在创建源任务时统一设置，辅导员派发时直接使用源任务截止时间
+  if (new Date(sourceTask.deadline_at) <= new Date()) {
+    throw new AppError('VALIDATION_ERROR', '源任务已截止，无法派发', 400);
   }
 
   // 从源任务拷贝快照字段，创建派发实例
@@ -336,7 +331,7 @@ export async function dispatchTask(
       input.source_task_id,  // 指向源任务
       userId,
       new Date().toISOString(),  // 发布时间为当前时间
-      input.deadline_at,
+      sourceTask.deadline_at,  // 截止时间继承源任务
     ]
   );
 
@@ -528,17 +523,8 @@ export async function updateTask(
       throw new AppError('ACCESS_DENIED', '管理员不能编辑派发实例', 403);
     }
   } else if (role === 'counselor') {
-    // 辅导员只能编辑派发实例
-    if (!task.source_task_id) {
-      throw new AppError('ACCESS_DENIED', '辅导员不能编辑源任务', 403);
-    }
-    // 辅导员只能编辑 deadline_at
-    const allowedFields = ['deadline_at'];
-    const inputFields = Object.keys(input);
-    const invalidFields = inputFields.filter(field => !allowedFields.includes(field));
-    if (invalidFields.length > 0) {
-      throw new AppError('VALIDATION_ERROR', `辅导员只能编辑截止时间，不能编辑: ${invalidFields.join(', ')}`, 400);
-    }
+    // 辅导员不能编辑任务，包括截止时间（截止时间由管理员统一设置）
+    throw new AppError('ACCESS_DENIED', '辅导员不能编辑任务', 403);
   }
 
   const scopeType = input.scope_type ?? task.scope_type;
@@ -556,21 +542,6 @@ export async function updateTask(
   const deadlineAt = input.deadline_at ?? task.deadline_at;
   if (new Date(deadlineAt) <= new Date(publishedAt)) {
     throw new AppError('VALIDATION_ERROR', '截止时间必须晚于发布时间', 400);
-  }
-
-  // P7: 辅导员编辑派发实例时，验证新截止时间不超过源任务截止时间
-  if (task.source_task_id && role === 'counselor' && input.deadline_at) {
-    const sourceTask = await fetchTaskById(task.source_task_id);
-    if (new Date(deadlineAt) > new Date(sourceTask.deadline_at)) {
-      throw new AppError('VALIDATION_ERROR', '派发截止时间不能晚于源任务截止时间', 400);
-    }
-  }
-
-  // P8: 辅导员编辑派发实例时，验证新截止时间在当前时间之后
-  if (task.source_task_id && role === 'counselor' && input.deadline_at) {
-    if (new Date(deadlineAt) <= new Date()) {
-      throw new AppError('VALIDATION_ERROR', '截止时间必须晚于当前时间', 400);
-    }
   }
 
   const updates: string[] = [];
