@@ -3,29 +3,29 @@
     <!-- 总览卡片 -->
     <view class="overview-card" wx:if="{{summary}}">
       <view class="overview-item">
+        <view class="overview-value">{{summary.total_tasks}}</view>
+        <view class="overview-label">任务数</view>
+      </view>
+      <view class="overview-divider"></view>
+      <view class="overview-item">
         <view class="overview-value">{{summary.check_in_rate}}%</view>
-        <view class="overview-label">总体打卡率</view>
+        <view class="overview-label">平均完成率</view>
       </view>
       <view class="overview-divider"></view>
       <view class="overview-item">
-        <view class="overview-value">{{summary.checked_in_count}}</view>
-        <view class="overview-label">已打卡</view>
-      </view>
-      <view class="overview-divider"></view>
-      <view class="overview-item">
-        <view class="overview-value">{{summary.total_students}}</view>
-        <view class="overview-label">总人数</view>
+        <view class="overview-value">{{summary.total_checked}}/{{summary.total_possible}}</view>
+        <view class="overview-label">已完成/应完成</view>
       </view>
     </view>
 
-    <!-- 班级打卡率 -->
+    <!-- 班级完成率 -->
     <view class="section">
-      <view class="section-title">班级打卡率</view>
+      <view class="section-title">班级完成率</view>
       <view class="stat-list" wx:if="{{classStats.length > 0}}">
         <view wx:for="{{classStats}}" wx:key="class_id" class="stat-card">
           <view class="stat-info">
             <view class="stat-name">{{item.class_name}}</view>
-            <view class="stat-meta">{{item.checked_in_count}}/{{item.total_students}} 人已打卡</view>
+            <view class="stat-meta">{{item.total_checked}}/{{item.total_possible}} 已完成</view>
           </view>
           <view class="stat-rate">{{item.check_in_rate}}%</view>
         </view>

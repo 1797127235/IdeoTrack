@@ -1,40 +1,62 @@
-import { getCounselorDashboard, type ClassDashboardItem } from '../../../services/counselorApi';
+import { getCounselorDashboard, type CounselorTaskDashboardItem } from '../../../services/counselorApi';
 import { updateTabBarSelected } from '../../../utils/tabBar';
 
 interface DashboardSummary {
-  total_students: number;
-  checked_in_count: number;
+  total_tasks: number;
+  total_possible: number;
+  total_checked: number;
   check_in_rate: number;
 }
 
 interface ClassStat {
   class_id: string;
   class_name: string;
-  total_students: number;
-  checked_in_count: number;
+  total_possible: number;
+  total_checked: number;
   check_in_rate: number;
 }
 
-function buildSummaryFromUniqueClasses(classes: ClassDashboardItem[]): DashboardSummary {
-  const total = classes.reduce((sum, c) => sum + c.total_students, 0);
-  const checked = classes.reduce((sum, c) => sum + c.checked_in_count, 0);
-  return {
-    total_students: total,
-    checked_in_count: checked,
-    check_in_rate: total > 0 ? Math.round((checked / total) * 100) : 0,
-  };
-}
+function aggregateStats(tasks: CounselorTaskDashboardItem[]): {
+  summary: DashboardSummary;
+  classStats: ClassStat[];
+} {
+  const classMap = new Map<string, ClassStat>();
 
-function uniqueClasses(tasks: { classes: ClassDashboardItem[] }[]): ClassDashboardItem[] {
-  const map = new Map<string, ClassDashboardItem>();
   for (const task of tasks) {
     for (const c of task.classes) {
-      if (!map.has(c.class_id)) {
-        map.set(c.class_id, c);
+      const entry = classMap.get(c.class_id);
+      if (entry) {
+        entry.total_possible += c.total_students;
+        entry.total_checked += c.checked_in_count;
+      } else {
+        classMap.set(c.class_id, {
+          class_id: c.class_id,
+          class_name: c.class_name,
+          total_possible: c.total_students,
+          total_checked: c.checked_in_count,
+          check_in_rate: 0,
+        });
       }
     }
   }
-  return Array.from(map.values());
+
+  const classStats = Array.from(classMap.values()).map((c) => ({
+    ...c,
+    check_in_rate: c.total_possible > 0 ? Math.round((c.total_checked / c.total_possible) * 100) : 0,
+  }));
+
+  const totalPossible = classStats.reduce((sum, c) => sum + c.total_possible, 0);
+  const totalChecked = classStats.reduce((sum, c) => sum + c.total_checked, 0);
+
+  return {
+    summary: {
+      total_tasks: tasks.length,
+      total_possible: totalPossible,
+      total_checked: totalChecked,
+      check_in_rate: totalPossible > 0 ? Math.round((totalChecked / totalPossible) * 100) : 0,
+    },
+    classStats,
+  };
 }
 
 Page({
@@ -53,16 +75,10 @@ Page({
     this.setData({ loading: true });
     try {
       const data = await getCounselorDashboard();
-      const classes = uniqueClasses(data.tasks);
+      const { summary, classStats } = aggregateStats(data.tasks);
       this.setData({
-        summary: buildSummaryFromUniqueClasses(classes),
-        classStats: classes.map((c) => ({
-          class_id: c.class_id,
-          class_name: c.class_name,
-          total_students: c.total_students,
-          checked_in_count: c.checked_in_count,
-          check_in_rate: c.check_in_rate,
-        })),
+        summary,
+        classStats,
         loading: false,
       });
     } catch (err) {
