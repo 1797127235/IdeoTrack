@@ -4,18 +4,23 @@ import {
   getCounselorDashboard,
   getClassStudentList,
   type ClassDashboardItem,
-  type DashboardSummary,
+  type CounselorTaskDashboardItem,
   type ClassStudentItem,
 } from '../../../services/counselorApi';
 import { getUserRole } from '../../../utils/auth';
 import { updateTabBarSelected } from '../../../utils/tabBar';
 import { formatDeadline } from '../../../utils/format';
-import { formatDateText, toBeijingDateString } from '../../../utils/date';
 import { theme } from '../../../theme';
 
 interface TaskItem extends StudentTask {
   deadlineText: string;
   statusMeta: { label: string; color: string; bgColor: string };
+}
+
+interface DashboardSummary {
+  total_students: number;
+  checked_in_count: number;
+  check_in_rate: number;
 }
 
 function getGreeting(): string {
@@ -61,6 +66,16 @@ function buildTaskItem(task: StudentTask): TaskItem {
   };
 }
 
+function buildSummary(classes: ClassDashboardItem[]): DashboardSummary {
+  const total = classes.reduce((sum, c) => sum + c.total_students, 0);
+  const checked = classes.reduce((sum, c) => sum + c.checked_in_count, 0);
+  return {
+    total_students: total,
+    checked_in_count: checked,
+    check_in_rate: total > 0 ? Math.round((checked / total) * 100) : 0,
+  };
+}
+
 Page({
   data: {
     role: '' as string,
@@ -85,8 +100,7 @@ Page({
     ],
     homeError: '',
     // Counselor dashboard
-    date: toBeijingDateString(),
-    dashDateText: '',
+    currentTask: null as CounselorTaskDashboardItem | null,
     summary: null as DashboardSummary | null,
     classes: [] as ClassDashboardItem[],
     focusStudents: [] as ClassStudentItem[],
@@ -171,32 +185,36 @@ Page({
   async loadCounselorData() {
     this.setData({ dashLoading: true, dashErrorMsg: '' });
     try {
-      const data = await getCounselorDashboard(this.data.date);
-      const normalizedDate = toBeijingDateString(new Date(data.date.replace(/\//g, '-')));
+      const data = await getCounselorDashboard();
+      const currentTask = data.tasks[0] ?? null;
+      const classes = currentTask?.classes ?? [];
       this.setData({
-        date: normalizedDate,
-        dashDateText: formatDateText(normalizedDate),
-        summary: data.summary,
-        classes: data.classes,
+        currentTask,
+        classes,
+        summary: currentTask ? buildSummary(classes) : null,
       });
-      if (data.classes.length > 0) {
-        this.loadFocusStudents(data.classes[0].class_id, data.date);
+      if (classes.length > 0 && currentTask) {
+        this.loadFocusStudents(classes[0].class_id, currentTask.task_id);
+      } else {
+        this.setData({ focusStudents: [] });
       }
     } catch (err) {
       this.setData({
         dashErrorMsg: err instanceof Error ? err.message : '加载失败',
         classes: [],
         summary: null,
+        currentTask: null,
+        focusStudents: [],
       });
     } finally {
       this.setData({ dashLoading: false });
     }
   },
 
-  async loadFocusStudents(classId: string, date: string) {
+  async loadFocusStudents(classId: string, taskId: string) {
     this.setData({ focusLoading: true });
     try {
-      const data = await getClassStudentList(classId, 'absent', date);
+      const data = await getClassStudentList(classId, taskId, 'absent');
       this.setData({ focusStudents: data.students.slice(0, 5) });
     } catch (err) {
       console.error('加载重点关注学生失败:', err);
@@ -238,12 +256,13 @@ Page({
 
   goToClassDetail(event: WechatMiniprogram.BaseEvent) {
     const { id, name } = event.currentTarget.dataset as { id?: string; name?: string };
-    if (!id) {
-      wx.showToast({ title: '班级信息缺失', icon: 'none' });
+    const taskId = this.data.currentTask?.task_id;
+    if (!id || !taskId) {
+      wx.showToast({ title: '班级或任务信息缺失', icon: 'none' });
       return;
     }
     const className = name || '班级详情';
-    const url = `/pages/counselor/class-detail/index?classId=${encodeURIComponent(id)}&className=${encodeURIComponent(className)}&date=${encodeURIComponent(this.data.date)}`;
+    const url = `/pages/counselor/class-detail/index?classId=${encodeURIComponent(id)}&className=${encodeURIComponent(className)}&taskId=${encodeURIComponent(taskId)}`;
     wx.navigateTo({
       url,
       fail: (err) => {

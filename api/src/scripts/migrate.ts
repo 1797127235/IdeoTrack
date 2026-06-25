@@ -202,16 +202,21 @@ CREATE TABLE IF NOT EXISTS reminders (
   counselor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
   reminder_date DATE NOT NULL,
   channel TEXT NOT NULL DEFAULT 'wechat_subscribe',
   status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'skipped_no_openid', 'already_reminded')),
   error_message TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
--- 仅限制“成功发送”每天每生一次；失败/跳过允许重试
+-- 存量表兼容：新增 task_id 列
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS task_id UUID REFERENCES tasks(id) ON DELETE CASCADE;
+-- 同一学生对同一任务仅允许一条成功提醒记录；失败/跳过允许重试
 DROP INDEX IF EXISTS idx_reminders_unique_sent;
 ALTER TABLE reminders DROP CONSTRAINT IF EXISTS reminders_student_id_reminder_date_key;
-CREATE UNIQUE INDEX idx_reminders_unique_sent ON reminders(student_id, reminder_date) WHERE status = 'sent';
+CREATE UNIQUE INDEX idx_reminders_unique_sent ON reminders(student_id, task_id) WHERE status = 'sent' AND task_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_reminders_task_class ON reminders(task_id, class_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_task_student ON reminders(task_id, student_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_class_date ON reminders(class_id, reminder_date);
 CREATE INDEX IF NOT EXISTS idx_reminders_student_date ON reminders(student_id, reminder_date);
 

@@ -8,13 +8,14 @@ import {
   signDownloadToken,
 } from '../../lib/storage.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { fetchTaskById } from '../tasks/task.service.js';
 import type {
   ClassDashboardItem,
   ClassReminderList,
   ClassStudentItem,
   ClassStudentList,
-  CounselorDashboard,
-  DashboardSummary,
+  CounselorTaskDashboard,
+  CounselorTaskDashboardItem,
   ExportCheckInsInput,
   ExportJobResult,
   ExportRowItem,
@@ -34,21 +35,6 @@ function toBeijingDateString(date = new Date()): string {
   const month = String(beijing.getMonth() + 1).padStart(2, '0');
   const day = String(beijing.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-function parseDate(input?: string): string {
-  // 与 today（sendReminders 中 toBeijingDateString(getCurrentBeijingTime())）同源，
-  // 必须复用 getCurrentBeijingTime() 以尊重测试的 REMINDER_TIME_OVERRIDE；
-  // 否则 override 日期与真实日期跨天时，"当天"判定会不一致（flaky 来源）。
-  if (!input) return toBeijingDateString(getCurrentBeijingTime());
-  if (!DATE_REGEX.test(input)) {
-    throw new AppError('VALIDATION_ERROR', 'date 参数必须是 YYYY-MM-DD 格式', 400);
-  }
-  const d = new Date(input);
-  if (Number.isNaN(d.getTime())) {
-    throw new AppError('VALIDATION_ERROR', 'date 参数无效', 400);
-  }
-  return toBeijingDateString(d);
 }
 
 /**
@@ -135,55 +121,154 @@ async function withStudentDateLock<T>(studentId: string, date: string, fn: () =>
   }
 }
 
-/**
- * 获取辅导员所带班级的今日打卡概览。
- */
-export async function getCounselorDashboard(
-  counselorId: string,
-  dateInput?: string
-): Promise<CounselorDashboard> {
-  const date = parseDate(dateInput);
+interface TaskDashboardRow {
+  task_id: string;
+  title: string;
+  deadline_at: string;
+  class_id: string;
+  class_name: string;
+  college_name: string;
+  total_students: number;
+  checked_in_count: number;
+  reminded_count: number;
+}
 
-  const rows = await query<
-    ClassDashboardItem & {
-      total_students: number;
-      checked_in_count: number;
-      reminded_count: number;
-    }
-  >(
-    `SELECT
-       c.id AS class_id,
-       c.name AS class_name,
-       co.name AS college_name,
+/**
+ * 获取辅导员任务看板：列出其可见任务，以及每个任务在所辖班级的完成情况。
+ */
+export async function getCounselorDashboard(counselorId: string): Promise<CounselorTaskDashboard> {
+  const rows = await query<TaskDashboardRow>(
+    `WITH managed_classes AS (
+       SELECT cc.class_id, c.college_id, c.name AS class_name, co.name AS college_name
+       FROM counselor_classes cc
+       JOIN classes c ON c.id = cc.class_id
+       JOIN colleges co ON co.id = c.college_id
+       WHERE cc.counselor_id = $1
+     )
+     SELECT
+       t.id AS task_id,
+       t.title,
+       t.deadline_at,
+       mc.class_id,
+       mc.class_name,
+       mc.college_name,
        (
          SELECT COUNT(*)::int
          FROM users s
-         WHERE s.class_id = c.id AND s.role = 'student'
+         WHERE s.class_id = mc.class_id AND s.role = 'student'
        ) AS total_students,
        (
-         SELECT COUNT(DISTINCT s.id)::int
-         FROM users s
-         JOIN check_ins ci
-           ON ci.user_id = s.id
-          AND ci.status = 'approved'
-          AND DATE(ci.checked_in_at AT TIME ZONE 'Asia/Shanghai') = $2::date
-         WHERE s.class_id = c.id AND s.role = 'student'
+         SELECT COUNT(*)::int
+         FROM check_ins ci
+         JOIN users s ON s.id = ci.user_id
+         WHERE ci.task_id = t.id
+           AND s.class_id = mc.class_id
+           AND ci.status = 'approved'
        ) AS checked_in_count,
        (
-         SELECT COUNT(DISTINCT s.id)::int
-         FROM users s
-         JOIN reminders r
-           ON r.student_id = s.id
-          AND r.reminder_date = $2::date
-          AND r.status = 'sent'
-         WHERE s.class_id = c.id AND s.role = 'student'
+         SELECT COUNT(*)::int
+         FROM reminders r
+         WHERE r.task_id = t.id
+           AND r.class_id = mc.class_id
+           AND r.status = 'sent'
        ) AS reminded_count
-     FROM counselor_classes cc
-     JOIN classes c ON cc.class_id = c.id
-     JOIN colleges co ON c.college_id = co.id
-     WHERE cc.counselor_id = $1
-     ORDER BY c.name`,
-    [counselorId, date]
+     FROM tasks t
+     JOIN managed_classes mc ON (
+       t.scope_type = 'school'
+       OR (t.scope_type = 'college' AND t.target_college_id = mc.college_id)
+       OR (t.scope_type = 'class' AND t.target_class_id = mc.class_id)
+     )
+     WHERE t.status = 'published'
+       AND (t.created_by = $1 OR t.scope_type IN ('school', 'college', 'class'))
+     ORDER BY t.deadline_at DESC, mc.class_name`,
+    [counselorId]
+  );
+
+  const taskMap = new Map<string, CounselorTaskDashboardItem>();
+  for (const row of rows) {
+    let item = taskMap.get(row.task_id);
+    if (!item) {
+      item = {
+        task_id: row.task_id,
+        title: row.title,
+        deadline_at: row.deadline_at,
+        classes: [],
+      };
+      taskMap.set(row.task_id, item);
+    }
+    const total = row.total_students;
+    const checked = row.checked_in_count;
+    const rate = total > 0 ? Math.round((checked / total) * 100) : 0;
+    item.classes.push({
+      class_id: row.class_id,
+      class_name: row.class_name,
+      college_name: row.college_name,
+      total_students: total,
+      checked_in_count: checked,
+      check_in_rate: rate,
+      absent_count: total - checked,
+      reminded_count: row.reminded_count,
+    });
+  }
+
+  return { tasks: Array.from(taskMap.values()) };
+}
+
+/**
+ * 获取辅导员某个任务在所辖班级的完成情况。
+ */
+export async function getTaskClassStats(
+  counselorId: string,
+  taskId: string
+): Promise<CounselorTaskDashboardItem> {
+  const task = await fetchTaskById(taskId);
+
+  const rows = await query<TaskDashboardRow>(
+    `WITH managed_classes AS (
+       SELECT cc.class_id, c.college_id, c.name AS class_name, co.name AS college_name
+       FROM counselor_classes cc
+       JOIN classes c ON c.id = cc.class_id
+       JOIN colleges co ON co.id = c.college_id
+       WHERE cc.counselor_id = $1
+     )
+     SELECT
+       t.id AS task_id,
+       t.title,
+       t.deadline_at,
+       mc.class_id,
+       mc.class_name,
+       mc.college_name,
+       (
+         SELECT COUNT(*)::int
+         FROM users s
+         WHERE s.class_id = mc.class_id AND s.role = 'student'
+       ) AS total_students,
+       (
+         SELECT COUNT(*)::int
+         FROM check_ins ci
+         JOIN users s ON s.id = ci.user_id
+         WHERE ci.task_id = t.id
+           AND s.class_id = mc.class_id
+           AND ci.status = 'approved'
+       ) AS checked_in_count,
+       (
+         SELECT COUNT(*)::int
+         FROM reminders r
+         WHERE r.task_id = t.id
+           AND r.class_id = mc.class_id
+           AND r.status = 'sent'
+       ) AS reminded_count
+     FROM tasks t
+     JOIN managed_classes mc ON (
+       t.scope_type = 'school'
+       OR (t.scope_type = 'college' AND t.target_college_id = mc.college_id)
+       OR (t.scope_type = 'class' AND t.target_class_id = mc.class_id)
+     )
+     WHERE t.id = $2
+       AND t.status = 'published'
+       AND (t.created_by = $1 OR t.scope_type IN ('school', 'college', 'class'))
+     ORDER BY mc.class_name`,
+    [counselorId, taskId]
   );
 
   const classes: ClassDashboardItem[] = rows.map((row) => {
@@ -202,44 +287,44 @@ export async function getCounselorDashboard(
     };
   });
 
-  const summary: DashboardSummary = classes.reduce(
-    (acc, cls) => ({
-      total_students: acc.total_students + cls.total_students,
-      checked_in_count: acc.checked_in_count + cls.checked_in_count,
-      check_in_rate: 0,
-    }),
-    { total_students: 0, checked_in_count: 0, check_in_rate: 0 }
-  );
-
-  summary.check_in_rate =
-    summary.total_students > 0
-      ? Math.round((summary.checked_in_count / summary.total_students) * 100)
-      : 0;
-
-  return { date, classes, summary };
+  return {
+    task_id: task.id,
+    title: task.title,
+    deadline_at: task.deadline_at,
+    classes,
+  };
 }
 
 /**
- * 获取某班级学生的当日打卡名单。
+ * 获取某班级学生在指定任务下的打卡名单。
  */
 export async function getClassStudentList(
   counselorId: string,
   classId: string,
-  dateInput?: string,
+  taskId: string,
   filterStatus: StudentFilterStatus = 'all'
 ): Promise<ClassStudentList> {
-  const date = parseDate(dateInput);
-
   const managed = await isClassManagedByCounselor(counselorId, classId);
   if (!managed) {
     throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
   }
 
-  const classRow = await queryOne<{ class_name: string }>(
-    `SELECT name AS class_name FROM classes WHERE id = $1`,
+  const task = await fetchTaskById(taskId);
+  const classRow = await queryOne<{ class_name: string; college_id: string }>(
+    `SELECT name AS class_name, college_id FROM classes WHERE id = $1`,
     [classId]
   );
   if (!classRow) {
+    throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
+  }
+
+  // 校验该任务对该班级可见
+  const visibleToClass =
+    task.status === 'published' &&
+    (task.scope_type === 'school' ||
+      (task.scope_type === 'college' && task.target_college_id === classRow.college_id) ||
+      (task.scope_type === 'class' && task.target_class_id === classId));
+  if (!visibleToClass) {
     throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
   }
 
@@ -254,12 +339,12 @@ export async function getClassStudentList(
        ci.reflection_content AS reflection_content,
        COALESCE(
          GREATEST(
-           ($2::date - (
+           (DATE(t.deadline_at AT TIME ZONE 'Asia/Shanghai') - (
              SELECT MAX(DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai'))
              FROM check_ins
              WHERE user_id = s.id
                AND status = 'approved'
-               AND DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai') <= $2::date
+               AND DATE(checked_in_at AT TIME ZONE 'Asia/Shanghai') <= DATE(t.deadline_at AT TIME ZONE 'Asia/Shanghai')
            ))::int,
            0
          ),
@@ -267,18 +352,20 @@ export async function getClassStudentList(
        ) AS consecutive_absent_days,
        CASE WHEN r.id IS NOT NULL THEN true ELSE false END AS reminded
      FROM users s
+     CROSS JOIN tasks t
      LEFT JOIN check_ins ci
        ON ci.user_id = s.id
+      AND ci.task_id = t.id
       AND ci.status = 'approved'
-      AND DATE(ci.checked_in_at AT TIME ZONE 'Asia/Shanghai') = $2::date
      LEFT JOIN reminders r
        ON r.student_id = s.id
-      AND r.reminder_date = $2::date
+      AND r.task_id = t.id
       AND r.status = 'sent'
      WHERE s.class_id = $1
        AND s.role = 'student'
+       AND t.id = $2
      ORDER BY s.school_id`,
-    [classId, date]
+    [classId, taskId]
   );
 
   const students = rows.filter((student) => {
@@ -290,7 +377,7 @@ export async function getClassStudentList(
   return {
     class_id: classId,
     class_name: classRow.class_name,
-    date,
+    task_id: taskId,
     students,
   };
 }
@@ -316,14 +403,34 @@ export async function sendReminders(
   classId: string,
   input: SendRemindersInput
 ): Promise<SendRemindersSummary> {
-  const date = parseDate(input.date);
-  const today = toBeijingDateString(getCurrentBeijingTime());
-  if (date !== today) {
-    throw new AppError('VALIDATION_ERROR', '一键提醒只能发送当天的提醒', 400);
+  if (!input.task_id) {
+    throw new AppError('VALIDATION_ERROR', 'task_id 不能为空', 400);
+  }
+
+  const task = await fetchTaskById(input.task_id);
+  if (new Date(task.deadline_at) <= new Date()) {
+    throw new AppError('TASK_DEADLINE_PASSED', '任务已截止，无法发送提醒', 409);
   }
 
   const managed = await isClassManagedByCounselor(counselorId, classId);
   if (!managed) {
+    throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
+  }
+
+  const classRow = await queryOne<{ college_id: string }>(
+    `SELECT college_id FROM classes WHERE id = $1`,
+    [classId]
+  );
+  if (!classRow) {
+    throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
+  }
+
+  const visibleToClass =
+    task.status === 'published' &&
+    (task.scope_type === 'school' ||
+      (task.scope_type === 'college' && task.target_college_id === classRow.college_id) ||
+      (task.scope_type === 'class' && task.target_class_id === classId));
+  if (!visibleToClass) {
     throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
   }
 
@@ -345,12 +452,12 @@ export async function sendReminders(
      FROM users s
      LEFT JOIN check_ins ci
        ON ci.user_id = s.id
+      AND ci.task_id = $2
       AND ci.status = 'approved'
-      AND DATE(ci.checked_in_at AT TIME ZONE 'Asia/Shanghai') = $2::date
      WHERE s.class_id = $1
        AND s.role = 'student'
        AND s.id = ANY($3::uuid[])`,
-    [classId, date, requestedIds]
+    [classId, input.task_id, requestedIds]
   );
 
   const candidateMap = new Map(candidateRows.map((r) => [r.student_id, r]));
@@ -360,7 +467,7 @@ export async function sendReminders(
       throw new AppError('VALIDATION_ERROR', `学生 ${id} 不在该班级`, 400);
     }
     if (candidate.checked_in) {
-      throw new AppError('VALIDATION_ERROR', `学生 ${candidate.student_name} 当日已打卡`, 400);
+      throw new AppError('VALIDATION_ERROR', `学生 ${candidate.student_name} 已完成该任务`, 400);
     }
   }
 
@@ -372,16 +479,18 @@ export async function sendReminders(
     failed: 0,
   };
 
+  const reminderDate = toBeijingDateString(getCurrentBeijingTime());
+
   for (const id of requestedIds) {
     const candidate = candidateMap.get(id)!;
 
-    await withStudentDateLock(id, date, async () => {
+    await withStudentDateLock(id, input.task_id, async () => {
       const existingSent = await queryOne<{ id: string }>(
         `SELECT id FROM reminders
-         WHERE reminder_date = $1
+         WHERE task_id = $1
            AND student_id = $2
            AND status = 'sent'`,
-        [date, id]
+        [input.task_id, id]
       );
 
       if (existingSent) {
@@ -391,7 +500,15 @@ export async function sendReminders(
 
       if (!candidate.wechat_openid) {
         summary.skipped_no_openid += 1;
-        await insertReminderRecord(counselorId, classId, id, date, 'skipped_no_openid', null);
+        await insertReminderRecord(
+          counselorId,
+          classId,
+          input.task_id,
+          id,
+          reminderDate,
+          'skipped_no_openid',
+          null
+        );
         return;
       }
 
@@ -401,12 +518,12 @@ export async function sendReminders(
           candidate.wechat_openid,
           config.wechatReminderTemplateId,
           'pages/home/index',
-          buildReminderTemplateData(candidate.student_name, date)
+          buildReminderTemplateData(candidate.student_name, reminderDate)
         );
         result = { status: 'sent', error_message: null };
         summary.sent += 1;
       } catch (err) {
-        logger.warn({ err, student_id: id, class_id: classId }, '微信订阅消息发送失败');
+        logger.warn({ err, student_id: id, class_id: classId, task_id: input.task_id }, '微信订阅消息发送失败');
         result = {
           status: 'failed',
           error_message: '微信订阅消息发送失败',
@@ -414,7 +531,15 @@ export async function sendReminders(
         summary.failed += 1;
       }
 
-      await insertReminderRecord(counselorId, classId, id, date, result.status, result.error_message);
+      await insertReminderRecord(
+        counselorId,
+        classId,
+        input.task_id,
+        id,
+        reminderDate,
+        result.status,
+        result.error_message
+      );
     });
   }
 
@@ -424,6 +549,7 @@ export async function sendReminders(
 async function insertReminderRecord(
   counselorId: string,
   classId: string,
+  taskId: string,
   studentId: string,
   date: string,
   status: Exclude<ReminderStatus, 'already_reminded'>,
@@ -431,24 +557,40 @@ async function insertReminderRecord(
 ): Promise<void> {
   await query(
     `INSERT INTO reminders
-     (counselor_id, class_id, student_id, reminder_date, status, error_message)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [counselorId, classId, studentId, date, status, errorMessage]
+     (counselor_id, class_id, task_id, student_id, reminder_date, status, error_message)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [counselorId, classId, taskId, studentId, date, status, errorMessage]
   );
 }
 
 /**
- * 获取某班级在指定日期的提醒记录列表。
+ * 获取某班级在指定任务下的提醒记录列表。
  */
 export async function getClassReminders(
   counselorId: string,
   classId: string,
-  dateInput?: string
+  taskId: string
 ): Promise<ClassReminderList> {
-  const date = parseDate(dateInput);
-
   const managed = await isClassManagedByCounselor(counselorId, classId);
   if (!managed) {
+    throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
+  }
+
+  const task = await fetchTaskById(taskId);
+  const classRow = await queryOne<{ class_name: string; college_id: string }>(
+    `SELECT name AS class_name, college_id FROM classes WHERE id = $1`,
+    [classId]
+  );
+  if (!classRow) {
+    throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
+  }
+
+  const visibleToClass =
+    task.status === 'published' &&
+    (task.scope_type === 'school' ||
+      (task.scope_type === 'college' && task.target_college_id === classRow.college_id) ||
+      (task.scope_type === 'class' && task.target_class_id === classId));
+  if (!visibleToClass) {
     throw new AppError('NOT_FOUND', '请求的资源不存在', 404);
   }
 
@@ -464,14 +606,14 @@ export async function getClassReminders(
      FROM reminders r
      JOIN users s ON s.id = r.student_id
      WHERE r.class_id = $1
-       AND r.reminder_date = $2::date
+       AND r.task_id = $2
      ORDER BY r.created_at DESC`,
-    [classId, date]
+    [classId, taskId]
   );
 
   return {
     class_id: classId,
-    date,
+    task_id: taskId,
     reminders: rows,
   };
 }

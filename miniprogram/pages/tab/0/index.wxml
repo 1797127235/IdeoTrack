@@ -86,7 +86,7 @@
         <view class="header-top">
           <view>
             <view class="greeting">班级数据概览</view>
-            <view class="date-text">{{dashDateText}}</view>
+            <view class="date-text" wx:if="{{currentTask}}">{{currentTask.title}} · 截止 {{currentTask.deadline_at}}</view>
           </view>
           <view class="export-btn" bindtap="goToExport">导出数据</view>
         </view>

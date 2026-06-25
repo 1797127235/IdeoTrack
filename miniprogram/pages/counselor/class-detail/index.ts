@@ -5,7 +5,6 @@ import {
   type StudentFilterStatus,
 } from '../../../services/counselorApi';
 import { formatDateTime } from '../../../utils/format';
-import { formatDateText, toBeijingDateString } from '../../../utils/date';
 
 interface StudentViewItem extends ClassStudentItem {
   checkInTimeText: string;
@@ -37,8 +36,7 @@ Page({
   data: {
     classId: '',
     className: '班级详情',
-    selectedDate: '',
-    dateText: '',
+    taskId: '',
     status: 'all' as StudentFilterStatus,
     statusOptions: STATUS_OPTIONS,
     students: [] as StudentViewItem[],
@@ -51,20 +49,15 @@ Page({
     errorMsg: '',
   },
 
-  onLoad(options: { classId?: string; className?: string; date?: string }) {
+  onLoad(options: { classId?: string; className?: string; taskId?: string }) {
     const classId = options.classId || '';
     const className = options.className ? decodeURIComponent(options.className) : '班级详情';
-    const selectedDate = options.date ? decodeURIComponent(options.date) : toBeijingDateString();
-    this.setData({
-      classId,
-      className,
-      selectedDate,
-      dateText: formatDateText(selectedDate),
-    });
-    if (classId) {
+    const taskId = options.taskId || '';
+    this.setData({ classId, className, taskId });
+    if (classId && taskId) {
       this.loadStudents();
     } else {
-      this.setData({ errorMsg: '班级 ID 无效', loading: false });
+      this.setData({ errorMsg: '班级或任务 ID 无效', loading: false });
     }
   },
 
@@ -78,8 +71,8 @@ Page({
     try {
       const data = await getClassStudentList(
         this.data.classId,
-        this.data.status,
-        this.data.selectedDate || undefined
+        this.data.taskId,
+        this.data.status
       );
       const students = data.students.map<StudentViewItem>((s) => ({
         ...s,
@@ -111,19 +104,6 @@ Page({
     const status = e.currentTarget.dataset.value as StudentFilterStatus;
     if (!status || status === this.data.status) return;
     this.setData({ status, selectedStudentIds: [] }, () => this.loadStudents());
-  },
-
-  onDateChange(e: WechatMiniprogram.PickerChange) {
-    const selectedDate = e.detail.value as string;
-    if (!selectedDate || selectedDate === this.data.selectedDate) return;
-    this.setData(
-      {
-        selectedDate,
-        dateText: formatDateText(selectedDate),
-        selectedStudentIds: [],
-      },
-      () => this.loadStudents()
-    );
   },
 
   onToggleSelect(e: WechatMiniprogram.BaseEvent) {
@@ -204,8 +184,8 @@ Page({
     try {
       const summary = await sendReminders(
         this.data.classId,
-        studentIds,
-        this.data.selectedDate || undefined
+        this.data.taskId,
+        studentIds
       );
       wx.showToast({
         title: buildToastMessage(summary),

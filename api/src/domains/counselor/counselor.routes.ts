@@ -6,12 +6,14 @@ import {
   getClassRemindersController,
   getClassStudentsController,
   getDashboardController,
+  getTaskClassesController,
   sendRemindersController,
 } from './counselor.controller.js';
 
 const router = Router();
 
 router.get('/dashboard', authenticate, requireRoles('counselor'), getDashboardController);
+router.get('/tasks/:id/classes', authenticate, requireRoles('counselor'), getTaskClassesController);
 router.get('/classes/:id/students', authenticate, requireRoles('counselor'), getClassStudentsController);
 router.post(
   '/classes/:id/reminders',

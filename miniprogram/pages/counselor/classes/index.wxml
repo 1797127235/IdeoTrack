@@ -1,5 +1,13 @@
 <view class="page">
   <view class="container">
+    <view class="task-title">{{taskName}}</view>
+
+    <view wx:if="{{errorMsg}}" class="error-tip">{{errorMsg}}</view>
+
+    <view wx:if="{{loading && classes.length === 0}}" class="skeleton-list">
+      <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton class-skeleton"></view>
+    </view>
+
     <view class="class-list" wx:if="{{classes.length > 0}}">
       <view
         wx:for="{{classes}}"

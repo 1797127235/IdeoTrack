@@ -1,15 +1,15 @@
 import {
   getCounselorDashboard,
   type ClassDashboardItem,
+  type CounselorTaskDashboardItem,
 } from '../../../services/counselorApi';
 import { getUserRole } from '../../../utils/auth';
 import { updateTabBarSelected } from '../../../utils/tabBar';
-import { toBeijingDateString } from '../../../utils/date';
 
 Page({
   data: {
     role: '' as string,
-    date: toBeijingDateString(),
+    currentTask: null as CounselorTaskDashboardItem | null,
     classes: [] as ClassDashboardItem[],
     loading: true,
     errorMsg: '',
@@ -35,12 +35,17 @@ Page({
   async loadClasses() {
     this.setData({ loading: true, errorMsg: '' });
     try {
-      const data = await getCounselorDashboard(this.data.date);
-      this.setData({ classes: data.classes });
+      const data = await getCounselorDashboard();
+      const currentTask = data.tasks[0] ?? null;
+      this.setData({
+        currentTask,
+        classes: currentTask?.classes ?? [],
+      });
     } catch (err) {
       this.setData({
         errorMsg: err instanceof Error ? err.message : '加载失败',
         classes: [],
+        currentTask: null,
       });
     } finally {
       this.setData({ loading: false });
@@ -49,11 +54,12 @@ Page({
 
   goToClassDetail(event: WechatMiniprogram.BaseEvent) {
     const { id, name } = event.currentTarget.dataset as { id?: string; name?: string };
-    if (!id) {
-      wx.showToast({ title: '班级信息缺失', icon: 'none' });
+    const taskId = this.data.currentTask?.task_id;
+    if (!id || !taskId) {
+      wx.showToast({ title: '班级或任务信息缺失', icon: 'none' });
       return;
     }
-    const url = `/pages/counselor/class-detail/index?classId=${encodeURIComponent(id)}&className=${encodeURIComponent(name || '班级详情')}&date=${encodeURIComponent(this.data.date)}`;
+    const url = `/pages/counselor/class-detail/index?classId=${encodeURIComponent(id)}&className=${encodeURIComponent(name || '班级详情')}&taskId=${encodeURIComponent(taskId)}`;
     wx.navigateTo({ url });
   },
 });

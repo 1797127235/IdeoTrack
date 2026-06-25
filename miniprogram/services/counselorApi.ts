@@ -11,16 +11,15 @@ export interface ClassDashboardItem {
   reminded_count: number;
 }
 
-export interface DashboardSummary {
-  total_students: number;
-  checked_in_count: number;
-  check_in_rate: number;
+export interface CounselorTaskDashboardItem {
+  task_id: string;
+  title: string;
+  deadline_at: string;
+  classes: ClassDashboardItem[];
 }
 
-export interface CounselorDashboard {
-  date: string;
-  classes: ClassDashboardItem[];
-  summary: DashboardSummary;
+export interface CounselorTaskDashboard {
+  tasks: CounselorTaskDashboardItem[];
 }
 
 export interface ClassStudentItem {
@@ -38,7 +37,7 @@ export interface ClassStudentItem {
 export interface ClassStudentList {
   class_id: string;
   class_name: string;
-  date: string;
+  task_id: string;
   students: ClassStudentItem[];
 }
 
@@ -62,7 +61,7 @@ export interface ReminderRecord {
 
 export interface ClassReminderList {
   class_id: string;
-  date: string;
+  task_id: string;
   reminders: ReminderRecord[];
 }
 
@@ -80,29 +79,38 @@ export interface ExportJobResult {
 }
 
 /**
- * 获取辅导员所带班级的今日打卡概览。
- * @param date 可选日期（YYYY-MM-DD），默认服务端今日
+ * 获取辅导员任务看板：列出可见任务及每个任务在所辖班级的完成情况。
  */
-export async function getCounselorDashboard(date?: string): Promise<CounselorDashboard> {
-  const path = date ? `/api/counselor/dashboard?date=${encodeURIComponent(date)}` : '/api/counselor/dashboard';
-  const res = await get<CounselorDashboard>(path);
+export async function getCounselorDashboard(): Promise<CounselorTaskDashboard> {
+  const res = await get<CounselorTaskDashboard>('/api/counselor/dashboard');
   if (!res.success || !res.data) {
-    throw new Error(res.error?.message || '获取班级概览失败');
+    throw new Error(res.error?.message || '获取任务看板失败');
   }
   return res.data;
 }
 
 /**
- * 获取某班级学生的当日打卡名单。
+ * 获取某个任务在所辖班级的完成统计。
+ */
+export async function getTaskClassStats(taskId: string): Promise<CounselorTaskDashboardItem> {
+  const res = await get<CounselorTaskDashboardItem>(`/api/counselor/tasks/${taskId}/classes`);
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message || '获取任务班级统计失败');
+  }
+  return res.data;
+}
+
+/**
+ * 获取某班级学生在指定任务下的打卡名单。
  */
 export async function getClassStudentList(
   classId: string,
-  status: StudentFilterStatus = 'all',
-  date?: string
+  taskId: string,
+  status: StudentFilterStatus = 'all'
 ): Promise<ClassStudentList> {
-  const queryParts: string[] = [`status=${encodeURIComponent(status)}`];
-  if (date) queryParts.push(`date=${encodeURIComponent(date)}`);
-  const res = await get<ClassStudentList>(`/api/counselor/classes/${classId}/students?${queryParts.join('&')}`);
+  const res = await get<ClassStudentList>(
+    `/api/counselor/classes/${classId}/students?task_id=${encodeURIComponent(taskId)}&status=${encodeURIComponent(status)}`
+  );
   if (!res.success || !res.data) {
     throw new Error(res.error?.message || '获取学生名单失败');
   }
@@ -110,16 +118,17 @@ export async function getClassStudentList(
 }
 
 /**
- * 向指定班级的学生批量发送一键提醒。
+ * 向指定班级的学生批量发送一键提醒（按任务维度）。
  */
 export async function sendReminders(
   classId: string,
-  studentIds: string[],
-  date?: string
+  taskId: string,
+  studentIds: string[]
 ): Promise<SendRemindersSummary> {
-  const body: { student_ids: string[]; date?: string } = { student_ids: studentIds };
-  if (date) body.date = date;
-  const res = await post<SendRemindersSummary>(`/api/counselor/classes/${classId}/reminders`, body);
+  const res = await post<SendRemindersSummary>(`/api/counselor/classes/${classId}/reminders`, {
+    student_ids: studentIds,
+    task_id: taskId,
+  });
   if (!res.success || !res.data) {
     throw new Error(res.error?.message || '发送提醒失败');
   }
@@ -127,11 +136,12 @@ export async function sendReminders(
 }
 
 /**
- * 获取某班级在指定日期的提醒记录列表。
+ * 获取某班级在指定任务下的提醒记录列表。
  */
-export async function getClassReminders(classId: string, date?: string): Promise<ClassReminderList> {
-  const query = date ? `?date=${encodeURIComponent(date)}` : '';
-  const res = await get<ClassReminderList>(`/api/counselor/classes/${classId}/reminders${query}`);
+export async function getClassReminders(classId: string, taskId: string): Promise<ClassReminderList> {
+  const res = await get<ClassReminderList>(
+    `/api/counselor/classes/${classId}/reminders?task_id=${encodeURIComponent(taskId)}`
+  );
   if (!res.success || !res.data) {
     throw new Error(res.error?.message || '获取提醒记录失败');
   }

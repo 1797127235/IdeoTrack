@@ -9,6 +9,18 @@ interface ClassSelectItem extends ClassDashboardItem {
   selected: boolean;
 }
 
+function uniqueClasses(tasks: { classes: ClassDashboardItem[] }[]): ClassDashboardItem[] {
+  const map = new Map<string, ClassDashboardItem>();
+  for (const task of tasks) {
+    for (const c of task.classes) {
+      if (!map.has(c.class_id)) {
+        map.set(c.class_id, c);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 Page({
   data: {
     classes: [] as ClassSelectItem[],
@@ -33,7 +45,7 @@ Page({
   async loadClasses() {
     try {
       const data = await getCounselorDashboard();
-      const classes: ClassSelectItem[] = data.classes.map((c) => ({
+      const classes: ClassSelectItem[] = uniqueClasses(data.tasks).map((c) => ({
         ...c,
         selected: false,
       }));

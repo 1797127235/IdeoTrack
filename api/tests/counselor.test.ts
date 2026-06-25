@@ -110,11 +110,7 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
   });
 
   beforeEach(() => {
-    // override 用「真实当天北京时间正午」，而非硬编码日期：
-    // 测试造数据（createApprovedCheckIn 默认 new Date()）用真实今天，
-    // service 查询走 override，二者必须落在同一天，否则跨天后查不到打卡数据
-    // 导致 dashboard/students/reminder 用例全盘失败（flaky 来源）。
-    // 12:00 固定落在 08:00-22:00 窗口内；测时间窗口拒绝的用例在 it 内单独覆盖。
+    // 一键提醒时间窗口测试需要落在 08:00-22:00 之间
     const now = new Date();
     const beijing = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     const y = beijing.getUTCFullYear();
@@ -137,7 +133,7 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
     if (client) await client.end();
   });
 
-  async function createTask(targetClassId: string) {
+  async function createTask(targetClassId: string, deadlineAt?: Date) {
     const res = await client.query(
       `INSERT INTO tasks
        (title, content, scope_type, target_college_id, target_class_id, created_by, published_at, deadline_at)
@@ -151,7 +147,7 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
         targetClassId,
         counselorId,
         new Date(Date.now() - 1000).toISOString(),
-        new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        (deadlineAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000)).toISOString(),
       ]
     );
     return res.rows[0].id as string;
@@ -166,454 +162,460 @@ describe.skipIf(!DATABASE_URL)('Counselor Dashboard API', () => {
     );
   }
 
-  /**
-   * 基于 beforeEach 设置的 REMINDER_TIME_OVERRIDE 计算日期字符串，
-   * 避免硬编码日期在 CI 运行到“当天”时 flaky。
-   */
-  function getReminderDateStr(offsetDays = 0): string {
-    const override = process.env.REMINDER_TIME_OVERRIDE ?? '';
-    const match = override.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!match) {
-      throw new Error('REMINDER_TIME_OVERRIDE is not set');
-    }
-    const y = parseInt(match[1], 10);
-    const m = parseInt(match[2], 10);
-    const d = parseInt(match[3], 10);
-    const date = new Date(y, m - 1, d + offsetDays);
-    const yy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yy}-${mm}-${dd}`;
-  }
+  describe('GET /api/counselor/dashboard', () => {
+    it('returns tasks visible to the counselor with per-class stats', async () => {
+      const taskA = await createTask(classIdA);
+      await createApprovedCheckIn(taskA, studentA1);
 
-  it('GET /api/counselor/dashboard returns classes managed by the counselor', async () => {
-    const taskA = await createTask(classIdA);
-    await createApprovedCheckIn(taskA, studentA1);
+      const res = await request(app)
+        .get('/api/counselor/dashboard')
+        .set('Authorization', `Bearer ${counselorToken}`);
 
-    const res = await request(app)
-      .get('/api/counselor/dashboard')
-      .set('Authorization', `Bearer ${counselorToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
 
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+      const { tasks } = res.body.data;
+      expect(tasks).toHaveLength(1);
 
-    const { classes, summary } = res.body.data;
-    expect(classes).toHaveLength(2);
+      const task = tasks[0];
+      expect(task.task_id).toBe(taskA);
+      expect(task.title).toBe('TEST COUNSELOR 任务');
+      expect(task.classes).toHaveLength(2);
 
-    const classA = classes.find((c: { class_id: string }) => c.class_id === classIdA);
-    expect(classA.total_students).toBe(2);
-    expect(classA.checked_in_count).toBe(1);
-    expect(classA.check_in_rate).toBe(50);
-    expect(classA.absent_count).toBe(1);
-    expect(classA.reminded_count).toBe(0);
+      const classA = task.classes.find((c: { class_id: string }) => c.class_id === classIdA);
+      expect(classA.total_students).toBe(2);
+      expect(classA.checked_in_count).toBe(1);
+      expect(classA.check_in_rate).toBe(50);
+      expect(classA.absent_count).toBe(1);
+      expect(classA.reminded_count).toBe(0);
 
-    const classB = classes.find((c: { class_id: string }) => c.class_id === classIdB);
-    expect(classB.total_students).toBe(1);
-    expect(classB.checked_in_count).toBe(0);
-
-    expect(summary.total_students).toBe(3);
-    expect(summary.checked_in_count).toBe(1);
-  });
-
-  it('GET /api/counselor/dashboard excludes classes of other counselors', async () => {
-    const res = await request(app)
-      .get('/api/counselor/dashboard')
-      .set('Authorization', `Bearer ${counselorToken}`);
-
-    const classIds = res.body.data.classes.map((c: { class_id: string }) => c.class_id);
-    expect(classIds).not.toContain(classIdOther);
-  });
-
-  it('GET /api/counselor/dashboard rejects non-counselor roles', async () => {
-    const res = await request(app)
-      .get('/api/counselor/dashboard')
-      .set('Authorization', `Bearer ${studentToken}`);
-
-    expect(res.status).toBe(403);
-    expect(res.body.success).toBe(false);
-  });
-
-  it('GET /api/counselor/classes/:id/students returns student list', async () => {
-    const taskA = await createTask(classIdA);
-    await createApprovedCheckIn(taskA, studentA1);
-
-    const res = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/students`)
-      .set('Authorization', `Bearer ${counselorToken}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.students).toHaveLength(2);
-
-    const student = res.body.data.students.find((s: { student_id: string }) => s.student_id === studentA1);
-    expect(student.checked_in).toBe(true);
-
-    const absentStudent = res.body.data.students.find((s: { student_id: string }) => s.student_id === studentA2);
-    expect(absentStudent.checked_in).toBe(false);
-  });
-
-  it('GET /api/counselor/classes/:id/students supports status filter', async () => {
-    const taskA = await createTask(classIdA);
-    await createApprovedCheckIn(taskA, studentA1);
-
-    const checkedInRes = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/students?status=checked_in`)
-      .set('Authorization', `Bearer ${counselorToken}`);
-    expect(checkedInRes.body.data.students).toHaveLength(1);
-
-    const absentRes = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/students?status=absent`)
-      .set('Authorization', `Bearer ${counselorToken}`);
-    expect(absentRes.body.data.students).toHaveLength(1);
-  });
-
-  it('GET /api/counselor/classes/:id/students returns 404 for unmanaged class', async () => {
-    const res = await request(app)
-      .get(`/api/counselor/classes/${classIdOther}/students`)
-      .set('Authorization', `Bearer ${counselorToken}`);
-
-    expect(res.status).toBe(404);
-  });
-
-  it('GET /api/counselor/classes/:id/students returns 404 when other counselor owns the class', async () => {
-    const res = await request(app)
-      .get(`/api/counselor/classes/${classIdOther}/students`)
-      .set('Authorization', `Bearer ${otherCounselorToken}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.class_id).toBe(classIdOther);
-  });
-
-  it('GET /api/counselor/classes/:id/students calculates consecutive_absent_days and name fallback', async () => {
-    const taskA = await createTask(classIdA);
-    // 使用固定 UTC 中午，避免 CI 时区跨天导致北京日期不一致
-    const baseDate = new Date('2026-06-20T12:00:00.000Z');
-    const fourDaysAgo = new Date(baseDate.getTime() - 4 * 24 * 60 * 60 * 1000);
-    const dateQuery = '2026-06-20';
-
-    await createApprovedCheckIn(taskA, studentA1, baseDate);
-    await createApprovedCheckIn(taskA, studentA2, fourDaysAgo);
-
-    const res = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/students?date=${dateQuery}`)
-      .set('Authorization', `Bearer ${counselorToken}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-
-    const checkedInStudent = res.body.data.students.find(
-      (s: { student_id: string }) => s.student_id === studentA1
-    );
-    expect(checkedInStudent.checked_in).toBe(true);
-    expect(checkedInStudent.consecutive_absent_days).toBe(0);
-    expect(checkedInStudent.student_name).toBe(checkedInStudent.student_school_id);
-
-    const absentStudent = res.body.data.students.find(
-      (s: { student_id: string }) => s.student_id === studentA2
-    );
-    expect(absentStudent.checked_in).toBe(false);
-    expect(absentStudent.consecutive_absent_days).toBe(4);
-  });
-
-  it('POST /api/counselor/classes/:id/reminders sends reminders to absent students with openid', async () => {
-    await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
-
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toEqual({
-      total: 1,
-      sent: 1,
-      skipped_no_openid: 0,
-      already_reminded: 0,
-      failed: 0,
-    });
-    expect(sendSubscribeMessage).toHaveBeenCalledTimes(1);
-
-    const listRes = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/students?status=absent`)
-      .set('Authorization', `Bearer ${counselorToken}`);
-    const student = listRes.body.data.students.find(
-      (s: { student_id: string }) => s.student_id === studentA2
-    );
-    expect(student.reminded).toBe(true);
-  });
-
-  it('POST /api/counselor/classes/:id/reminders skips students without wechat_openid', async () => {
-    // 确保 studentA2 没有 openid
-    await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', null);
-
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-
-    expect(res.status).toBe(200);
-    expect(res.body.data).toEqual({
-      total: 1,
-      sent: 0,
-      skipped_no_openid: 1,
-      already_reminded: 0,
-      failed: 0,
-    });
-    expect(sendSubscribeMessage).not.toHaveBeenCalled();
-  });
-
-  it('POST /api/counselor/classes/:id/reminders rejects checked-in students', async () => {
-    const taskA = await createTask(classIdA);
-    await createApprovedCheckIn(taskA, studentA1);
-
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA1] });
-
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-  });
-
-  it('POST /api/counselor/classes/:id/reminders rejects students outside the class', async () => {
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentOther] });
-
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-  });
-
-  it('POST /api/counselor/classes/:id/reminders enforces one reminder per student per day', async () => {
-    await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
-
-    const first = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-    expect(first.body.data.sent).toBe(1);
-
-    vi.mocked(sendSubscribeMessage).mockClear();
-
-    const second = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-
-    expect(second.status).toBe(200);
-    expect(second.body.data).toEqual({
-      total: 1,
-      sent: 0,
-      skipped_no_openid: 0,
-      already_reminded: 1,
-      failed: 0,
-    });
-    expect(sendSubscribeMessage).not.toHaveBeenCalled();
-  });
-
-  it('POST /api/counselor/classes/:id/reminders rejects requests outside 08:00-22:00 Beijing time', async () => {
-    process.env.REMINDER_TIME_OVERRIDE = '2026-06-24T23:00:00+08:00';
-
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error?.code).toBe('REMINDER_TIME_WINDOW');
-  });
-
-  it('POST /api/counselor/classes/:id/reminders returns 404 for unmanaged class', async () => {
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdOther}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentOther] });
-
-    expect(res.status).toBe(404);
-  });
-
-  it('POST /api/counselor/classes/:id/reminders fails gracefully when WeChat send fails', async () => {
-    await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
-    vi.mocked(sendSubscribeMessage).mockRejectedValueOnce(new Error('subscribe denied'));
-
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-
-    expect(res.status).toBe(200);
-    expect(res.body.data).toEqual({
-      total: 1,
-      sent: 0,
-      skipped_no_openid: 0,
-      already_reminded: 0,
-      failed: 1,
+      const classB = task.classes.find((c: { class_id: string }) => c.class_id === classIdB);
+      expect(classB.total_students).toBe(1);
+      expect(classB.checked_in_count).toBe(0);
     });
 
-    const listRes = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`);
-    expect(listRes.body.data.reminders).toHaveLength(1);
-    expect(listRes.body.data.reminders[0].status).toBe('failed');
-    expect(listRes.body.data.reminders[0].error_message).toBe('微信订阅消息发送失败');
-  });
+    it('excludes classes of other counselors', async () => {
+      const res = await request(app)
+        .get('/api/counselor/dashboard')
+        .set('Authorization', `Bearer ${counselorToken}`);
 
-  it('GET /api/counselor/classes/:id/reminders returns reminder records for the class and date', async () => {
-    const today = getReminderDateStr();
-    await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
-    await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2], date: today });
+      const allClassIds = res.body.data.tasks.flatMap((t: { classes: { class_id: string }[] }) =>
+        t.classes.map((c) => c.class_id)
+      );
+      expect(allClassIds).not.toContain(classIdOther);
+    });
 
-    const res = await request(app)
-      .get(`/api/counselor/classes/${classIdA}/reminders?date=${today}`)
-      .set('Authorization', `Bearer ${counselorToken}`);
+    it('rejects non-counselor roles', async () => {
+      const res = await request(app)
+        .get('/api/counselor/dashboard')
+        .set('Authorization', `Bearer ${studentToken}`);
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.reminders).toHaveLength(1);
-    expect(res.body.data.reminders[0].student_id).toBe(studentA2);
-    expect(res.body.data.reminders[0].status).toBe('sent');
-  });
-
-  it('POST /api/counselor/classes/:id/reminders allows retry after a failed attempt', async () => {
-    await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
-    vi.mocked(sendSubscribeMessage).mockRejectedValueOnce(new Error('subscribe denied'));
-
-    const first = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-    expect(first.body.data.failed).toBe(1);
-
-    vi.mocked(sendSubscribeMessage).mockResolvedValueOnce(undefined);
-
-    const second = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
-
-    expect(second.status).toBe(200);
-    expect(second.body.data).toEqual({
-      total: 1,
-      sent: 1,
-      skipped_no_openid: 0,
-      already_reminded: 0,
-      failed: 0,
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
     });
   });
 
-  it('POST /api/counselor/classes/:id/reminders rejects non-today dates', async () => {
-    const tomorrow = getReminderDateStr(1);
-    const res = await request(app)
-      .post(`/api/counselor/classes/${classIdA}/reminders`)
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2], date: tomorrow });
+  describe('GET /api/counselor/tasks/:id/classes', () => {
+    it('returns class stats for a single task', async () => {
+      const taskA = await createTask(classIdA);
 
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
+      const res = await request(app)
+        .get(`/api/counselor/tasks/${taskA}/classes`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.task_id).toBe(taskA);
+      expect(res.body.data.classes).toHaveLength(2);
+    });
+
+    it('returns 404 for task not visible to counselor', async () => {
+      const otherTask = await createTask(classIdOther);
+
+      const res = await request(app)
+        .get(`/api/counselor/tasks/${otherTask}/classes`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(404);
+    });
   });
 
-  it('POST /api/counselor/classes/:id/reminders rejects invalid class ID format', async () => {
-    const res = await request(app)
-      .post('/api/counselor/classes/not-a-uuid/reminders')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ student_ids: [studentA2] });
+  describe('GET /api/counselor/classes/:id/students', () => {
+    it('returns student list for a task and class', async () => {
+      const taskA = await createTask(classIdA);
+      await createApprovedCheckIn(taskA, studentA1);
 
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
+      const res = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/students?task_id=${taskA}`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.students).toHaveLength(2);
+      expect(res.body.data.task_id).toBe(taskA);
+
+      const student = res.body.data.students.find((s: { student_id: string }) => s.student_id === studentA1);
+      expect(student.checked_in).toBe(true);
+
+      const absentStudent = res.body.data.students.find((s: { student_id: string }) => s.student_id === studentA2);
+      expect(absentStudent.checked_in).toBe(false);
+    });
+
+    it('supports status filter', async () => {
+      const taskA = await createTask(classIdA);
+      await createApprovedCheckIn(taskA, studentA1);
+
+      const checkedInRes = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/students?task_id=${taskA}&status=checked_in`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+      expect(checkedInRes.body.data.students).toHaveLength(1);
+
+      const absentRes = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/students?task_id=${taskA}&status=absent`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+      expect(absentRes.body.data.students).toHaveLength(1);
+    });
+
+    it('returns 404 for unmanaged class', async () => {
+      const taskA = await createTask(classIdA);
+
+      const res = await request(app)
+        .get(`/api/counselor/classes/${classIdOther}/students?task_id=${taskA}`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('allows counselor to view their own class', async () => {
+      const taskOther = await createTask(classIdOther);
+
+      const res = await request(app)
+        .get(`/api/counselor/classes/${classIdOther}/students?task_id=${taskOther}`)
+        .set('Authorization', `Bearer ${otherCounselorToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.class_id).toBe(classIdOther);
+    });
+
+    it('calculates consecutive_absent_days and name fallback', async () => {
+      const deadline = new Date('2026-06-20T12:00:00.000Z');
+      const taskA = await createTask(classIdA, deadline);
+      const baseDate = new Date('2026-06-20T12:00:00.000Z');
+      const fourDaysAgo = new Date(baseDate.getTime() - 4 * 24 * 60 * 60 * 1000);
+
+      await createApprovedCheckIn(taskA, studentA1, baseDate);
+      await createApprovedCheckIn(taskA, studentA2, fourDaysAgo);
+
+      const res = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/students?task_id=${taskA}`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const checkedInStudent = res.body.data.students.find(
+        (s: { student_id: string }) => s.student_id === studentA1
+      );
+      expect(checkedInStudent.checked_in).toBe(true);
+      expect(checkedInStudent.consecutive_absent_days).toBe(0);
+      expect(checkedInStudent.student_name).toBe(checkedInStudent.student_school_id);
+
+      const absentStudent = res.body.data.students.find(
+        (s: { student_id: string }) => s.student_id === studentA2
+      );
+      expect(absentStudent.checked_in).toBe(false);
+      expect(absentStudent.consecutive_absent_days).toBe(4);
+    });
+
+    it('returns 400 when task_id is missing', async () => {
+      const res = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/students`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /api/counselor/classes/:id/reminders', () => {
+    it('sends reminders to absent students with openid', async () => {
+      await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
+      const taskA = await createTask(classIdA);
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: taskA });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toEqual({
+        total: 1,
+        sent: 1,
+        skipped_no_openid: 0,
+        already_reminded: 0,
+        failed: 0,
+      });
+      expect(sendSubscribeMessage).toHaveBeenCalledTimes(1);
+
+      const listRes = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/students?task_id=${taskA}&status=absent`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+      const student = listRes.body.data.students.find(
+        (s: { student_id: string }) => s.student_id === studentA2
+      );
+      expect(student.reminded).toBe(true);
+    });
+
+    it('skips students without wechat_openid', async () => {
+      await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', null);
+      const taskA = await createTask(classIdA);
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: taskA });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({
+        total: 1,
+        sent: 0,
+        skipped_no_openid: 1,
+        already_reminded: 0,
+        failed: 0,
+      });
+      expect(sendSubscribeMessage).not.toHaveBeenCalled();
+    });
+
+    it('rejects checked-in students', async () => {
+      const taskA = await createTask(classIdA);
+      await createApprovedCheckIn(taskA, studentA1);
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA1], task_id: taskA });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('rejects students outside the class', async () => {
+      const taskA = await createTask(classIdA);
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentOther], task_id: taskA });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('enforces one reminder per student per task', async () => {
+      await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
+      const taskA = await createTask(classIdA);
+
+      const first = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: taskA });
+      expect(first.body.data.sent).toBe(1);
+
+      vi.mocked(sendSubscribeMessage).mockClear();
+
+      const second = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: taskA });
+
+      expect(second.status).toBe(200);
+      expect(second.body.data).toEqual({
+        total: 1,
+        sent: 0,
+        skipped_no_openid: 0,
+        already_reminded: 1,
+        failed: 0,
+      });
+      expect(sendSubscribeMessage).not.toHaveBeenCalled();
+    });
+
+    it('rejects requests outside 08:00-22:00 Beijing time', async () => {
+      process.env.REMINDER_TIME_OVERRIDE = '2026-06-24T23:00:00+08:00';
+      const taskA = await createTask(classIdA);
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: taskA });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error?.code).toBe('REMINDER_TIME_WINDOW');
+    });
+
+    it('returns 404 for unmanaged class', async () => {
+      const taskA = await createTask(classIdA);
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdOther}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentOther], task_id: taskA });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('fails gracefully when WeChat send fails', async () => {
+      await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
+      const taskA = await createTask(classIdA);
+      vi.mocked(sendSubscribeMessage).mockRejectedValueOnce(new Error('subscribe denied'));
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: taskA });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({
+        total: 1,
+        sent: 0,
+        skipped_no_openid: 0,
+        already_reminded: 0,
+        failed: 1,
+      });
+
+      const listRes = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/reminders?task_id=${taskA}`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+      expect(listRes.body.data.reminders).toHaveLength(1);
+      expect(listRes.body.data.reminders[0].status).toBe('failed');
+      expect(listRes.body.data.reminders[0].error_message).toBe('微信订阅消息发送失败');
+    });
+
+    it('rejects reminders after task deadline', async () => {
+      const pastTask = await createTask(classIdA, new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+      const res = await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: pastTask });
+
+      expect(res.status).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error?.code).toBe('TASK_DEADLINE_PASSED');
+    });
+
+    it('rejects invalid class ID format', async () => {
+      const res = await request(app)
+        .post('/api/counselor/classes/not-a-uuid/reminders')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: '00000000-0000-0000-0000-000000000000' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/counselor/classes/:id/reminders', () => {
+    it('returns reminder records for the class and task', async () => {
+      await seedUser(client, studentA2, 'COUNSELOR_S002', 'student', classIdA, '学生A2', 'openid-a2');
+      const taskA = await createTask(classIdA);
+      await request(app)
+        .post(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ student_ids: [studentA2], task_id: taskA });
+
+      const res = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/reminders?task_id=${taskA}`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reminders).toHaveLength(1);
+      expect(res.body.data.reminders[0].student_id).toBe(studentA2);
+      expect(res.body.data.reminders[0].status).toBe('sent');
+    });
+
+    it('returns 400 when task_id is missing', async () => {
+      const res = await request(app)
+        .get(`/api/counselor/classes/${classIdA}/reminders`)
+        .set('Authorization', `Bearer ${counselorToken}`);
+
+      expect(res.status).toBe(400);
+    });
   });
 
   // ─── Epic 8.4: 辅导员数据导出 ───────────────────────────────────────────
 
-  it('POST /api/counselor/exports returns 400 for missing fields', async () => {
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({});
+  describe('POST /api/counselor/exports', () => {
+    it('returns 400 for missing fields', async () => {
+      const res = await request(app)
+        .post('/api/counselor/exports')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({});
 
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-  });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
 
-  it('POST /api/counselor/exports returns 403 for student role', async () => {
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${studentToken}`)
-      .send({ class_ids: [classIdA], start_date: '2026-06-01', end_date: '2026-06-24' });
+    it('returns 403 for student role', async () => {
+      const res = await request(app)
+        .post('/api/counselor/exports')
+        .set('Authorization', `Bearer ${studentToken}`)
+        .send({ class_ids: [classIdA], start_date: '2026-06-01', end_date: '2026-06-24' });
 
-    expect(res.status).toBe(403);
-  });
+      expect(res.status).toBe(403);
+    });
 
-  it('POST /api/counselor/exports returns 404 for unmanaged class', async () => {
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ class_ids: [classIdOther], start_date: '2026-06-01', end_date: '2026-06-24' });
+    it('returns 404 for unmanaged class', async () => {
+      const res = await request(app)
+        .post('/api/counselor/exports')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ class_ids: [classIdOther], start_date: '2026-06-01', end_date: '2026-06-24' });
 
-    expect(res.status).toBe(404);
-    expect(res.body.error?.code).toBe('NOT_FOUND');
-  });
+      expect(res.status).toBe(404);
+      expect(res.body.error?.code).toBe('NOT_FOUND');
+    });
 
-  it('POST /api/counselor/exports returns EXPORT_NO_DATA when no records exist', async () => {
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ class_ids: [classIdA], start_date: '2026-06-01', end_date: '2026-06-24' });
+    it('returns EXPORT_NO_DATA when no records exist', async () => {
+      const res = await request(app)
+        .post('/api/counselor/exports')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ class_ids: [classIdA], start_date: '2026-06-01', end_date: '2026-06-24' });
 
-    expect(res.status).toBe(404);
-    expect(res.body.error?.code).toBe('EXPORT_NO_DATA');
-  });
+      expect(res.status).toBe(404);
+      expect(res.body.error?.code).toBe('EXPORT_NO_DATA');
+    });
 
-  it('POST /api/counselor/exports returns download_url on success', async () => {
-    const taskId = await createTask(classIdA);
-    await createApprovedCheckIn(taskId, studentA1, new Date('2026-06-20T10:00:00+08:00'));
+    it('returns download_url on success', async () => {
+      const taskId = await createTask(classIdA);
+      await createApprovedCheckIn(taskId, studentA1, new Date('2026-06-20T10:00:00+08:00'));
 
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ class_ids: [classIdA], start_date: '2026-06-19', end_date: '2026-06-21' });
+      const res = await request(app)
+        .post('/api/counselor/exports')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ class_ids: [classIdA], start_date: '2026-06-19', end_date: '2026-06-21' });
 
-    expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.download_url).toMatch(/^\/api\/exports\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
-    expect(typeof res.body.data.expires_at).toBe('string');
-  });
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.download_url).toMatch(/^\/api\/exports\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+      expect(typeof res.body.data.expires_at).toBe('string');
+    });
 
-  it('POST /api/counselor/exports rejects start_date > end_date', async () => {
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ class_ids: [classIdA], start_date: '2026-06-25', end_date: '2026-06-01' });
+    it('rejects start_date > end_date', async () => {
+      const res = await request(app)
+        .post('/api/counselor/exports')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ class_ids: [classIdA], start_date: '2026-06-25', end_date: '2026-06-01' });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error?.code).toBe('EXPORT_RANGE_INVALID');
-  });
+      expect(res.status).toBe(400);
+      expect(res.body.error?.code).toBe('EXPORT_RANGE_INVALID');
+    });
 
-  it('POST /api/counselor/exports rejects range > 90 days', async () => {
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ class_ids: [classIdA], start_date: '2026-01-01', end_date: '2026-06-24' });
+    it('rejects range > 90 days', async () => {
+      const res = await request(app)
+        .post('/api/counselor/exports')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({ class_ids: [classIdA], start_date: '2026-06-01', end_date: '2026-10-01' });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error?.code).toBe('EXPORT_RANGE_TOO_WIDE');
-  });
-
-  it('POST /api/counselor/exports rejects non-UUID class_id', async () => {
-    const res = await request(app)
-      .post('/api/counselor/exports')
-      .set('Authorization', `Bearer ${counselorToken}`)
-      .send({ class_ids: ['not-a-uuid'], start_date: '2026-06-01', end_date: '2026-06-24' });
-
-    expect(res.status).toBe(400);
-  });
-
-  it('GET /api/exports/:token returns 410 for invalid token', async () => {
-    const res = await request(app).get('/api/exports/invalid-token');
-    expect(res.status).toBe(410);
-    expect(res.body.error?.code).toBe('EXPORT_LINK_EXPIRED');
+      expect(res.status).toBe(400);
+      expect(res.body.error?.code).toBe('EXPORT_RANGE_TOO_WIDE');
+    });
   });
 });

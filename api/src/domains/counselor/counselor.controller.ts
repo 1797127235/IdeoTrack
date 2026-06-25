@@ -6,6 +6,7 @@ import {
   getClassReminders,
   getClassStudentList,
   getCounselorDashboard,
+  getTaskClassStats,
   sendReminders,
   MAX_EXPORT_CLASS_IDS,
 } from './counselor.service.js';
@@ -17,7 +18,7 @@ const MAX_BATCH_SIZE = 100;
 
 const sendRemindersSchema = z.object({
   student_ids: z.array(z.string().uuid()).min(1).max(MAX_BATCH_SIZE),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date 必须是 YYYY-MM-DD 格式').optional(),
+  task_id: z.string().uuid('task_id 必须是 UUID'),
 });
 
 function parseClassId(raw: unknown): string {
@@ -38,13 +39,20 @@ export async function getDashboardController(
       throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
     }
 
-    const date = typeof req.query.date === 'string' ? req.query.date : undefined;
-    const data = await getCounselorDashboard(req.user.userId, date);
+    const data = await getCounselorDashboard(req.user.userId);
 
     res.status(200).json({ success: true, data });
   } catch (err) {
     next(err);
   }
+}
+
+function parseTaskId(raw: unknown): string {
+  const parsed = z.string().uuid('task_id 必须是 UUID').safeParse(raw);
+  if (!parsed.success) {
+    throw new AppError('VALIDATION_ERROR', 'task_id 格式无效', 400);
+  }
+  return parsed.data;
 }
 
 export async function getClassStudentsController(
@@ -58,13 +66,13 @@ export async function getClassStudentsController(
     }
 
     const classId = parseClassId(req.params.id);
-    const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+    const taskId = parseTaskId(req.query.task_id);
     const statusParam = typeof req.query.status === 'string' ? req.query.status : 'all';
     const status: StudentFilterStatus = VALID_STATUSES.includes(statusParam as StudentFilterStatus)
       ? (statusParam as StudentFilterStatus)
       : 'all';
 
-    const data = await getClassStudentList(req.user.userId, classId, date, status);
+    const data = await getClassStudentList(req.user.userId, classId, taskId, status);
 
     res.status(200).json({ success: true, data });
   } catch (err) {
@@ -107,8 +115,27 @@ export async function getClassRemindersController(
     }
 
     const classId = parseClassId(req.params.id);
-    const date = typeof req.query.date === 'string' ? req.query.date : undefined;
-    const data = await getClassReminders(req.user.userId, classId, date);
+    const taskId = parseTaskId(req.query.task_id);
+    const data = await getClassReminders(req.user.userId, classId, taskId);
+
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getTaskClassesController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const taskId = parseTaskId(req.params.id);
+    const data = await getTaskClassStats(req.user.userId, taskId);
 
     res.status(200).json({ success: true, data });
   } catch (err) {

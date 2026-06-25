@@ -9,16 +9,15 @@ export interface ClassDashboardItem {
   reminded_count: number;
 }
 
-export interface DashboardSummary {
-  total_students: number;
-  checked_in_count: number;
-  check_in_rate: number;
+export interface CounselorTaskDashboardItem {
+  task_id: string;
+  title: string;
+  deadline_at: string;
+  classes: ClassDashboardItem[];
 }
 
-export interface CounselorDashboard {
-  date: string;
-  classes: ClassDashboardItem[];
-  summary: DashboardSummary;
+export interface CounselorTaskDashboard {
+  tasks: CounselorTaskDashboardItem[];
 }
 
 export interface ClassStudentItem {
@@ -36,7 +35,7 @@ export interface ClassStudentItem {
 export interface ClassStudentList {
   class_id: string;
   class_name: string;
-  date: string;
+  task_id: string;
   students: ClassStudentItem[];
 }
 
@@ -44,7 +43,7 @@ export type StudentFilterStatus = 'all' | 'checked_in' | 'absent';
 
 export interface SendRemindersInput {
   student_ids: string[];
-  date?: string;
+  task_id: string;
 }
 
 export interface SendRemindersSummary {
@@ -69,7 +68,7 @@ export interface ReminderRecord {
 
 export interface ClassReminderList {
   class_id: string;
-  date: string;
+  task_id: string;
   reminders: ReminderRecord[];
 }
 

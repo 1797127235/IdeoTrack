@@ -1,12 +1,6 @@
 <view class="detail-container">
   <view class="header">
     <view class="class-title">{{className}}</view>
-    <picker mode="date" value="{{selectedDate}}" bindchange="onDateChange">
-      <view class="date-picker">
-        <text class="date-text">{{dateText}}</text>
-        <text class="date-icon">▼</text>
-      </view>
-    </picker>
   </view>
 
   <!-- Filter tabs -->

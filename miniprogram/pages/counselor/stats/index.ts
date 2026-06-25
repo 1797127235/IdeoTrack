@@ -1,6 +1,11 @@
-import { getCounselorDashboard, type DashboardSummary } from '../../../services/counselorApi';
+import { getCounselorDashboard, type ClassDashboardItem } from '../../../services/counselorApi';
 import { updateTabBarSelected } from '../../../utils/tabBar';
-import { toBeijingDateString } from '../../../utils/date';
+
+interface DashboardSummary {
+  total_students: number;
+  checked_in_count: number;
+  check_in_rate: number;
+}
 
 interface ClassStat {
   class_id: string;
@@ -10,9 +15,30 @@ interface ClassStat {
   check_in_rate: number;
 }
 
+function buildSummaryFromUniqueClasses(classes: ClassDashboardItem[]): DashboardSummary {
+  const total = classes.reduce((sum, c) => sum + c.total_students, 0);
+  const checked = classes.reduce((sum, c) => sum + c.checked_in_count, 0);
+  return {
+    total_students: total,
+    checked_in_count: checked,
+    check_in_rate: total > 0 ? Math.round((checked / total) * 100) : 0,
+  };
+}
+
+function uniqueClasses(tasks: { classes: ClassDashboardItem[] }[]): ClassDashboardItem[] {
+  const map = new Map<string, ClassDashboardItem>();
+  for (const task of tasks) {
+    for (const c of task.classes) {
+      if (!map.has(c.class_id)) {
+        map.set(c.class_id, c);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 Page({
   data: {
-    date: toBeijingDateString(),
     summary: null as DashboardSummary | null,
     classStats: [] as ClassStat[],
     loading: true,
@@ -26,10 +52,11 @@ Page({
   async loadStats() {
     this.setData({ loading: true });
     try {
-      const data = await getCounselorDashboard(this.data.date);
+      const data = await getCounselorDashboard();
+      const classes = uniqueClasses(data.tasks);
       this.setData({
-        summary: data.summary,
-        classStats: data.classes.map((c) => ({
+        summary: buildSummaryFromUniqueClasses(classes),
+        classStats: classes.map((c) => ({
           class_id: c.class_id,
           class_name: c.class_name,
           total_students: c.total_students,
