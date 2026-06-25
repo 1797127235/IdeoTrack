@@ -3,7 +3,6 @@
 
 -- 先清空可能已存在的旧 demo 数据（注意顺序避免外键冲突）
 DELETE FROM check_ins WHERE user_id IN (SELECT id FROM users WHERE school_id LIKE 'DEMO-%');
-DELETE FROM reminders WHERE user_id IN (SELECT id FROM users WHERE school_id LIKE 'DEMO-%');
 DELETE FROM tasks WHERE created_by IN (SELECT id FROM users WHERE school_id LIKE 'DEMO-%');
 DELETE FROM counselor_classes WHERE counselor_id IN (SELECT id FROM users WHERE school_id LIKE 'DEMO-%');
 DELETE FROM users WHERE school_id LIKE 'DEMO-%';
@@ -152,8 +151,19 @@ WHERE s.role = 'student'
   AND random() < 0.65;
 
 -- 生成每日名言
+WITH dates AS (
+  SELECT CURRENT_DATE - generate_series AS d
+  FROM generate_series(0, 13)
+),
+quotes_sample AS (
+  SELECT id, row_number() OVER () AS rn
+  FROM quotes
+  WHERE is_enabled = true
+  ORDER BY random()
+  LIMIT 14
+)
 INSERT INTO daily_quotes (quote_id, date)
-SELECT q.id, CURRENT_DATE - generate_series
-FROM (SELECT id FROM quotes WHERE is_enabled = true ORDER BY random() LIMIT 5) q
-CROSS JOIN generate_series(0, 13)
+SELECT qs.id, dates.d
+FROM dates
+JOIN quotes_sample qs ON qs.rn = (dates.d - CURRENT_DATE) % 14 + 1
 ON CONFLICT (date) DO UPDATE SET quote_id = EXCLUDED.quote_id;
