@@ -124,7 +124,7 @@ export interface MeStatsResponse {
  * 获取当前登录用户信息（我的页用）。
  */
 export async function getMe(): Promise<MeResponse> {
-  const result = await get<MeResponse>('/api/me');
+  const result = await get<MeResponse>('/api/auth/me');
   if (!result.success || !result.data) {
     throw new Error(result.error?.message || '获取用户信息失败');
   }
@@ -135,7 +135,7 @@ export async function getMe(): Promise<MeResponse> {
  * 获取当前登录用户统计（我的页用）。
  */
 export async function getMeStats(): Promise<MeStatsResponse> {
-  const result = await get<MeStatsResponse>('/api/me/stats');
+  const result = await get<MeStatsResponse>('/api/auth/me/stats');
   if (!result.success || !result.data) {
     throw new Error(result.error?.message || '获取用户统计失败');
   }
