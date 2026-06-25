@@ -37,7 +37,10 @@ function toBeijingDateString(date = new Date()): string {
 }
 
 function parseDate(input?: string): string {
-  if (!input) return toBeijingDateString();
+  // 与 today（sendReminders 中 toBeijingDateString(getCurrentBeijingTime())）同源，
+  // 必须复用 getCurrentBeijingTime() 以尊重测试的 REMINDER_TIME_OVERRIDE；
+  // 否则 override 日期与真实日期跨天时，"当天"判定会不一致（flaky 来源）。
+  if (!input) return toBeijingDateString(getCurrentBeijingTime());
   if (!DATE_REGEX.test(input)) {
     throw new AppError('VALIDATION_ERROR', 'date 参数必须是 YYYY-MM-DD 格式', 400);
   }
