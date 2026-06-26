@@ -18,7 +18,7 @@ export default function AdminLayout({
     <AuthProvider>
       <AuthGuard>
         <ToastProvider>
-          <div className="min-h-screen flex">
+          <div className="min-h-screen flex admin-font-bump">
             <Sidebar
               mobileOpen={mobileNavOpen}
               onCloseMobile={() => setMobileNavOpen(false)}

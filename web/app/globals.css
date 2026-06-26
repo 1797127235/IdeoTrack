@@ -100,3 +100,62 @@ textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-ink-muted);
 }
+
+/* Admin font-size bump: one level larger without changing root font-size,
+   so spacing utilities (p-4, h-10, gap-2, etc.) keep their current values. */
+.admin-font-bump {
+  .text-xs {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .text-sm {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  .text-base {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .text-lg {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  .text-xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .text-2xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  .text-3xl {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .text-4xl {
+    font-size: 3rem;
+    line-height: 1;
+  }
+  .text-5xl {
+    font-size: 3.75rem;
+    line-height: 1;
+  }
+  .text-6xl {
+    font-size: 4.5rem;
+    line-height: 1;
+  }
+
+  /* Slightly tighten headings for a more premium, designed feel. */
+  [class*="text-2xl"],
+  [class*="text-3xl"],
+  [class*="text-4xl"],
+  [class*="text-5xl"],
+  [class*="text-6xl"] {
+    letter-spacing: -0.01em;
+  }
+
+  /* Better text rendering on supported displays. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}

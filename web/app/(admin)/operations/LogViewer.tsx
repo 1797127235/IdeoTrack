@@ -137,18 +137,18 @@ export default function LogViewer({ logs }: LogViewerProps) {
           <Input
             type="text"
             placeholder="搜索日志内容 / 路径 / RequestId / UserId"
-            className="w-full sm:w-80 text-base"
+            className="w-full sm:w-[22rem] text-base h-11"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
-          <Select className="w-40 text-base" value={level} onChange={(e) => setLevel(e.target.value)}>
+          <Select className="w-40 text-base h-11" value={level} onChange={(e) => setLevel(e.target.value)}>
             <option value="all">全部级别</option>
             <option value="debug">DEBUG</option>
             <option value="info">INFO</option>
             <option value="warn">WARN</option>
             <option value="error">ERROR+</option>
           </Select>
-          <span className="text-sm text-[var(--color-ink-muted)] ml-auto">
+          <span className="text-base text-[var(--color-ink-muted)] ml-auto">
             共 {filtered.length} 条 / {logs.length} 条原始日志
           </span>
         </div>
@@ -159,31 +159,31 @@ export default function LogViewer({ logs }: LogViewerProps) {
           <EmptyState title="暂无日志" description="当前筛选条件下没有匹配日志" />
         ) : (
           <div className="overflow-auto max-h-[60vh]">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-base border-collapse">
               <thead className="sticky top-0 z-10 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
                 <tr>
-                  <th className="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="text-left py-3.5 px-5 text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     时间
                   </th>
-                  <th className="text-left py-3 px-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="text-left py-3.5 px-4 text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     级别
                   </th>
-                  <th className="text-left py-3 px-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="text-left py-3.5 px-4 text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     方法
                   </th>
-                  <th className="text-left py-3 px-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="text-left py-3.5 px-4 text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     路径
                   </th>
-                  <th className="text-left py-3 px-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="text-left py-3.5 px-4 text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     状态
                   </th>
-                  <th className="text-left py-3 px-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="text-left py-3.5 px-4 text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     耗时
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="text-left py-3.5 px-5 text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     消息
                   </th>
-                  <th className="py-3 px-4 text-right text-sm font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
+                  <th className="py-3.5 px-5 text-right text-base font-semibold uppercase tracking-wider text-[var(--color-ink)] whitespace-nowrap">
                     详情
                   </th>
                 </tr>
@@ -195,55 +195,55 @@ export default function LogViewer({ logs }: LogViewerProps) {
                       key={idx}
                       className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)] transition-colors"
                     >
-                      <td className="py-3 px-4 text-sm tabular-nums text-[var(--color-ink-secondary)] whitespace-nowrap">
+                      <td className="py-3.5 px-5 text-base tabular-nums text-[var(--color-ink-secondary)] whitespace-nowrap">
                         {formatLogTime(entry.time)}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {entry.parsed && entry.level !== undefined ? (
-                          <Badge variant={levelVariant(entry.level)} className="text-sm">
+                          <Badge variant={levelVariant(entry.level)} className="text-base">
                             {levelName(entry.level)}
                           </Badge>
                         ) : (
-                          <Badge variant="neutral" className="text-sm">-</Badge>
+                          <Badge variant="neutral" className="text-base">-</Badge>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-sm font-medium text-[var(--color-ink)] whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-base font-semibold text-[var(--color-ink)] whitespace-nowrap">
                         {entry.method || "-"}
                       </td>
-                      <td className="py-3 px-3 text-sm text-[var(--color-ink)] whitespace-nowrap max-w-[16rem] truncate" title={entry.path}>
+                      <td className="py-3.5 px-4 text-base text-[var(--color-ink)] whitespace-nowrap max-w-[16rem] truncate" title={entry.path}>
                         {entry.path || "-"}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {entry.status !== undefined ? (
-                          <Badge variant={statusVariant(entry.status)} className="text-sm tabular-nums">
+                          <Badge variant={statusVariant(entry.status)} className="text-base tabular-nums">
                             {entry.status}
                           </Badge>
                         ) : (
-                          <Badge variant="neutral" className="text-sm">-</Badge>
+                          <Badge variant="neutral" className="text-base">-</Badge>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-sm tabular-nums whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-base tabular-nums whitespace-nowrap">
                         {entry.durationMs !== undefined ? (
                           <span className={durationClass(entry.durationMs)}>{entry.durationMs}ms</span>
                         ) : (
                           "-"
                         )}
                       </td>
-                      <td className="py-3 px-4 text-sm text-[var(--color-ink)] max-w-[24rem]">
+                      <td className="py-3.5 px-5 text-base text-[var(--color-ink)] max-w-[24rem]">
                         <div className="truncate" title={entry.msg || entry.raw}>
                           {entry.msg || (entry.parsed ? "-" : entry.raw)}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <td className="py-3.5 px-5 text-right whitespace-nowrap">
                         <button
                           onClick={() => toggleExpand(idx)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--color-ink-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-bg)] transition-colors"
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-md text-[var(--color-ink-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-bg)] transition-colors"
                           title="查看原始 JSON"
                         >
                           {expanded[idx] ? (
-                            <ChevronDown className="w-5 h-5" />
+                            <ChevronDown className="w-6 h-6" />
                           ) : (
-                            <ChevronRight className="w-5 h-5" />
+                            <ChevronRight className="w-6 h-6" />
                           )}
                         </button>
                       </td>
@@ -252,13 +252,13 @@ export default function LogViewer({ logs }: LogViewerProps) {
                       <tr className="bg-[var(--color-bg)] border-b border-[var(--color-border)]">
                         <td colSpan={8} className="py-3 px-4">
                           <div className="flex items-start gap-2">
-                            <FileJson className="w-5 h-5 text-[var(--color-accent)] mt-0.5 shrink-0" />
-                            <pre className="text-sm font-mono text-[var(--color-ink-secondary)] whitespace-pre-wrap break-all max-h-48 overflow-auto">
+                            <FileJson className="w-5 h-5 text-[var(--color-accent)] mt-1 shrink-0" />
+                            <pre className="text-base font-mono text-[var(--color-ink-secondary)] whitespace-pre-wrap break-all max-h-60 overflow-auto">
                               {entry.raw}
                             </pre>
                           </div>
                           {entry.parsed && (
-                            <div className="mt-2 flex flex-wrap gap-3 text-sm text-[var(--color-ink-muted)]">
+                            <div className="mt-2 flex flex-wrap gap-4 text-base text-[var(--color-ink-muted)]">
                               {entry.requestId && <span>requestId: {entry.requestId}</span>}
                               {entry.userId && <span>userId: {entry.userId}</span>}
                               {entry.hostname && <span>hostname: {entry.hostname}</span>}
