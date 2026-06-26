@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchAuditLogs, type AuditLog } from "@/lib/admin";
 import { Card, Button, Spinner, EmptyState } from "@/components/ui";
-import { Shield, RotateCw, CheckCircle2, XCircle } from "lucide-react";
+import { RotateCw, CheckCircle2, XCircle } from "lucide-react";
 
 type AuditTab = "login" | "login_failed" | "admin_action";
 
@@ -32,18 +32,18 @@ function actionLabel(action: string): string {
   return map[action] || action;
 }
 
-function categoryBadgeClass(category: string): string {
+function categoryClass(category: string): string {
   switch (category) {
     case "auth":
-      return "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]";
+      return "bg-blue-50 text-blue-600";
     case "user":
-      return "bg-[var(--color-success-subtle)] text-[var(--color-success)]";
+      return "bg-green-50 text-green-600";
     case "task":
-      return "bg-[var(--color-warning-subtle)] text-[var(--color-warning)]";
+      return "bg-amber-50 text-amber-600";
     case "organization":
-      return "bg-[var(--color-ink-muted)] text-[var(--color-surface)]";
+      return "bg-slate-100 text-slate-600";
     case "system":
-      return "bg-[var(--color-danger-subtle)] text-[var(--color-danger)]";
+      return "bg-red-50 text-red-600";
     default:
       return "bg-[var(--color-bg)] text-[var(--color-ink)]";
   }
@@ -87,30 +87,25 @@ export default function SecurityAudit() {
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-[var(--color-ink)] flex items-center gap-2">
-          <Shield className="w-4 h-4 text-[var(--color-ink-muted)]" />
-          安全审计
-        </h3>
+        <div className="flex gap-1 border-b border-[var(--color-border)]">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === t.key
+                  ? "border-[var(--color-accent)] text-[var(--color-accent)]"
+                  : "border-transparent text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <Button onClick={load} size="sm" disabled={loading} className="flex items-center gap-1.5">
           <RotateCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           刷新
         </Button>
-      </div>
-
-      <div className="flex gap-1 mb-4 border-b border-[var(--color-border)]">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === t.key
-                ? "border-[var(--color-accent)] text-[var(--color-accent)]"
-                : "border-transparent text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
       </div>
 
       {loading ? (
@@ -156,31 +151,21 @@ export default function SecurityAudit() {
                     {formatDateTime(log.created_at)}
                   </td>
                   <td className="py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${categoryBadgeClass(
-                        log.category
-                      )}`}
-                    >
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${categoryClass(log.category)}`}>
                       {actionLabel(log.action)}
                     </span>
                   </td>
-                  <td className="py-3 text-[var(--color-ink)]">
-                    {log.actor_name || log.actor_id || "-"}
-                  </td>
-                  <td className="py-3 text-[var(--color-ink-secondary)]">
-                    {log.target_name || log.target_id || "-"}
-                  </td>
-                  <td className="py-3 text-[var(--color-ink-secondary)]">
-                    {log.ip_address || "-"}
-                  </td>
+                  <td className="py-3 text-[var(--color-ink)]">{log.actor_name || log.actor_id || "-"}</td>
+                  <td className="py-3 text-[var(--color-ink-secondary)]">{log.target_name || log.target_id || "-"}</td>
+                  <td className="py-3 text-[var(--color-ink-secondary)]">{log.ip_address || "-"}</td>
                   <td className="py-3">
                     {log.success ? (
-                      <span className="flex items-center gap-1 text-xs text-[var(--color-success)]">
+                      <span className="flex items-center gap-1 text-xs text-green-600">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         成功
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-xs text-[var(--color-danger)]">
+                      <span className="flex items-center gap-1 text-xs text-red-600">
                         <XCircle className="w-3.5 h-3.5" />
                         失败
                       </span>
