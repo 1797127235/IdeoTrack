@@ -15,6 +15,16 @@ const defaultStats: MeStatsResponse = {
     d.setDate(d.getDate() - (6 - i));
     return { date: d.toISOString().slice(0, 10), checkedIn: false };
   }),
+  monthly: {
+    completedTasks: 0,
+    totalTasks: 0,
+    completionRate: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    reflections: 0,
+    points: 0,
+  },
+  weekly: [],
 };
 
 Page({

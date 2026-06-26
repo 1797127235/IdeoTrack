@@ -146,7 +146,10 @@ export async function createOrUpdateCheckIn(
   }
 
   // 坐标范围已由 controller 的 zod schema 校验，此处为防御性断言
-  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+  // 未配置位置签到的任务允许使用默认值 0,0
+  const safeLatitude = latitude ?? 0;
+  const safeLongitude = longitude ?? 0;
+  if (safeLatitude < -90 || safeLatitude > 90 || safeLongitude < -180 || safeLongitude > 180) {
     throw new AppError('CHECKIN_LOCATION_INVALID', '定位坐标超出有效范围', 400);
   }
 
@@ -155,7 +158,7 @@ export async function createOrUpdateCheckIn(
 
   // 如果任务指定了签到范围，校验学生位置是否在范围内
   if (task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null) {
-    const distance = haversineDistance(latitude, longitude, task.geo_lat, task.geo_lng);
+    const distance = haversineDistance(safeLatitude, safeLongitude, task.geo_lat, task.geo_lng);
     if (distance > task.geo_radius_meters) {
       throw new AppError('CHECKIN_OUTSIDE_GEOFENCE', '当前不在签到范围内，请到指定地点打卡', 403);
     }
@@ -174,7 +177,7 @@ export async function createOrUpdateCheckIn(
       checked_in_at = EXCLUDED.checked_in_at,
       updated_at = NOW()
     RETURNING *`,
-    [task_id, userId, latitude, longitude, address ?? null, new Date().toISOString()]
+    [task_id, userId, safeLatitude, safeLongitude, address ?? null, new Date().toISOString()]
   );
 
   if (rows.length === 0) {
