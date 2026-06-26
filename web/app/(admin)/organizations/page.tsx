@@ -40,6 +40,8 @@ export default function OrganizationsPage() {
   const [classCollegeId, setClassCollegeId] = useState("");
   const [editingClass, setEditingClass] = useState<Class | null>(null);
 
+  const [assignmentCollegeId, setAssignmentCollegeId] = useState<string>("");
+
   const loadData = () => {
     Promise.all([listColleges(), listClasses(), listCounselors()])
       .then(([c, cl, counselorsData]) => {
@@ -62,6 +64,7 @@ export default function OrganizationsPage() {
 
   const handleCounselorChange = async (counselorId: string) => {
     setSelectedCounselorId(counselorId);
+    setAssignmentCollegeId("");
     setAssignmentError("");
     setAssignmentSuccess(false);
     if (!counselorId) {
@@ -388,29 +391,47 @@ export default function OrganizationsPage() {
           {selectedCounselorId && (
             <>
               <div>
+                <label className="block text-xs text-[var(--color-ink-muted)] mb-1.5">筛选学院</label>
+                <select
+                  value={assignmentCollegeId}
+                  onChange={(e) => setAssignmentCollegeId(e.target.value)}
+                  className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] min-w-[240px]"
+                >
+                  <option value="">全部学院</option>
+                  {colleges.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs text-[var(--color-ink-muted)] mb-2">所带班级</label>
                 {classes.length === 0 ? (
                   <p className="text-sm text-[var(--color-ink-secondary)]">暂无班级</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {classes.map((cls) => (
-                      <label
-                        key={cls.id}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
-                          selectedClassIds.has(cls.id)
-                            ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                            : "border-[var(--color-border)] text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)]"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedClassIds.has(cls.id)}
-                          onChange={() => toggleClass(cls.id)}
-                        />
-                        <span>{cls.collegeName} - {cls.name}</span>
-                      </label>
-                    ))}
+                    {classes
+                      .filter((cls) => !assignmentCollegeId || cls.collegeId === assignmentCollegeId)
+                      .map((cls) => (
+                        <label
+                          key={cls.id}
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
+                            selectedClassIds.has(cls.id)
+                              ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                              : "border-[var(--color-border)] text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)]"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedClassIds.has(cls.id)}
+                            onChange={() => toggleClass(cls.id)}
+                          />
+                          <span>{cls.collegeName} - {cls.name}</span>
+                        </label>
+                      ))}
                   </div>
                 )}
               </div>
