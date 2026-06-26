@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/ideotrack
+
 jobs:
   test:
     name: Test
@@ -66,15 +70,87 @@ jobs:
           WECHAT_APP_SECRET: test-wechat-app-secret
           WECHAT_REMINDER_TEMPLATE_ID: test-reminder-template-id
 
+  build:
+    name: Build & Push Images
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tags
+        id: meta
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "api_tag=${{ env.IMAGE_PREFIX }}-api:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "web_tag=${{ env.IMAGE_PREFIX }}-web:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "face_tag=${{ env.IMAGE_PREFIX }}-face:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "api_latest=${{ env.IMAGE_PREFIX }}-api:latest" >> "$GITHUB_OUTPUT"
+          echo "web_latest=${{ env.IMAGE_PREFIX }}-web:latest" >> "$GITHUB_OUTPUT"
+          echo "face_latest=${{ env.IMAGE_PREFIX }}-face:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          push: true
+          tags: ${{ steps.meta.outputs.api_tag }},${{ steps.meta.outputs.api_latest }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.web
+          push: true
+          tags: ${{ steps.meta.outputs.web_tag }},${{ steps.meta.outputs.web_latest }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://ideotrack.cc.cd/api
+            NEXT_PUBLIC_AMAP_JSAPI_KEY=${{ secrets.NEXT_PUBLIC_AMAP_JSAPI_KEY }}
+
+      - name: Build and push Face image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./face-service
+          push: true
+          tags: ${{ steps.meta.outputs.face_tag }},${{ steps.meta.outputs.face_latest }}
+          cache-from: type=gha,scope=face
+          cache-to: type=gha,mode=max,scope=face
+
   deploy:
     name: Deploy
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Generate image tags
+        id: meta
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
@@ -87,15 +163,11 @@ jobs:
             cd /opt/IdeoTrack
 
             # 确保服务器工作区干净，并强制对齐到 origin/main
-            # 注意：这会丢弃对仓库跟踪文件的本地修改；后续会重新生成 .env
             git fetch origin main
             git reset --hard origin/main
-
-            # 拉取最新代码（此时应为 fast-forward）
             git pull origin main
 
             # 生成 /opt/IdeoTrack/.env（仅服务器本地，不进 git）
-            # 所有敏感配置来自 GitHub Secrets，compose 会自动读取这个文件
             cat > .env << EOF
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
@@ -112,17 +184,12 @@ jobs:
             CLIENT_URL=*
             NEXT_PUBLIC_API_URL=https://ideotrack.cc.cd/api
             NEXT_PUBLIC_AMAP_JSAPI_KEY=${{ secrets.NEXT_PUBLIC_AMAP_JSAPI_KEY }}
+            IMAGE_TAG=${{ steps.meta.outputs.sha }}
             EOF
             chmod 600 .env
 
-            # Caddyfile 现在由仓库管理（git pull 拉取），不再在此动态生成。
-            # 主域名 ideotrack.cc.cd 同时承载 API（其余路径）和管理后台（/admin*），
-            # 管理后台挂在路径下，避免为 admin 子域名单独配 DNS（见仓库 Caddyfile）。
-
             # 首次切换数据库密码时，旧卷（用默认密码初始化）会导致 postgres 起不来。
             # 用标记文件保证只删一次：之后再部署永远走 up -d，不会丢数据。
-            # 保险：即便标记文件意外丢失触发 down -v，也先 pg_dump 出一份完整备份，避免无声丢库。
-            # 此处容器仍跑着旧密码初始化的卷，所以用默认账号导出（失败则跳过，不阻断部署）。
             if [ ! -f .db-password-set ]; then
               echo "First deploy with managed password — backing up then resetting postgres volume..."
               docker compose exec -T postgres pg_dump -U postgres -d ideo_track \
@@ -132,18 +199,47 @@ jobs:
               touch .db-password-set
             fi
 
-            # 重新构建并启动
-            docker compose --profile with-caddy up -d --build
-            docker compose restart caddy
+            # 登录 GitHub Container Registry 并拉取最新镜像
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 等待 Web 服务就绪
-            sleep 10
+            # 只拉取/启动，不再 --build
+            docker compose --profile with-caddy pull
+            docker compose --profile with-caddy up -d --remove-orphans
 
-            # 等待 API 服务就绪
-            sleep 10
+            # 等待 API 健康（最多 60 秒）
+            echo "Waiting for API health..."
+            for i in {1..30}; do
+              if docker compose exec -T api wget -qO- http://localhost:3000/health >/dev/null 2>&1; then
+                echo "API is healthy"
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "ERROR: API did not become healthy within 60s"
+                docker compose ps
+                docker compose logs --tail=50 api
+                exit 1
+              fi
+              sleep 2
+            done
 
-            # 执行数据库迁移（生产镜像只包含 dist 和生产依赖）
+            # 执行数据库迁移
             docker compose exec -T api node dist/scripts/migrate.js
+
+            # 等待 Web 就绪（检查静态资源端口）
+            echo "Waiting for Web..."
+            for i in {1..30}; do
+              if docker compose exec -T web wget -qO- http://localhost:3001 >/dev/null 2>&1; then
+                echo "Web is ready"
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "ERROR: Web did not become ready within 60s"
+                docker compose ps
+                docker compose logs --tail=50 web
+                exit 1
+              fi
+              sleep 2
+            done
 
             # 检查服务状态
             docker compose ps
