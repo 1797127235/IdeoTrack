@@ -5,8 +5,12 @@
 
 FROM python:3.11-slim AS builder
 
-# 装系统依赖：libgl1（OpenCV 依赖，insightface 间接需要）、libglib2.0-0
+# 装系统依赖：
+#   - build-essential/gcc：insightface 0.7.3 + 依赖 stringzilla 需现场编译 C 扩展，
+#     新版 pip 不再提供预编译 wheel，缺编译器会报 "command 'gcc' failed"
+#   - libgl1 / libglib2.0-0：OpenCV 动态链接（insightface 间接需要）
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
