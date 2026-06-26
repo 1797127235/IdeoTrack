@@ -252,6 +252,11 @@ export async function listUsers(
     values.push(filters.isEnabled);
     paramIndex++;
   }
+  if (filters.hasFace !== undefined) {
+    conditions.push(filters.hasFace
+      ? `(uf.id IS NOT NULL AND uf.embedding IS NOT NULL)`
+      : `(uf.id IS NULL OR uf.embedding IS NULL)`);
+  }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 

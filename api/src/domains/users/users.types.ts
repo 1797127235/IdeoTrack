@@ -38,6 +38,7 @@ export interface UserFilters {
   classId?: string;
   collegeId?: string;
   isEnabled?: boolean;
+  hasFace?: boolean;
 }
 
 export interface ListUsersResult {

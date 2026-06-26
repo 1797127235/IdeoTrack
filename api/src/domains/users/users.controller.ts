@@ -121,7 +121,7 @@ export async function deleteClassController(req: Request, res: Response, next: N
 
 export async function listUsersController(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const filters: { keyword?: string; role?: UserRole; classId?: string; collegeId?: string; isEnabled?: boolean } = {};
+    const filters: { keyword?: string; role?: UserRole; classId?: string; collegeId?: string; isEnabled?: boolean; hasFace?: boolean } = {};
 
     if (typeof req.query.keyword === 'string' && req.query.keyword.trim()) {
       filters.keyword = req.query.keyword.trim();
@@ -139,6 +139,11 @@ export async function listUsersController(req: Request, res: Response, next: Nex
       filters.isEnabled = true;
     } else if (req.query.is_enabled === 'false') {
       filters.isEnabled = false;
+    }
+    if (req.query.has_face === 'true') {
+      filters.hasFace = true;
+    } else if (req.query.has_face === 'false') {
+      filters.hasFace = false;
     }
 
     const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);

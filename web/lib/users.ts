@@ -33,6 +33,7 @@ export interface UserFilters {
   classId?: string;
   collegeId?: string;
   isEnabled?: boolean;
+  hasFace?: boolean;
   page?: number;
   limit?: number;
 }
@@ -70,6 +71,7 @@ export const listUsers = (filters: UserFilters = {}) => {
   if (filters.classId) params.set("class_id", filters.classId);
   if (filters.collegeId) params.set("college_id", filters.collegeId);
   if (filters.isEnabled !== undefined) params.set("is_enabled", String(filters.isEnabled));
+  if (filters.hasFace !== undefined) params.set("has_face", String(filters.hasFace));
   if (filters.page) params.set("page", String(filters.page));
   if (filters.limit) params.set("limit", String(filters.limit));
 

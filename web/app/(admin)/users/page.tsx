@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   listUsers,
   listClasses,
@@ -23,6 +23,8 @@ import {
 
 const PAGE_SIZE = 20;
 
+type HasFaceFilter = "" | "true" | "false";
+
 interface UserQuery {
   page: number;
   keyword: string;
@@ -30,6 +32,54 @@ interface UserQuery {
   collegeId: string;
   classId: string;
   isEnabled: "" | "true" | "false";
+  hasFace: HasFaceFilter;
+}
+
+interface FormState {
+  schoolId: string;
+  name: string;
+  role: UserRole;
+  classId: string;
+}
+
+const emptyForm: FormState = {
+  schoolId: "",
+  name: "",
+  role: "student",
+  classId: "",
+};
+
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] w-full max-w-md p-6 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-semibold text-[var(--color-ink)]">{title}</h3>
+          <button
+            onClick={onClose}
+            className="text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] text-lg leading-none"
+          >
+            ×
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 export default function UsersPage() {
@@ -41,20 +91,14 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [saving, setSaving] = useState(false);
 
-  const [schoolId, setSchoolId] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState<UserRole>("student");
-  const [classId, setClassId] = useState("");
-
-  // face 上传状态
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  // 批量导入：异步 job 轮询
   const [batchImporting, setBatchImporting] = useState(false);
   const [faceJob, setFaceJob] = useState<FaceImportJob | null>(null);
-  // 注册照预览
   const [previewUser, setPreviewUser] = useState<User | null>(null);
 
   const [query, setQuery] = useState<UserQuery>({
@@ -64,9 +108,9 @@ export default function UsersPage() {
     collegeId: "",
     classId: "",
     isEnabled: "",
+    hasFace: "",
   });
 
-  // Load classes/colleges once on mount (independent of user list queries)
   useEffect(() => {
     let cancelled = false;
     Promise.all([listClasses(), listColleges()])
@@ -87,7 +131,6 @@ export default function UsersPage() {
     };
   }, []);
 
-  // Load users whenever query changes
   useEffect(() => {
     let cancelled = false;
     listUsers({
@@ -96,6 +139,7 @@ export default function UsersPage() {
       collegeId: query.collegeId || undefined,
       classId: query.classId || undefined,
       isEnabled: query.isEnabled === "" ? undefined : query.isEnabled === "true",
+      hasFace: query.hasFace === "" ? undefined : query.hasFace === "true",
       page: query.page,
       limit: PAGE_SIZE,
     })
@@ -117,6 +161,13 @@ export default function UsersPage() {
     };
   }, [query]);
 
+  const filteredClasses = useMemo(
+    () => (query.collegeId ? classes.filter((c) => c.collegeId === query.collegeId) : classes),
+    [classes, query.collegeId]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const updateQuery = (patch: Partial<UserQuery>) => {
     setLoading(true);
     setQuery((prev) => ({
@@ -126,58 +177,61 @@ export default function UsersPage() {
     }));
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateQuery({ page: 1 });
-  };
-
-  const handleReset = () => {
-    updateQuery({
-      keyword: "",
-      role: "",
-      collegeId: "",
-      classId: "",
-      isEnabled: "",
-      page: 1,
-    });
-  };
-
-  const resetForm = () => {
-    setSchoolId("");
-    setName("");
-    setRole("student");
-    setClassId("");
+  const openCreate = () => {
     setEditingUser(null);
-    setIsFormOpen(false);
+    setForm(emptyForm);
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (user: User) => {
+    setEditingUser(user);
+    setForm({
+      schoolId: user.schoolId,
+      name: user.name || "",
+      role: user.role,
+      classId: user.classId || "",
+    });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingUser(null);
+    setForm(emptyForm);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!schoolId.trim()) return;
+    if (!form.schoolId.trim()) return;
 
+    setSaving(true);
+    setError("");
     try {
       if (editingUser) {
         await updateUser(editingUser.id, {
-          name: name.trim(),
-          role,
-          classId: role === "student" ? classId || null : null,
+          name: form.name.trim(),
+          role: form.role,
+          classId: form.role === "student" ? form.classId || null : null,
         });
       } else {
         await createUser({
-          schoolId: schoolId.trim(),
-          name: name.trim(),
-          role,
-          classId: role === "student" ? classId : undefined,
+          schoolId: form.schoolId.trim(),
+          name: form.name.trim(),
+          role: form.role,
+          classId: form.role === "student" ? form.classId : undefined,
         });
       }
-      resetForm();
+      closeModal();
       updateQuery({ page: query.page });
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleToggleStatus = async (user: User) => {
+    setError("");
     try {
       await updateUser(user.id, { isEnabled: !user.isEnabled });
       updateQuery({ page: query.page });
@@ -188,6 +242,7 @@ export default function UsersPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("确定删除该用户？")) return;
+    setError("");
     try {
       await deleteUser(id);
       updateQuery({ page: query.page });
@@ -196,7 +251,6 @@ export default function UsersPage() {
     }
   };
 
-  // 单张上传注册照
   const handleUploadFace = async (userId: string, file: File) => {
     setUploadingId(userId);
     setError("");
@@ -210,7 +264,6 @@ export default function UsersPage() {
     }
   };
 
-  // 删除注册照
   const handleDeleteFace = async (user: User) => {
     if (!confirm(`确认删除 ${user.name || user.schoolId} 的注册照？`)) return;
     setUploadingId(user.id);
@@ -225,14 +278,12 @@ export default function UsersPage() {
     }
   };
 
-  // 批量 zip 导入注册照：创建 job 后轮询直到 done
   const handleBatchImport = async (file: File) => {
     setBatchImporting(true);
     setFaceJob(null);
     setError("");
     try {
       const jobId = await createFaceImportJob(file);
-      // 轮询，1.2s 一次，直到任务结束
       await new Promise<void>((resolve, reject) => {
         const poll = () => {
           fetchFaceImportJob(jobId)
@@ -256,11 +307,7 @@ export default function UsersPage() {
     }
   };
 
-  const filteredClasses = query.collegeId
-    ? classes.filter((c) => c.collegeId === query.collegeId)
-    : classes;
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const closeFaceJob = () => setFaceJob(null);
 
   return (
     <div className="space-y-5">
@@ -292,7 +339,7 @@ export default function UsersPage() {
             />
           </label>
           <button
-            onClick={() => setIsFormOpen(true)}
+            onClick={openCreate}
             className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
           >
             新增用户
@@ -301,9 +348,15 @@ export default function UsersPage() {
       </div>
 
       {faceJob && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm relative">
+          <button
+            onClick={closeFaceJob}
+            className="absolute right-3 top-2 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+          >
+            ×
+          </button>
           {faceJob.status === "done" ? (
-            <p className="text-[var(--color-ink)] mb-1">
+            <p className="text-[var(--color-ink)] mb-1 pr-6">
               导入完成：成功 {faceJob.success}，跳过 {faceJob.skipped}，失败 {faceJob.failed}
             </p>
           ) : (
@@ -325,7 +378,13 @@ export default function UsersPage() {
                 .filter((i) => i.status !== "success")
                 .map((i, idx) => (
                   <div key={`${i.schoolId}-${idx}`} className="text-[var(--color-ink-secondary)]">
-                    <span className={i.status === "failed" ? "text-[var(--color-danger)]" : "text-[var(--color-warning)]"}>
+                    <span
+                      className={
+                        i.status === "failed"
+                          ? "text-[var(--color-danger)]"
+                          : "text-[var(--color-warning)]"
+                      }
+                    >
                       {i.schoolId}
                     </span>
                     ：{i.message}
@@ -336,70 +395,11 @@ export default function UsersPage() {
         </div>
       )}
 
-      {isFormOpen && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-          <h3 className="text-base font-medium text-[var(--color-ink)] mb-4">
-            {editingUser ? "编辑用户" : "新增用户"}
-          </h3>
-          <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-4">
-            <input
-              type="text"
-              value={schoolId}
-              onChange={(e) => setSchoolId(e.target.value)}
-              placeholder="学号/工号"
-              disabled={!!editingUser}
-              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:bg-[var(--color-bg)]"
-            />
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="姓名"
-              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            />
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            >
-              <option value="student">学生</option>
-              <option value="counselor">辅导员</option>
-              <option value="admin">管理员</option>
-            </select>
-            <select
-              value={classId}
-              onChange={(e) => setClassId(e.target.value)}
-              disabled={role !== "student"}
-              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:bg-[var(--color-bg)]"
-            >
-              <option value="">{role === "student" ? "选择班级" : "不适用"}</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.collegeName} - {c.name}
-                </option>
-              ))}
-            </select>
-            <div className="col-span-4 flex gap-3">
-              <button
-                type="submit"
-                className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
-              >
-                保存
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
-              >
-                取消
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       <form
-        onSubmit={handleSearch}
+        onSubmit={(e) => {
+          e.preventDefault();
+          updateQuery({ page: 1 });
+        }}
         className="flex flex-wrap items-end gap-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4"
       >
         <div>
@@ -431,9 +431,7 @@ export default function UsersPage() {
           <label className="block text-xs text-[var(--color-ink-muted)] mb-1">学院</label>
           <select
             value={query.collegeId}
-            onChange={(e) =>
-              updateQuery({ collegeId: e.target.value, classId: "", page: 1 })
-            }
+            onChange={(e) => updateQuery({ collegeId: e.target.value, classId: "", page: 1 })}
             className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
           >
             <option value="">全部学院</option>
@@ -476,6 +474,21 @@ export default function UsersPage() {
           </select>
         </div>
 
+        <div>
+          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">注册照</label>
+          <select
+            value={query.hasFace}
+            onChange={(e) =>
+              updateQuery({ hasFace: e.target.value as HasFaceFilter, page: 1 })
+            }
+            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+          >
+            <option value="">全部</option>
+            <option value="true">已上传</option>
+            <option value="false">未上传</option>
+          </select>
+        </div>
+
         <button
           type="submit"
           className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
@@ -484,7 +497,17 @@ export default function UsersPage() {
         </button>
         <button
           type="button"
-          onClick={handleReset}
+          onClick={() =>
+            updateQuery({
+              keyword: "",
+              role: "",
+              collegeId: "",
+              classId: "",
+              isEnabled: "",
+              hasFace: "",
+              page: 1,
+            })
+          }
           className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
         >
           重置
@@ -540,15 +563,23 @@ export default function UsersPage() {
                       </td>
                       <td className="py-3">
                         {uploadingId === user.id ? (
-                          <span className="text-xs text-[var(--color-ink-muted)]">处理中…</span>
+                          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]">
+                            <span className="w-3.5 h-3.5 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                            处理中…
+                          </span>
                         ) : user.hasFace ? (
                           <div className="flex items-center gap-2">
-                            <img
-                              src={userFacePhotoUrl(user.id)}
-                              alt="注册照"
-                              className="h-9 w-9 rounded-full object-cover border border-[var(--color-border)]"
-                            />
-                            <div className="flex flex-col text-xs">
+                            <button
+                              onClick={() => setPreviewUser(user)}
+                              className="h-9 w-9 rounded-full overflow-hidden border border-[var(--color-border)] hover:ring-2 hover:ring-[var(--color-accent)]"
+                            >
+                              <img
+                                src={userFacePhotoUrl(user.id)}
+                                alt="注册照"
+                                className="h-full w-full object-cover"
+                              />
+                            </button>
+                            <div className="flex flex-col text-xs gap-0.5">
                               <button
                                 onClick={() => setPreviewUser(user)}
                                 className="text-[var(--color-accent)] hover:underline text-left"
@@ -564,7 +595,10 @@ export default function UsersPage() {
                             </div>
                           </div>
                         ) : (
-                          <label className="text-xs text-[var(--color-accent)] hover:underline cursor-pointer">
+                          <label className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--color-accent)] text-[var(--color-accent)] text-xs font-medium hover:bg-[var(--color-accent-subtle)] cursor-pointer transition-colors">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
                             上传
                             <input
                               type="file"
@@ -581,14 +615,7 @@ export default function UsersPage() {
                       </td>
                       <td className="py-3 text-right space-x-3">
                         <button
-                          onClick={() => {
-                            setEditingUser(user);
-                            setSchoolId(user.schoolId);
-                            setName(user.name || "");
-                            setRole(user.role);
-                            setClassId(user.classId || "");
-                            setIsFormOpen(true);
-                          }}
+                          onClick={() => openEdit(user)}
                           className="text-[var(--color-accent)] hover:underline"
                         >
                           编辑
@@ -640,6 +667,91 @@ export default function UsersPage() {
           </>
         )}
       </div>
+
+      {isModalOpen && (
+        <Modal title={editingUser ? "编辑用户" : "新增用户"} onClose={closeModal}>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">
+                学号/工号
+              </label>
+              <input
+                type="text"
+                value={form.schoolId}
+                onChange={(e) => setForm((f) => ({ ...f, schoolId: e.target.value }))}
+                placeholder="请输入学号/工号"
+                disabled={!!editingUser}
+                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:bg-[var(--color-bg)]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">姓名</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="请输入姓名"
+                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">角色</label>
+              <select
+                value={form.role}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    role: e.target.value as UserRole,
+                    classId: e.target.value === "student" ? f.classId : "",
+                  }))
+                }
+                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              >
+                <option value="student">学生</option>
+                <option value="counselor">辅导员</option>
+                <option value="admin">管理员</option>
+              </select>
+            </div>
+
+            {form.role === "student" && (
+              <div>
+                <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">班级</label>
+                <select
+                  value={form.classId}
+                  onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+                >
+                  <option value="">请选择班级</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.collegeName} - {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={saving || !form.schoolId.trim()}
+                className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium"
+              >
+                {saving ? "保存中…" : "保存"}
+              </button>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
+              >
+                取消
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {previewUser && (
         <div
