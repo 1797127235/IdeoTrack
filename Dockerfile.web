@@ -16,6 +16,10 @@ RUN npm run build
 # Production stage
 FROM node:24
 
+# 安装 healthcheck 用的 wget（node:24 基于 Debian，默认没有 wget）
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
