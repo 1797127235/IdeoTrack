@@ -8,6 +8,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  batchImportUsers,
   uploadUserFace,
   deleteUserFace,
   createFaceImportJob,
@@ -50,6 +51,20 @@ const emptyForm: FormState = {
   collegeId: "",
   classId: "",
 };
+
+function parseUserImportCsv(text: string): Record<string, string>[] {
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim().replace(/^\uFEFF/, ""));
+  return lines.slice(1).map((line) => {
+    const values = line.split(",").map((v) => v.trim());
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => {
+      row[h] = values[i] ?? "";
+    });
+    return row;
+  });
+}
 
 function Modal({
   title,
@@ -100,6 +115,7 @@ export default function UsersPage() {
 
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [batchImporting, setBatchImporting] = useState(false);
+  const [batchImportResult, setBatchImportResult] = useState<{ success: number; failed: number; errors: Array<{ row: number; message: string }> } | null>(null);
   const [faceJob, setFaceJob] = useState<FaceImportJob | null>(null);
   const [previewUser, setPreviewUser] = useState<User | null>(null);
 
@@ -283,6 +299,89 @@ export default function UsersPage() {
     }
   };
 
+  const handleBatchImportUsers = async (file: File) => {
+    setBatchImporting(true);
+    setBatchImportResult(null);
+    setError("");
+    try {
+      const text = await file.text();
+      const rows = parseUserImportCsv(text);
+      const users = rows
+        .map((row, index): { row: number; schoolId: string; name: string; role: UserRole; collegeId?: string; classId?: string } | null => {
+          const schoolId = row["学号"]?.trim() || row["schoolId"]?.trim() || row["工号"]?.trim();
+          const name = row["姓名"]?.trim() || row["name"]?.trim() || "";
+          const roleText = row["角色"]?.trim() || row["role"]?.trim() || "学生";
+          const collegeName = row["学院"]?.trim() || row["college"]?.trim();
+          const className = row["班级"]?.trim() || row["class"]?.trim();
+
+          const role: UserRole | undefined =
+            roleText === "学生" || roleText === "student"
+              ? "student"
+              : roleText === "辅导员" || roleText === "counselor"
+              ? "counselor"
+              : roleText === "管理员" || roleText === "admin"
+              ? "admin"
+              : undefined;
+
+          if (!schoolId) {
+            throw new Error(`第 ${index + 2} 行缺少学号/工号`);
+          }
+          if (!role) {
+            throw new Error(`第 ${index + 2} 行角色无效：${roleText}`);
+          }
+
+          const college = collegeName ? colleges.find((c) => c.name === collegeName) : undefined;
+          if (collegeName && !college) {
+            throw new Error(`第 ${index + 2} 行学院不存在：${collegeName}`);
+          }
+
+          const cls = className ? classes.find((c) => c.name === className && (!college || c.collegeId === college.id)) : undefined;
+          if (className && !cls) {
+            throw new Error(`第 ${index + 2} 行班级不存在：${className}`);
+          }
+
+          return {
+            row: index + 2,
+            schoolId,
+            name,
+            role,
+            collegeId: college?.id,
+            classId: cls?.id,
+          };
+        })
+        .filter(Boolean) as { row: number; schoolId: string; name: string; role: UserRole; collegeId?: string; classId?: string }[];
+
+      if (users.length === 0) {
+        throw new Error("CSV 中没有可导入的数据");
+      }
+
+      const result = await batchImportUsers({ users });
+      setBatchImportResult(result);
+      updateQuery({ page: query.page });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "导入失败");
+    } finally {
+      setBatchImporting(false);
+    }
+  };
+
+  const downloadUserImportTemplate = () => {
+    const headers = ["学号/工号", "姓名", "角色", "学院", "班级"];
+    const samples = [
+      ["2024001", "张三", "学生", "计算机学院", "计算机科学与技术1班"],
+      ["2024002", "李四", "学生", "计算机学院", "计算机科学与技术2班"],
+      ["T001", "王老师", "辅导员", "", ""],
+    ];
+    const csv = [headers.join(","), ...samples.map((r) => r.join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "用户导入模板.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleBatchImport = async (file: File) => {
     setBatchImporting(true);
     setFaceJob(null);
@@ -325,6 +424,30 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-ink)]">用户管理</h2>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={downloadUserImportTemplate}
+            className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center transition-colors"
+          >
+            下载用户导入模板
+          </button>
+          <label
+            className={`h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center cursor-pointer transition-colors ${
+              batchImporting ? "opacity-60 pointer-events-none" : ""
+            }`}
+          >
+            {batchImporting ? "导入中…" : "批量导入用户"}
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleBatchImportUsers(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <label
             className={`h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center cursor-pointer transition-colors ${
               batchImporting ? "opacity-60 pointer-events-none" : ""
@@ -351,6 +474,29 @@ export default function UsersPage() {
           </button>
         </div>
       </div>
+
+      {batchImportResult && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm relative">
+          <button
+            onClick={() => setBatchImportResult(null)}
+            className="absolute right-3 top-2 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+          >
+            ×
+          </button>
+          <p className="text-[var(--color-ink)] mb-2 pr-6">
+            导入完成：成功 {batchImportResult.success}，失败 {batchImportResult.failed}
+          </p>
+          {batchImportResult.errors.length > 0 && (
+            <div className="mt-2 max-h-32 overflow-auto text-xs space-y-0.5">
+              {batchImportResult.errors.map((err, idx) => (
+                <div key={`${err.row}-${idx}`} className="text-[var(--color-danger)]">
+                  第 {err.row} 行：{err.message}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {faceJob && (
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm relative">
