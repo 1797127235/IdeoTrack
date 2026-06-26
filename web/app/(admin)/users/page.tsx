@@ -8,11 +8,17 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  uploadUserFace,
+  deleteUserFace,
+  createFaceImportJob,
+  fetchFaceImportJob,
+  userFacePhotoUrl,
   type User,
   type Class,
   type College,
   roleLabel,
   type UserRole,
+  type FaceImportJob,
 } from "@/lib/users";
 
 const PAGE_SIZE = 20;
@@ -42,6 +48,14 @@ export default function UsersPage() {
   const [name, setName] = useState("");
   const [role, setRole] = useState<UserRole>("student");
   const [classId, setClassId] = useState("");
+
+  // face 上传状态
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  // 批量导入：异步 job 轮询
+  const [batchImporting, setBatchImporting] = useState(false);
+  const [faceJob, setFaceJob] = useState<FaceImportJob | null>(null);
+  // 注册照预览
+  const [previewUser, setPreviewUser] = useState<User | null>(null);
 
   const [query, setQuery] = useState<UserQuery>({
     page: 1,
@@ -182,6 +196,66 @@ export default function UsersPage() {
     }
   };
 
+  // 单张上传注册照
+  const handleUploadFace = async (userId: string, file: File) => {
+    setUploadingId(userId);
+    setError("");
+    try {
+      await uploadUserFace(userId, file);
+      updateQuery({ page: query.page });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "上传失败");
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  // 删除注册照
+  const handleDeleteFace = async (user: User) => {
+    if (!confirm(`确认删除 ${user.name || user.schoolId} 的注册照？`)) return;
+    setUploadingId(user.id);
+    setError("");
+    try {
+      await deleteUserFace(user.id);
+      updateQuery({ page: query.page });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  // 批量 zip 导入注册照：创建 job 后轮询直到 done
+  const handleBatchImport = async (file: File) => {
+    setBatchImporting(true);
+    setFaceJob(null);
+    setError("");
+    try {
+      const jobId = await createFaceImportJob(file);
+      // 轮询，1.2s 一次，直到任务结束
+      await new Promise<void>((resolve, reject) => {
+        const poll = () => {
+          fetchFaceImportJob(jobId)
+            .then((job) => {
+              setFaceJob(job);
+              if (job.status === "done") {
+                resolve();
+              } else {
+                setTimeout(poll, 1200);
+              }
+            })
+            .catch(reject);
+        };
+        setTimeout(poll, 800);
+      });
+      updateQuery({ page: query.page });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "导入失败");
+    } finally {
+      setBatchImporting(false);
+    }
+  };
+
   const filteredClasses = query.collegeId
     ? classes.filter((c) => c.collegeId === query.collegeId)
     : classes;
@@ -198,13 +272,69 @@ export default function UsersPage() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-ink)]">用户管理</h2>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
-        >
-          新增用户
-        </button>
+        <div className="flex items-center gap-3">
+          <label
+            className={`h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center cursor-pointer transition-colors ${
+              batchImporting ? "opacity-60 pointer-events-none" : ""
+            }`}
+            title="上传 zip 包，文件名用学号（如 2024001.jpg），按学号匹配用户"
+          >
+            {batchImporting ? "导入中…" : "批量导入照片"}
+            <input
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleBatchImport(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+          >
+            新增用户
+          </button>
+        </div>
       </div>
+
+      {faceJob && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm">
+          {faceJob.status === "done" ? (
+            <p className="text-[var(--color-ink)] mb-1">
+              导入完成：成功 {faceJob.success}，跳过 {faceJob.skipped}，失败 {faceJob.failed}
+            </p>
+          ) : (
+            <p className="text-[var(--color-ink-secondary)] mb-2">
+              导入中… {faceJob.processed} / {faceJob.total}
+            </p>
+          )}
+          {faceJob.total > 0 && (
+            <div className="h-1.5 rounded-full bg-[var(--color-bg)] overflow-hidden">
+              <div
+                className="h-full bg-[var(--color-accent)] transition-all"
+                style={{ width: `${Math.round((faceJob.processed / faceJob.total) * 100)}%` }}
+              />
+            </div>
+          )}
+          {faceJob.status === "done" && faceJob.items.some((i) => i.status !== "success") && (
+            <div className="mt-2 max-h-32 overflow-auto text-xs space-y-0.5">
+              {faceJob.items
+                .filter((i) => i.status !== "success")
+                .map((i, idx) => (
+                  <div key={`${i.schoolId}-${idx}`} className="text-[var(--color-ink-secondary)]">
+                    <span className={i.status === "failed" ? "text-[var(--color-danger)]" : "text-[var(--color-warning)]"}>
+                      {i.schoolId}
+                    </span>
+                    ：{i.message}
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {isFormOpen && (
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
@@ -375,6 +505,7 @@ export default function UsersPage() {
                   <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学院</th>
                   <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">班级</th>
                   <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
+                  <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">注册照</th>
                   <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
                 </tr>
               </thead>
@@ -382,7 +513,7 @@ export default function UsersPage() {
                 {users.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="py-8 text-center text-sm text-[var(--color-ink-secondary)]"
                     >
                       暂无用户
@@ -406,6 +537,47 @@ export default function UsersPage() {
                         >
                           {user.isEnabled ? "正常" : "禁用"}
                         </span>
+                      </td>
+                      <td className="py-3">
+                        {uploadingId === user.id ? (
+                          <span className="text-xs text-[var(--color-ink-muted)]">处理中…</span>
+                        ) : user.hasFace ? (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={userFacePhotoUrl(user.id)}
+                              alt="注册照"
+                              className="h-9 w-9 rounded-full object-cover border border-[var(--color-border)]"
+                            />
+                            <div className="flex flex-col text-xs">
+                              <button
+                                onClick={() => setPreviewUser(user)}
+                                className="text-[var(--color-accent)] hover:underline text-left"
+                              >
+                                查看
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFace(user)}
+                                className="text-[var(--color-danger)] hover:underline text-left"
+                              >
+                                删除
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="text-xs text-[var(--color-accent)] hover:underline cursor-pointer">
+                            上传
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) handleUploadFace(user.id, f);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
                       </td>
                       <td className="py-3 text-right space-x-3">
                         <button
@@ -468,6 +640,35 @@ export default function UsersPage() {
           </>
         )}
       </div>
+
+      {previewUser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+          onClick={() => setPreviewUser(null)}
+        >
+          <div
+            className="bg-[var(--color-surface)] rounded-xl p-4 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-[var(--color-ink)]">
+                {previewUser.name || previewUser.schoolId} 的注册照
+              </span>
+              <button
+                onClick={() => setPreviewUser(null)}
+                className="text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] text-sm"
+              >
+                关闭
+              </button>
+            </div>
+            <img
+              src={userFacePhotoUrl(previewUser.id)}
+              alt="注册照"
+              className="w-full rounded-lg object-contain max-h-[60vh]"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

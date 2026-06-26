@@ -43,9 +43,13 @@ services:
       EXPORT_LINK_TTL_SECONDS: ${EXPORT_LINK_TTL_SECONDS:-86400}
       # 人脸识别微服务（FastAPI + InsightFace）。api 通过此地址调用。
       FACE_SERVICE_URL: ${FACE_SERVICE_URL:-http://face:8000}
+      # 人脸图片存储目录（注册照+现场照），与下方 bind mount 对应
+      FACE_PHOTO_DIR: ${FACE_PHOTO_DIR:-/app/faces}
     volumes:
       - ./logs:/app/logs
       - ./exports:/app/exports
+      # 人脸图片持久化：注册照 + 现场照落盘于此，容器重建不丢失
+      - ./faces:/app/faces
     expose:
       - "3000"
 

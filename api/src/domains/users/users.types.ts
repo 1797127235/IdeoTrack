@@ -27,6 +27,7 @@ export interface User {
   collegeId: string | null;
   collegeName: string | null;
   className: string | null;
+  hasFace: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,4 +110,43 @@ export interface ManagedClass {
 
 export interface SetManagedClassesInput {
   classIds: string[];
+}
+
+// ===== Face =====
+
+export interface UserFace {
+  id: string;
+  userId: string;
+  photoPath: string;
+  hasEmbedding: boolean;
+  createdAt: string;
+}
+
+/** 批量导入注册照的单条结果。row 为 zip 内文件名。 */
+export interface BatchFaceImportItem {
+  row: string;
+  schoolId: string;
+  status: 'success' | 'skipped' | 'failed';
+  message?: string;
+}
+
+export interface BatchFaceImportResult {
+  success: number;
+  skipped: number;
+  failed: number;
+  items: BatchFaceImportItem[];
+}
+
+/** 批量注册照导入异步任务（前端轮询用）。 */
+export interface FaceImportJob {
+  id: string;
+  status: 'pending' | 'running' | 'done';
+  total: number;
+  processed: number;
+  success: number;
+  skipped: number;
+  failed: number;
+  items: BatchFaceImportItem[];
+  startedAt: string;
+  finishedAt: string | null;
 }

@@ -24,6 +24,7 @@ export interface User {
   collegeId: string | null;
   collegeName: string | null;
   className: string | null;
+  hasFace: boolean;
 }
 
 export interface UserFilters {
@@ -115,6 +116,128 @@ export function roleLabel(role: UserRole): string {
     admin: "管理员",
   };
   return map[role];
+}
+
+// ===== Face（注册照）=====
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+
+export interface UserFace {
+  id: string;
+  userId: string;
+  photoPath: string;
+  hasEmbedding: boolean;
+  createdAt: string;
+}
+
+export interface BatchFaceImportResult {
+  success: number;
+  skipped: number;
+  failed: number;
+  items: Array<{
+    row: string;
+    schoolId: string;
+    status: "success" | "skipped" | "failed";
+    message?: string;
+  }>;
+}
+
+/** 批量注册照导入异步任务（轮询用）。 */
+export interface FaceImportJob {
+  id: string;
+  status: "pending" | "running" | "done";
+  total: number;
+  processed: number;
+  success: number;
+  skipped: number;
+  failed: number;
+  items: BatchFaceImportResult["items"];
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+// multipart 上传不走通用 api 封装（那是 JSON），直接用 fetch + FormData
+async function uploadMultipart(
+  path: string,
+  fieldName: string,
+  file: File
+): Promise<Response> {
+  const form = new FormData();
+  form.append(fieldName, file);
+  return fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+}
+
+// 单张上传注册照
+export async function uploadUserFace(
+  userId: string,
+  photo: File
+): Promise<UserFace> {
+  const res = await uploadMultipart(`/users/${userId}/face`, "photo", photo);
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error?.message || "上传失败");
+  }
+  return json.data as UserFace;
+}
+
+// 删除注册照
+export async function deleteUserFace(userId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/users/${userId}/face`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error?.message || "删除失败");
+  }
+}
+
+// 注册照图片预览 URL（img.src 直接用，带鉴权靠 cookie）
+export function userFacePhotoUrl(userId: string): string {
+  return `${API_BASE_URL}/users/${userId}/face/photo`;
+}
+
+// 批量 zip 导入注册照：创建异步 job，返回 jobId
+export async function createFaceImportJob(zipFile: File): Promise<string> {
+  const res = await uploadMultipart(`/users/batch-face-import`, "file", zipFile);
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error?.message || "导入失败");
+  }
+  return (json.data as { jobId: string }).jobId;
+}
+
+// 查询批量导入任务进度
+export async function fetchFaceImportJob(jobId: string): Promise<FaceImportJob> {
+  const res = await fetch(`${API_BASE_URL}/users/batch-face-import/${jobId}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error?.message || "查询进度失败");
+  }
+  return json.data as FaceImportJob;
+}
+
+// 查询某用户注册照（GET，单独实现）
+export async function fetchUserFace(
+  userId: string
+): Promise<UserFace | null> {
+  const res = await fetch(`${API_BASE_URL}/users/${userId}/face`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error?.message || "查询失败");
+  }
+  return json.data as UserFace | null;
 }
 
 export interface Counselor {

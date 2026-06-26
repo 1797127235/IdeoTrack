@@ -33,12 +33,17 @@ MODEL_ROOT = os.environ.get("FACE_MODEL_ROOT", "/app/models")
 MODEL_NAME = os.environ.get("FACE_MODEL_NAME", "buffalo_l")
 # 默认余弦相似度阈值（经验值，buffalo_l 同人一般 > 0.4）
 DEFAULT_THRESHOLD = float(os.environ.get("FACE_DEFAULT_THRESHOLD", "0.42"))
+# 模型推理并发上限：CPU 上 InsightFace 单图 0.5-2s 且吃满核，过多并发会 OOM/雪崩。
+# 批量导入在 Node 侧发 4 路，这里再用信号量兜底，超出部分排队而非压垮进程。
+MAX_CONCURRENCY = int(os.environ.get("FACE_MAX_CONCURRENCY", "2"))
 
 app = FastAPI(title="IdeoTrack Face Service", version="1.0.0")
 
 # 延迟初始化：首次请求时才加载模型，避免容器启动卡在模型加载上影响 healthcheck。
 _face_app: Optional[FaceAnalysis] = None
 _face_lock = asyncio.Lock()
+# 模块级创建 Semaphore 安全：它仅在 await 时绑定事件循环，构造时不要求 loop 已运行。
+_infer_sem = asyncio.Semaphore(MAX_CONCURRENCY)
 
 
 async def get_face_app() -> FaceAnalysis:
@@ -82,8 +87,11 @@ async def read_embedding(image_bytes: bytes) -> Optional[np.ndarray]:
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img_np = np.array(img)
 
-    # InsightFace 的 get 是同步阻塞调用，丢到线程池避免卡住事件循环
-    faces = await asyncio.to_thread(face_app.get, img_np)
+    # InsightFace 的 get 是同步阻塞调用，丢到线程池避免卡住事件循环；
+    # 再用信号量限流，防止并发请求把 CPU/内存压垮（注意：asyncio.Semaphore
+    # 非可重入，verify 串行调两次本函数是「acquire→release→再acquire」，不会死锁）。
+    async with _infer_sem:
+        faces = await asyncio.to_thread(face_app.get, img_np)
     if not faces:
         return None
     # 取置信度最高的人脸
