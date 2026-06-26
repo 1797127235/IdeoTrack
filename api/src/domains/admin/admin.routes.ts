@@ -4,6 +4,7 @@ import path from 'node:path';
 import { authenticate } from '../../middleware/auth.js';
 import { requireRoles } from '../../middleware/rbac.js';
 import { config } from '../../config/index.js';
+import { getServicesHealth, getRuntimeInfo, getErrorStats } from './admin.service.js';
 
 const router = Router();
 
@@ -47,6 +48,31 @@ router.get('/logs', (_req, res, next) => {
       .reverse();
 
     res.json({ success: true, data: lines });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 获取运维大盘数据：服务健康、运行时信息、异常聚合。
+ */
+router.get('/status', async (_req, res, next) => {
+  try {
+    const [services, runtime, errors] = await Promise.all([
+      getServicesHealth(),
+      Promise.resolve(getRuntimeInfo()),
+      Promise.resolve(getErrorStats()),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        services,
+        runtime,
+        errors,
+        updatedAt: new Date().toISOString(),
+      },
+    });
   } catch (err) {
     next(err);
   }
