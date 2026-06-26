@@ -321,6 +321,30 @@ CREATE TABLE IF NOT EXISTS user_faces (
 );
 CREATE INDEX IF NOT EXISTS idx_user_faces_user_id ON user_faces(user_id);
 
+-- 审计日志表（系统运维：登录、失败登录、管理员敏感操作）
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  action TEXT NOT NULL,                 -- login / login_failed / logout / create / update / delete / export / backup / cleanup 等
+  category TEXT NOT NULL,               -- auth / user / task / organization / system
+  actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  actor_name TEXT,
+  actor_role TEXT,
+  target_type TEXT,                     -- user / task / college / class / system
+  target_id TEXT,
+  target_name TEXT,
+  details JSONB,
+  ip_address TEXT,
+  user_agent TEXT,
+  success BOOLEAN NOT NULL DEFAULT true,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_category ON audit_logs(category);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id ON audit_logs(actor_id);
+
 -- 打卡记录扩展：关联现场照与人脸验证结果，供管理员抽查与审计
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_photo_path TEXT;       -- 现场照存储路径
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_verified BOOLEAN;      -- 是否通过人脸验证（null=未要求/降级）

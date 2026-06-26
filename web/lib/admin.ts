@@ -71,6 +71,22 @@ export interface CleanupResult {
   freedBytes: number;
 }
 
+export interface AuditLog {
+  id: string;
+  action: string;
+  category: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  actor_role: string | null;
+  target_type: string | null;
+  target_id: string | null;
+  target_name: string | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  success: boolean;
+  created_at: string;
+}
+
 export async function fetchServerLogs(): Promise<string[]> {
   return api.get<string[]>("/admin/logs");
 }
@@ -81,6 +97,19 @@ export async function fetchAdminStatus(): Promise<AdminStatus> {
 
 export async function fetchSystemResources(): Promise<SystemResources> {
   return api.get<SystemResources>("/admin/resources");
+}
+
+export async function fetchAuditLogs(params?: {
+  category?: string;
+  action?: string;
+  limit?: number;
+}): Promise<AuditLog[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.category) searchParams.set("category", params.category);
+  if (params?.action) searchParams.set("action", params.action);
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  const query = searchParams.toString();
+  return api.get<AuditLog[]>(`/admin/audit-logs${query ? `?${query}` : ""}`);
 }
 
 export async function createDatabaseBackup(): Promise<BackupResult> {

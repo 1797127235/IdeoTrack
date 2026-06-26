@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import * as reportsService from './reports.service.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { auditLog } from '../../lib/audit.js';
 
 export async function getDashboardStatsController(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -34,6 +35,16 @@ export async function getMultiDimStatsController(req: Request, res: Response, ne
 export async function exportReportController(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = await reportsService.exportReport(req.body);
+    void auditLog({
+      action: 'export',
+      category: 'report',
+      actorId: req.user?.userId,
+      actorRole: req.user?.role,
+      targetType: 'report',
+      details: { ...req.body, downloadUrl: data.downloadUrl },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
     res.json({ success: true, data });
   } catch (err) {
     next(err);

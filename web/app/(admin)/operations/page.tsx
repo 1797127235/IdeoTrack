@@ -22,6 +22,7 @@ import {
   EmptyState,
   Spinner,
 } from "@/components/ui";
+import SecurityAudit from "./SecurityAudit";
 import {
   CheckCircle2,
   XCircle,
@@ -581,7 +582,12 @@ export default function OperationsPage() {
         </>
       ) : null}
 
-      {/* Section 5: Logs */}
+      {/* Section 5: Security Audit */}
+      <section>
+        <SecurityAudit />
+      </section>
+
+      {/* Section 6: Logs */}
       <section>
         <h3 className="text-sm font-medium text-[var(--color-ink)] mb-3 flex items-center gap-2">
           <Clock className="w-4 h-4 text-[var(--color-accent)]" />

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { login, changePassword, getMe, getMeStats, wechatLogin, bindWechat } from './auth.service.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { config } from '../../config/index.js';
+import { auditLog } from '../../lib/audit.js';
 
 const loginSchema = z.object({
   schoolId: z.string().min(1, '学号/工号不能为空'),
@@ -29,6 +30,7 @@ export async function loginController(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  const schoolId = typeof req.body.schoolId === 'string' ? req.body.schoolId : '';
   try {
     const parseResult = loginSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -36,6 +38,19 @@ export async function loginController(
     }
 
     const result = await login(parseResult.data);
+
+    await auditLog({
+      action: 'login',
+      category: 'auth',
+      actorId: result.user.id,
+      actorRole: result.user.role,
+      targetType: 'user',
+      targetId: result.user.id,
+      details: { method: 'password', isInitialPassword: result.user.isInitialPassword },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+      success: true,
+    });
 
     const maxAgeMs =
       typeof config.jwtExpiresIn === 'string' && config.jwtExpiresIn.endsWith('d')
@@ -55,6 +70,18 @@ export async function loginController(
       data: result,
     });
   } catch (err) {
+    // 记录失败登录
+    void auditLog({
+      action: 'login_failed',
+      category: 'auth',
+      targetType: 'user',
+      targetId: schoolId,
+      details: { method: 'password', reason: err instanceof AppError ? err.code : 'UNKNOWN' },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+      success: false,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
     next(err);
   }
 }
@@ -86,11 +113,24 @@ export async function changePasswordController(
 }
 
 export async function logoutController(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
+    if (req.user) {
+      void auditLog({
+        action: 'logout',
+        category: 'auth',
+        actorId: req.user.userId,
+        actorRole: req.user.role,
+        targetType: 'user',
+        targetId: req.user.userId,
+        ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        success: true,
+      });
+    }
     res.clearCookie('token', { path: '/', httpOnly: true, sameSite: 'lax' });
     res.json({ success: true, data: null });
   } catch (err) {

@@ -4,6 +4,8 @@ import path from 'node:path';
 import { authenticate } from '../../middleware/auth.js';
 import { requireRoles } from '../../middleware/rbac.js';
 import { config } from '../../config/index.js';
+import { query } from '../../lib/db.js';
+import { auditLog } from '../../lib/audit.js';
 import { getServicesHealth, getRuntimeInfo, getErrorStats } from './admin.service.js';
 import { getSystemResources } from './resources.service.js';
 import { createDatabaseBackup, cleanupExports, cleanupTempFiles } from './tools.service.js';
@@ -93,11 +95,53 @@ router.get('/resources', async (_req, res, next) => {
 });
 
 /**
+ * 获取审计日志（安全审计）。
+ */
+router.get('/audit-logs', async (req, res, next) => {
+  try {
+    const category = req.query.category as string | undefined;
+    const action = req.query.action as string | undefined;
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
+
+    const conditions: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (category) {
+      params.push(category);
+      conditions.push(`category = $${params.length}`);
+    }
+    if (action) {
+      params.push(action);
+      conditions.push(`action = $${params.length}`);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    params.push(limit);
+    const sql = `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT $${params.length}`;
+
+    const rows = await query(sql, params);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * 运维工具：数据库备份。
  */
-router.post('/backup', (_req, res, next) => {
+router.post('/backup', (req, res, next) => {
   try {
     const result = createDatabaseBackup();
+    void auditLog({
+      action: 'backup',
+      category: 'system',
+      actorId: req.user?.userId,
+      actorRole: req.user?.role,
+      targetType: 'system',
+      details: { fileName: result.fileName, sizeBytes: result.sizeBytes },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -107,9 +151,19 @@ router.post('/backup', (_req, res, next) => {
 /**
  * 运维工具：清理过期导出文件。
  */
-router.post('/cleanup/exports', (_req, res, next) => {
+router.post('/cleanup/exports', (req, res, next) => {
   try {
     const result = cleanupExports();
+    void auditLog({
+      action: 'cleanup_exports',
+      category: 'system',
+      actorId: req.user?.userId,
+      actorRole: req.user?.role,
+      targetType: 'system',
+      details: { deletedCount: result.deletedFiles.length, freedBytes: result.freedBytes },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -119,9 +173,19 @@ router.post('/cleanup/exports', (_req, res, next) => {
 /**
  * 运维工具：清理临时文件。
  */
-router.post('/cleanup/temp', (_req, res, next) => {
+router.post('/cleanup/temp', (req, res, next) => {
   try {
     const result = cleanupTempFiles();
+    void auditLog({
+      action: 'cleanup_temp',
+      category: 'system',
+      actorId: req.user?.userId,
+      actorRole: req.user?.role,
+      targetType: 'system',
+      details: { deletedCount: result.deletedFiles.length, freedBytes: result.freedBytes },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

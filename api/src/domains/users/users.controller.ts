@@ -4,7 +4,18 @@ import * as usersService from './users.service.js';
 import { createFaceImportJob, getFaceImportJob } from './face-import-job.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { isFaceServiceConfigured } from '../../lib/face-client.js';
+import { auditLog } from '../../lib/audit.js';
 import type { UserRole } from './users.types.js';
+
+function getAuditContext(req: Request) {
+  const ip = req.ip || req.socket.remoteAddress;
+  return {
+    actorId: req.user?.userId,
+    actorRole: req.user?.role,
+    ipAddress: Array.isArray(ip) ? ip[0] : ip,
+    userAgent: req.headers['user-agent'],
+  };
+}
 
 // 人脸图片上传：内存存储（不落盘，交给 service 处理），限 5MB，仅图片
 const faceUpload = multer({
@@ -39,6 +50,15 @@ export async function listCollegesController(_req: Request, res: Response, next:
 export async function createCollegeController(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = await usersService.createCollege(req.body);
+    void auditLog({
+      action: 'create',
+      category: 'organization',
+      ...getAuditContext(req),
+      targetType: 'college',
+      targetId: data.id,
+      targetName: data.name,
+      details: req.body,
+    });
     res.status(201).json({ success: true, data });
   } catch (err) {
     next(err);
@@ -52,6 +72,15 @@ export async function updateCollegeController(req: Request, res: Response, next:
       next(new AppError('COLLEGE_NOT_FOUND', '学院不存在', 404));
       return;
     }
+    void auditLog({
+      action: 'update',
+      category: 'organization',
+      ...getAuditContext(req),
+      targetType: 'college',
+      targetId: data.id,
+      targetName: data.name,
+      details: req.body,
+    });
     res.json({ success: true, data });
   } catch (err) {
     next(err);
@@ -65,6 +94,13 @@ export async function deleteCollegeController(req: Request, res: Response, next:
       next(new AppError('COLLEGE_NOT_FOUND', '学院不存在', 404));
       return;
     }
+    void auditLog({
+      action: 'delete',
+      category: 'organization',
+      ...getAuditContext(req),
+      targetType: 'college',
+      targetId: req.params.id as string,
+    });
     res.json({ success: true, data: { id: req.params.id } });
   } catch (err) {
     next(err);
@@ -85,6 +121,15 @@ export async function listClassesController(_req: Request, res: Response, next: 
 export async function createClassController(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = await usersService.createClass(req.body);
+    void auditLog({
+      action: 'create',
+      category: 'organization',
+      ...getAuditContext(req),
+      targetType: 'class',
+      targetId: data.id,
+      targetName: data.name,
+      details: req.body,
+    });
     res.status(201).json({ success: true, data });
   } catch (err) {
     next(err);
@@ -98,6 +143,15 @@ export async function updateClassController(req: Request, res: Response, next: N
       next(new AppError('CLASS_NOT_FOUND', '班级不存在', 404));
       return;
     }
+    void auditLog({
+      action: 'update',
+      category: 'organization',
+      ...getAuditContext(req),
+      targetType: 'class',
+      targetId: data.id,
+      targetName: data.name,
+      details: req.body,
+    });
     res.json({ success: true, data });
   } catch (err) {
     next(err);
@@ -111,6 +165,13 @@ export async function deleteClassController(req: Request, res: Response, next: N
       next(new AppError('CLASS_NOT_FOUND', '班级不存在', 404));
       return;
     }
+    void auditLog({
+      action: 'delete',
+      category: 'organization',
+      ...getAuditContext(req),
+      targetType: 'class',
+      targetId: req.params.id as string,
+    });
     res.json({ success: true, data: { id: req.params.id } });
   } catch (err) {
     next(err);
@@ -159,6 +220,15 @@ export async function listUsersController(req: Request, res: Response, next: Nex
 export async function createUserController(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = await usersService.createUser(req.body);
+    void auditLog({
+      action: 'create',
+      category: 'user',
+      ...getAuditContext(req),
+      targetType: 'user',
+      targetId: data.id,
+      targetName: data.schoolId,
+      details: { role: data.role, schoolId: data.schoolId },
+    });
     res.status(201).json({ success: true, data });
   } catch (err) {
     next(err);
@@ -172,6 +242,15 @@ export async function updateUserController(req: Request, res: Response, next: Ne
       next(new AppError('USER_NOT_FOUND', '用户不存在', 404));
       return;
     }
+    void auditLog({
+      action: 'update',
+      category: 'user',
+      ...getAuditContext(req),
+      targetType: 'user',
+      targetId: data.id,
+      targetName: data.schoolId,
+      details: req.body,
+    });
     res.json({ success: true, data });
   } catch (err) {
     next(err);
@@ -185,6 +264,13 @@ export async function deleteUserController(req: Request, res: Response, next: Ne
       next(new AppError('USER_NOT_FOUND', '用户不存在', 404));
       return;
     }
+    void auditLog({
+      action: 'delete',
+      category: 'user',
+      ...getAuditContext(req),
+      targetType: 'user',
+      targetId: req.params.id as string,
+    });
     res.json({ success: true, data: { id: req.params.id } });
   } catch (err) {
     next(err);
@@ -194,6 +280,13 @@ export async function deleteUserController(req: Request, res: Response, next: Ne
 export async function batchImportUsersController(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = await usersService.batchImportUsers(req.body);
+    void auditLog({
+      action: 'batch_import',
+      category: 'user',
+      ...getAuditContext(req),
+      targetType: 'user',
+      details: { success: data.success, failed: data.failed },
+    });
     res.status(201).json({ success: true, data });
   } catch (err) {
     next(err);

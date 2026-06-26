@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
+import { auditLog } from '../../lib/audit.js';
 import * as taskService from './task.service.js';
 import { createTaskSchema, dispatchTaskSchema, updateTaskSchema, type CreateTaskInput, type UpdateTaskInput } from './task.schema.js';
 
@@ -23,6 +24,18 @@ export async function createTaskController(
     }
 
     const task = await taskService.createTask(req.user.userId, req.user.role, parseResult.data as CreateTaskInput);
+    void auditLog({
+      action: 'create',
+      category: 'task',
+      actorId: req.user.userId,
+      actorRole: req.user.role,
+      targetType: 'task',
+      targetId: task.id,
+      targetName: task.title,
+      details: { scopeType: task.scope_type },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
     res.status(201).json({ success: true, data: task });
   } catch (error) {
     next(error);
@@ -113,6 +126,18 @@ export async function updateTaskController(
       );
     }
     const task = await taskService.updateTask(req.user.userId, req.user.role, id, parseResult.data as UpdateTaskInput);
+    void auditLog({
+      action: 'update',
+      category: 'task',
+      actorId: req.user.userId,
+      actorRole: req.user.role,
+      targetType: 'task',
+      targetId: task.id,
+      targetName: task.title,
+      details: parseResult.data,
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
     res.json({ success: true, data: task });
   } catch (error) {
     next(error);
@@ -130,6 +155,17 @@ export async function delistTaskController(
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const task = await taskService.delistTask(req.user.userId, req.user.role, id);
+    void auditLog({
+      action: 'delete',
+      category: 'task',
+      actorId: req.user.userId,
+      actorRole: req.user.role,
+      targetType: 'task',
+      targetId: task.id,
+      targetName: task.title,
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
     res.json({ success: true, data: task });
   } catch (error) {
     next(error);
