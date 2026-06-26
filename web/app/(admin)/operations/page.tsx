@@ -4,8 +4,15 @@ import { useEffect, useState, useMemo } from "react";
 import {
   fetchServerLogs,
   fetchAdminStatus,
+  fetchSystemResources,
+  createDatabaseBackup,
+  cleanupExports,
+  cleanupTempFiles,
   type AdminStatus,
   type HealthStatus,
+  type SystemResources,
+  type BackupResult,
+  type CleanupResult,
 } from "@/lib/admin";
 import {
   Card,
@@ -25,6 +32,14 @@ import {
   Package,
   AlertTriangle,
   RotateCw,
+  Cpu,
+  HardDrive,
+  Database,
+  FileText,
+  Download,
+  Trash2,
+  Eraser,
+  Stethoscope,
 } from "lucide-react";
 
 function formatDuration(seconds: number): string {
@@ -44,6 +59,32 @@ function formatDateTime(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
     d.getHours()
   )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+}
+
+function ProgressBar({ percent, colorClass }: { percent: number; colorClass?: string }) {
+  const color =
+    colorClass ||
+    (percent >= 90
+      ? "bg-[var(--color-danger)]"
+      : percent >= 70
+      ? "bg-[var(--color-warning)]"
+      : "bg-[var(--color-success)]");
+  return (
+    <div className="h-2 w-full rounded-full bg-[var(--color-bg)] overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all ${color}`}
+        style={{ width: `${Math.min(100, percent)}%` }}
+      />
+    </div>
+  );
 }
 
 function HealthCard({ service }: { service: HealthStatus }) {
@@ -199,10 +240,134 @@ function ErrorStatsCard({ errors }: { errors: AdminStatus["errors"] }) {
   );
 }
 
+function ResourceCard({ resources }: { resources: SystemResources }) {
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-medium text-[var(--color-ink)] mb-4 flex items-center gap-2">
+        <Cpu className="w-4 h-4 text-[var(--color-ink-muted)]" />
+        系统资源
+      </h3>
+
+      <div className="space-y-5">
+        <div>
+          <div className="flex justify-between text-sm mb-1.5">
+            <span className="text-[var(--color-ink)]">CPU 使用率</span>
+            <span className="text-[var(--color-ink-secondary)]">{resources.cpu.usagePercent}%</span>
+          </div>
+          <ProgressBar percent={resources.cpu.usagePercent} />
+          <p className="text-xs text-[var(--color-ink-muted)] mt-1">
+            负载 {resources.cpu.loadAverage.map((v) => v.toFixed(2)).join(" / ")} · {resources.cpu.cores} 核
+          </p>
+        </div>
+
+        <div>
+          <div className="flex justify-between text-sm mb-1.5">
+            <span className="text-[var(--color-ink)]">内存使用率</span>
+            <span className="text-[var(--color-ink-secondary)]">
+              {resources.memory.usagePercent}% · {formatBytes(resources.memory.usedBytes)} / {formatBytes(resources.memory.totalBytes)}
+            </span>
+          </div>
+          <ProgressBar percent={resources.memory.usagePercent} />
+        </div>
+
+        <div>
+          <div className="flex justify-between text-sm mb-1.5">
+            <span className="text-[var(--color-ink)]">磁盘使用率</span>
+            <span className="text-[var(--color-ink-secondary)]">
+              {resources.disk.usagePercent}% · {formatBytes(resources.disk.usedBytes)} / {formatBytes(resources.disk.totalBytes)}
+            </span>
+          </div>
+          <ProgressBar percent={resources.disk.usagePercent} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div>
+            <div className="flex items-center gap-2 text-sm text-[var(--color-ink)] mb-2">
+              <Database className="w-4 h-4 text-[var(--color-ink-muted)]" />
+              数据库容量
+            </div>
+            <p className="text-lg font-semibold text-[var(--color-ink)]">
+              {formatBytes(resources.database.databaseBytes)}
+            </p>
+            {resources.database.tables.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {resources.database.tables.slice(0, 3).map((t) => (
+                  <div key={t.name} className="flex justify-between text-xs">
+                    <span className="text-[var(--color-ink-secondary)]">{t.name}</span>
+                    <span className="text-[var(--color-ink-muted)]">{formatBytes(t.sizeBytes)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 text-sm text-[var(--color-ink)] mb-2">
+              <FileText className="w-4 h-4 text-[var(--color-ink-muted)]" />
+              日志文件大小
+            </div>
+            <p className="text-lg font-semibold text-[var(--color-ink)]">
+              {formatBytes(resources.log.appLogBytes)}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function ToolCard({
+  title,
+  description,
+  icon: Icon,
+  buttonText,
+  onClick,
+  loading,
+  result,
+}: {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  buttonText: string;
+  onClick: () => void;
+  loading: boolean;
+  result?: string;
+}) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 w-10 h-10 rounded-lg bg-[var(--color-accent-subtle)] text-[var(--color-accent)] flex items-center justify-center">
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-medium text-[var(--color-ink)]">{title}</h3>
+          <p className="text-xs text-[var(--color-ink-muted)] mt-1">{description}</p>
+          {result && (
+            <p className="text-xs text-[var(--color-success)] mt-2">{result}</p>
+          )}
+          <Button
+            onClick={onClick}
+            size="sm"
+            isLoading={loading}
+            className="mt-3 flex items-center gap-1.5"
+          >
+            <Icon className="w-4 h-4" />
+            {buttonText}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function OperationsPage() {
   const [status, setStatus] = useState<AdminStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [statusError, setStatusError] = useState("");
+
+  const [resources, setResources] = useState<SystemResources | null>(null);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [resourcesError, setResourcesError] = useState("");
 
   const [logs, setLogs] = useState<string[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
@@ -211,21 +376,37 @@ export default function OperationsPage() {
   const [filter, setFilter] = useState("");
   const [level, setLevel] = useState("all");
 
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupResult, setBackupResult] = useState("");
+  const [cleanupExportsLoading, setCleanupExportsLoading] = useState(false);
+  const [cleanupExportsResult, setCleanupExportsResult] = useState("");
+  const [cleanupTempLoading, setCleanupTempLoading] = useState(false);
+  const [cleanupTempResult, setCleanupTempResult] = useState("");
+
   const loadAll = async () => {
     setStatusLoading(true);
+    setResourcesLoading(true);
     setLogsLoading(true);
     try {
-      const [s, l] = await Promise.all([fetchAdminStatus(), fetchServerLogs()]);
+      const [s, r, l] = await Promise.all([
+        fetchAdminStatus(),
+        fetchSystemResources(),
+        fetchServerLogs(),
+      ]);
       setStatus(s);
       setStatusError("");
+      setResources(r);
+      setResourcesError("");
       setLogs(l);
       setLogsError("");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "加载失败";
       setStatusError(msg);
+      setResourcesError(msg);
       setLogsError(msg);
     } finally {
       setStatusLoading(false);
+      setResourcesLoading(false);
       setLogsLoading(false);
     }
   };
@@ -233,6 +414,46 @@ export default function OperationsPage() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    try {
+      const result = await createDatabaseBackup();
+      setBackupResult(`已备份 ${result.fileName} (${formatBytes(result.sizeBytes)})`);
+    } catch (err) {
+      setBackupResult(err instanceof Error ? err.message : "备份失败");
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleCleanupExports = async () => {
+    setCleanupExportsLoading(true);
+    try {
+      const result = await cleanupExports();
+      setCleanupExportsResult(
+        `清理 ${result.deletedFiles.length} 个文件，释放 ${formatBytes(result.freedBytes)}`
+      );
+    } catch (err) {
+      setCleanupExportsResult(err instanceof Error ? err.message : "清理失败");
+    } finally {
+      setCleanupExportsLoading(false);
+    }
+  };
+
+  const handleCleanupTemp = async () => {
+    setCleanupTempLoading(true);
+    try {
+      const result = await cleanupTempFiles();
+      setCleanupTempResult(
+        `清理 ${result.deletedFiles.length} 个文件，释放 ${formatBytes(result.freedBytes)}`
+      );
+    } catch (err) {
+      setCleanupTempResult(err instanceof Error ? err.message : "清理失败");
+    } finally {
+      setCleanupTempLoading(false);
+    }
+  };
 
   const filteredLogs = useMemo(() => {
     return logs.filter((line) => {
@@ -294,7 +515,7 @@ export default function OperationsPage() {
             </div>
           </section>
 
-          {/* Section 2 & 3: Runtime + Errors */}
+          {/* Section 2: Resources + Runtime + Errors */}
           <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div className="xl:col-span-1">
               <RuntimeCard runtime={status.runtime} />
@@ -303,10 +524,64 @@ export default function OperationsPage() {
               <ErrorStatsCard errors={status.errors} />
             </div>
           </section>
+
+          {/* Section 3: System Resources */}
+          <section>
+            <h3 className="text-sm font-medium text-[var(--color-ink)] mb-3 flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-[var(--color-accent)]" />
+              系统资源
+            </h3>
+            {resourcesLoading ? (
+              <div className="py-12 flex items-center justify-center">
+                <Spinner size={28} />
+              </div>
+            ) : resourcesError ? (
+              <EmptyState title="加载失败" description={resourcesError} />
+            ) : resources ? (
+              <ResourceCard resources={resources} />
+            ) : null}
+          </section>
+
+          {/* Section 4: Operation Tools */}
+          <section>
+            <h3 className="text-sm font-medium text-[var(--color-ink)] mb-3 flex items-center gap-2">
+              <Stethoscope className="w-4 h-4 text-[var(--color-accent)]" />
+              运维工具
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <ToolCard
+                title="一键备份数据库"
+                description="导出当前数据库到 exports/backups 目录"
+                icon={Download}
+                buttonText="立即备份"
+                onClick={handleBackup}
+                loading={backupLoading}
+                result={backupResult}
+              />
+              <ToolCard
+                title="清理过期导出文件"
+                description="删除超过 7 天的导出文件"
+                icon={Trash2}
+                buttonText="立即清理"
+                onClick={handleCleanupExports}
+                loading={cleanupExportsLoading}
+                result={cleanupExportsResult}
+              />
+              <ToolCard
+                title="清理临时文件"
+                description="清理人脸识别临时文件和缓存"
+                icon={Eraser}
+                buttonText="立即清理"
+                onClick={handleCleanupTemp}
+                loading={cleanupTempLoading}
+                result={cleanupTempResult}
+              />
+            </div>
+          </section>
         </>
       ) : null}
 
-      {/* Section 4: Logs */}
+      {/* Section 5: Logs */}
       <section>
         <h3 className="text-sm font-medium text-[var(--color-ink)] mb-3 flex items-center gap-2">
           <Clock className="w-4 h-4 text-[var(--color-accent)]" />

@@ -30,10 +30,67 @@ export interface AdminStatus {
   updatedAt: string;
 }
 
+export interface SystemResources {
+  cpu: {
+    usagePercent: number;
+    loadAverage: number[];
+    cores: number;
+  };
+  memory: {
+    totalBytes: number;
+    usedBytes: number;
+    freeBytes: number;
+    usagePercent: number;
+  };
+  disk: {
+    totalBytes: number;
+    usedBytes: number;
+    freeBytes: number;
+    usagePercent: number;
+    mount: string;
+  };
+  database: {
+    databaseBytes: number;
+    tables: Array<{ name: string; sizeBytes: number }>;
+  };
+  log: {
+    appLogBytes: number;
+  };
+  updatedAt: string;
+}
+
+export interface BackupResult {
+  fileName: string;
+  filePath: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface CleanupResult {
+  deletedFiles: string[];
+  freedBytes: number;
+}
+
 export async function fetchServerLogs(): Promise<string[]> {
   return api.get<string[]>("/admin/logs");
 }
 
 export async function fetchAdminStatus(): Promise<AdminStatus> {
   return api.get<AdminStatus>("/admin/status");
+}
+
+export async function fetchSystemResources(): Promise<SystemResources> {
+  return api.get<SystemResources>("/admin/resources");
+}
+
+export async function createDatabaseBackup(): Promise<BackupResult> {
+  return api.post<BackupResult>("/admin/backup", {});
+}
+
+export async function cleanupExports(): Promise<CleanupResult> {
+  return api.post<CleanupResult>("/admin/cleanup/exports", {});
+}
+
+export async function cleanupTempFiles(): Promise<CleanupResult> {
+  return api.post<CleanupResult>("/admin/cleanup/temp", {});
 }
