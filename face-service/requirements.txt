@@ -1,0 +1,17 @@
+# IdeoTrack 人脸识别微服务依赖
+# onnxruntime 不发布 alpine wheel，必须用 Debian-based 镜像（python:3.11-slim）
+#
+# 全部钉在有预编译 wheel 的版本上，配合 Dockerfile 的 --only-binary :all: 零编译：
+#   - insightface 1.0.1：PyPI 上首个发 cp311 manylinux wheel 的稳定版（0.7.x 只有源码包，
+#     单文件源码编译 >17 分钟）。1.x 高层 FaceAnalysis/normed_embedding API 与 0.7.x 兼容。
+#   - stringzilla 3.10.6：cp311 manylinux_x86_64 全量 wheel，秒装。
+#   - onnxruntime 1.20.1：manylinux wheel，秒装。
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+insightface==1.0.1
+stringzilla==3.10.6
+onnxruntime==1.20.1
+numpy==1.26.4
+Pillow==11.0.0
+python-multipart==0.0.20

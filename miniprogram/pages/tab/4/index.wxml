@@ -90,18 +90,18 @@
     </block>
 
     <view class="menu-list">
-      <view class="menu-card" bindtap="goToCalendar">
-        <text class="menu-icon-text menu-icon-calendar">历</text>
+      <view class="menu-card" bindtap="goToHelp">
+        <text class="menu-icon-text menu-icon-help">帮</text>
         <view class="menu-content">
-          <view class="menu-title">学习日历</view>
+          <view class="menu-title">帮助与反馈</view>
         </view>
         <view class="menu-arrow">›</view>
       </view>
 
-      <view class="menu-card" bindtap="goToLeaderboard">
-        <text class="menu-icon-text menu-icon-rank">榜</text>
+      <view class="menu-card" bindtap="goToAbout">
+        <text class="menu-icon-text menu-icon-about">关</text>
         <view class="menu-content">
-          <view class="menu-title">排行榜</view>
+          <view class="menu-title">关于我们</view>
         </view>
         <view class="menu-arrow">›</view>
       </view>
@@ -117,7 +117,6 @@
 
     <view class="logout-wrap">
       <button class="btn-logout" bindtap="handleLogout">
-        <text class="logout-icon">退出</text>
         退出登录
       </button>
     </view>

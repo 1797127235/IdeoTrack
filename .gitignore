@@ -32,6 +32,11 @@ coverage/
 # Database backups (server-local, never commit)
 db-backup-*.sql
 
+# Face recognition (模型文件较大，不入库；现场/注册照不入库)
+face-service/models/**
+!face-service/models/README.md
+faces/
+
 # Expo
 .expo/
 *.jks

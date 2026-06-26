@@ -290,6 +290,31 @@ CREATE TRIGGER update_check_ins_updated_at
   BEFORE UPDATE ON check_ins
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 人脸识别（Epic: 人脸打卡）
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- 任务级人脸开关：发任务时可选「需要人脸验证」，开启后学生打卡须拍照比对
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_face BOOLEAN NOT NULL DEFAULT false;
+
+-- 用户注册照特征向量：管理员导入注册照后，提取 512 维向量存此表。
+--   V1 每人一张（UNIQUE(user_id)），存向量而非原图做比对，比对即向量点积（毫秒级）。
+CREATE TABLE IF NOT EXISTS user_faces (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  photo_path TEXT NOT NULL,         -- 注册照存储路径（本地文件系统）
+  embedding FLOAT8[] NOT NULL,      -- 512 维归一化特征向量
+  is_primary BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_faces_user_id ON user_faces(user_id);
+
+-- 打卡记录扩展：关联现场照与人脸验证结果，供管理员抽查与审计
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_photo_path TEXT;       -- 现场照存储路径
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_verified BOOLEAN;      -- 是否通过人脸验证（null=未要求/降级）
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_similarity FLOAT8;     -- 比对相似度（未要求时为 null）
 `;
 
 async function migrate() {

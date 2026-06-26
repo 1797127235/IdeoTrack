@@ -41,9 +41,15 @@ services:
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
       EXPORT_FILE_DIR: ${EXPORT_FILE_DIR:-/app/exports}
       EXPORT_LINK_TTL_SECONDS: ${EXPORT_LINK_TTL_SECONDS:-86400}
+      # 人脸识别微服务（FastAPI + InsightFace）。api 通过此地址调用。
+      FACE_SERVICE_URL: ${FACE_SERVICE_URL:-http://face:8000}
+      # 人脸图片存储目录（注册照+现场照），与下方 bind mount 对应
+      FACE_PHOTO_DIR: ${FACE_PHOTO_DIR:-/app/faces}
     volumes:
       - ./logs:/app/logs
       - ./exports:/app/exports
+      # 人脸图片持久化：注册照 + 现场照落盘于此，容器重建不丢失
+      - ./faces:/app/faces
     expose:
       - "3000"
 
@@ -64,6 +70,28 @@ services:
       API_BASE_URL: http://api:3000/api
     expose:
       - "3001"
+
+  # 人脸识别微服务（InsightFace + ONNX，CPU 运行）。
+  # 无状态，只接图片返回向量/相似度，业务逻辑在 api 侧。
+  face:
+    build:
+      context: ./face-service
+      dockerfile: Dockerfile
+    container_name: ideo-track-face
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      # 模型文件 bind mount，便于更新而不重建镜像
+      - ./face-service/models:/app/models
+      # InsightFace 模型缓存持久化（首次下载后不丢失）
+      - face_cache:/root/.insightface
+    expose:
+      - "8000"
 
   # 可选：自动 HTTPS 反向代理。需要把 YOUR_DOMAIN 替换为真实域名，
   # 并在服务器上开放 80/443 端口、解析域名到服务器 IP。
@@ -88,3 +116,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  face_cache:

@@ -1,10 +1,17 @@
 import bcrypt from 'bcryptjs';
 import { query, queryOne } from '../../lib/db.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { logger } from '../../lib/logger.js';
+import { extractEmbedding, FaceServiceError, isFaceServiceConfigured } from '../../lib/face-client.js';
+import { saveRegisteredPhoto, deleteRegisteredPhoto, readRegisteredPhoto } from '../../lib/face-storage.js';
+import { runPool } from '../../lib/pool.js';
 import type {
   College,
   Class,
   User,
+  UserFace,
+  BatchFaceImportItem,
+  BatchFaceImportResult,
   Counselor,
   ManagedClass,
   SetManagedClassesInput,
@@ -22,6 +29,7 @@ import type {
 } from './users.types.js';
 
 const BCRYPT_SALT_ROUNDS = 10;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function generateDefaultPassword(schoolId: string): string {
   return schoolId.slice(-6).padStart(6, '0');
@@ -198,11 +206,14 @@ function buildUserListQuery(): string {
       c.college_id AS "collegeId",
       c.name AS "className",
       co.name AS "collegeName",
+      -- hasFace：有可用比对向量才算「已注册」，仅存原图无向量（face 服务降级）的不计
+      (uf.id IS NOT NULL AND uf.embedding IS NOT NULL) AS "hasFace",
       u.created_at AS "createdAt",
       u.updated_at AS "updatedAt"
     FROM users u
     LEFT JOIN classes c ON u.class_id = c.id
     LEFT JOIN colleges co ON c.college_id = co.id
+    LEFT JOIN user_faces uf ON uf.user_id = u.id
   `;
 }
 
@@ -480,4 +491,154 @@ export async function setManagedClasses(
   }
 
   return getManagedClasses(counselorId);
+}
+
+// ===== Face =====
+
+/** 查询某用户的注册照信息。无注册照返回 null。 */
+export async function getUserFace(userId: string): Promise<UserFace | null> {
+  if (!UUID_RE.test(userId)) {
+    throw new AppError('VALIDATION_ERROR', '用户 ID 无效', 400);
+  }
+  return queryOne<UserFace>(
+    `SELECT id, user_id AS "userId", photo_path AS "photoPath",
+            (embedding IS NOT NULL) AS "hasEmbedding",
+            created_at AS "createdAt"
+     FROM user_faces WHERE user_id = $1`,
+    [userId]
+  );
+}
+
+/** 单张补录注册照：存原图 + 提特征向量。 */
+export async function uploadUserFace(
+  userId: string,
+  imageBuffer: Buffer,
+  ext: string
+): Promise<UserFace> {
+  if (!UUID_RE.test(userId)) {
+    throw new AppError('VALIDATION_ERROR', '用户 ID 无效', 400);
+  }
+
+  // 确认用户存在
+  const user = await queryOne<{ id: string; role: UserRole }>(
+    'SELECT id, role FROM users WHERE id = $1 LIMIT 1',
+    [userId]
+  );
+  if (!user) {
+    throw new AppError('USER_NOT_FOUND', '用户不存在', 404);
+  }
+
+  // 提取向量（face 服务不可用时仍保存原图，但标记无 embedding）
+  let embedding: number[] | null = null;
+  if (isFaceServiceConfigured()) {
+    try {
+      const result = await extractEmbedding(imageBuffer, `upload.${ext}`);
+      embedding = result.detected ? result.embedding : null;
+      if (!result.detected) {
+        throw new AppError('FACE_NOT_DETECTED', '未在照片中检测到人脸，请更换照片', 400);
+      }
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      // FaceServiceError：原图仍存，降级标记无 embedding，管理员后续可重新提取
+      if (err instanceof FaceServiceError) {
+        logger.warn({ userId, code: err.code }, '人脸服务不可用，仅保存原图');
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  // 存原图
+  const photoPath = await saveRegisteredPhoto(userId, imageBuffer, ext);
+
+  // upsert user_faces
+  const row = await queryOne<UserFace>(
+    `INSERT INTO user_faces (user_id, photo_path, embedding)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id) DO UPDATE SET
+       photo_path = EXCLUDED.photo_path,
+       embedding = EXCLUDED.embedding,
+       created_at = NOW()
+     RETURNING id, user_id AS "userId", photo_path AS "photoPath",
+              (embedding IS NOT NULL) AS "hasEmbedding",
+              created_at AS "createdAt"`,
+    [userId, photoPath, embedding]
+  );
+
+  return row!;
+}
+
+/** 删除注册照（数据库记录 + 原图文件）。 */
+export async function deleteUserFace(userId: string): Promise<boolean> {
+  if (!UUID_RE.test(userId)) {
+    throw new AppError('VALIDATION_ERROR', '用户 ID 无效', 400);
+  }
+  const row = await queryOne<{ id: string; photo_path: string }>(
+    'DELETE FROM user_faces WHERE user_id = $1 RETURNING id, photo_path',
+    [userId]
+  );
+  if (!row) return false;
+  await deleteRegisteredPhoto(row.photo_path);
+  return true;
+}
+
+/**
+ * 处理单条注册照导入（按学号匹配用户，提向量并存库）。
+ * 供同步导入与异步 job runner 复用：job runner 跑并发池时每路调这个。
+ */
+export async function processFaceImportEntry(
+  entry: { schoolId: string; buffer: Buffer; ext: string }
+): Promise<BatchFaceImportItem> {
+  const item: BatchFaceImportItem = {
+    row: entry.schoolId,
+    schoolId: entry.schoolId,
+    status: 'failed',
+  };
+
+  // 找用户
+  const user = await queryOne<{ id: string }>(
+    'SELECT id FROM users WHERE school_id = $1 LIMIT 1',
+    [entry.schoolId]
+  );
+  if (!user) {
+    item.status = 'skipped';
+    item.message = '学号不存在，跳过';
+    return item;
+  }
+
+  try {
+    await uploadUserFace(user.id, entry.buffer, entry.ext);
+    item.status = 'success';
+  } catch (err) {
+    item.message = err instanceof Error ? err.message : '导入失败';
+  }
+  return item;
+}
+
+/** 同步批量导入（小批量/兼容旧调用方）。大批量请走异步 job。 */
+export async function batchImportFaces(
+  entries: Array<{ schoolId: string; buffer: Buffer; ext: string }>
+): Promise<BatchFaceImportResult> {
+  const items = await runPool(entries, 4, (entry) => processFaceImportEntry(entry));
+  return {
+    success: items.filter((i) => i.status === 'success').length,
+    skipped: items.filter((i) => i.status === 'skipped').length,
+    failed: items.filter((i) => i.status === 'failed').length,
+    items,
+  };
+}
+
+/** 读取某用户注册照字节，供预览接口流式返回。无注册照返回 null。 */
+export async function getUserFacePhoto(
+  userId: string
+): Promise<{ buffer: Buffer; photoPath: string } | null> {
+  if (!UUID_RE.test(userId)) {
+    throw new AppError('VALIDATION_ERROR', '用户 ID 无效', 400);
+  }
+  const face = await getUserFace(userId);
+  if (!face) return null;
+  return {
+    buffer: await readRegisteredPhoto(face.photoPath),
+    photoPath: face.photoPath,
+  };
 }

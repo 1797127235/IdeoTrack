@@ -15,6 +15,16 @@ const defaultStats: MeStatsResponse = {
     d.setDate(d.getDate() - (6 - i));
     return { date: d.toISOString().slice(0, 10), checkedIn: false };
   }),
+  monthly: {
+    completedTasks: 0,
+    totalTasks: 0,
+    completionRate: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    reflections: 0,
+    points: 0,
+  },
+  weekly: [],
 };
 
 Page({
@@ -75,20 +85,16 @@ Page({
     wx.navigateTo({ url: '/pages/counselor/export/index' });
   },
 
-  goToCalendar() {
-    wx.switchTab({ url: '/pages/tab/2/index' });
-  },
-
-  goToLeaderboard() {
-    wx.navigateTo({ url: '/pages/leaderboard/index' });
-  },
-
-  goToAchievements() {
-    wx.showToast({ title: '成就详情开发中', icon: 'none' });
-  },
-
   goToSettings() {
     wx.showToast({ title: '设置开发中', icon: 'none' });
+  },
+
+  goToHelp() {
+    wx.showToast({ title: '帮助与反馈开发中', icon: 'none' });
+  },
+
+  goToAbout() {
+    wx.showToast({ title: '关于我们开发中', icon: 'none' });
   },
 
   handleLogout() {

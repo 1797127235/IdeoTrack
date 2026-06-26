@@ -2,8 +2,8 @@ import { post, get } from './api';
 
 export interface CreateCheckInData {
   task_id: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   address?: string;
 }
 

@@ -1,5 +1,6 @@
 import { getDailyQuote, type Quote } from '../../services/quoteApi';
 import { listMyTasks, type StudentTask } from '../../services/taskApi';
+import { getMeStats, type MeStatsResponse } from '../../services/authApi';
 import { getUserRole } from '../../utils/auth';
 import { updateTabBarSelected } from '../../utils/tabBar';
 import { formatDeadline } from '../../utils/format';
@@ -8,6 +9,31 @@ import { theme } from '../../theme';
 interface TaskItem extends StudentTask {
   deadlineText: string;
   statusMeta: { label: string; color: string; bgColor: string };
+}
+
+interface WeekDay {
+  day: string;
+  label: string;
+  checked: boolean;
+}
+
+const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function buildWeekDays(recent7Days: Array<{ date: string; checkedIn: boolean }>): WeekDay[] {
+  const today = new Date();
+  const days: WeekDay[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const record = recent7Days.find((item) => item.date === dateStr);
+    days.push({
+      day: dateStr,
+      label: WEEKDAY_LABELS[d.getDay()],
+      checked: record?.checkedIn ?? false,
+    });
+  }
+  return days;
 }
 
 function getGreeting(): string {
@@ -62,17 +88,10 @@ Page({
     quoteLoading: true,
     tasks: [] as TaskItem[],
     tasksLoading: true,
-    streakDays: 5,
-    totalPoints: 256,
-    weekDays: [
-      { day: 'Mon', label: '一', checked: true },
-      { day: 'Tue', label: '二', checked: true },
-      { day: 'Wed', label: '三', checked: true },
-      { day: 'Thu', label: '四', checked: true },
-      { day: 'Fri', label: '五', checked: false },
-      { day: 'Sat', label: '六', checked: true },
-      { day: 'Sun', label: '日', checked: true },
-    ],
+    streakDays: 0,
+    totalPoints: 0,
+    weekDays: [] as WeekDay[],
+    statsLoading: true,
     loading: true,
     error: '',
     refreshing: false,
@@ -105,8 +124,27 @@ Page({
 
   async loadData() {
     this.setData({ loading: true, error: '' });
-    await Promise.all([this.loadQuote(), this.loadTasks()]);
+    await Promise.all([this.loadQuote(), this.loadTasks(), this.loadStats()]);
     this.setData({ loading: false });
+  },
+
+  async loadStats() {
+    this.setData({ statsLoading: true });
+    try {
+      const stats = await getMeStats();
+      const weekDays = buildWeekDays(stats.recent7Days);
+      this.setData({
+        streakDays: stats.currentStreak,
+        totalPoints: stats.points,
+        weekDays,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '获取成长数据失败';
+      console.error('获取成长数据失败:', err);
+      this.setData({ error: message });
+    } finally {
+      this.setData({ statsLoading: false });
+    }
   },
 
   async loadQuote() {

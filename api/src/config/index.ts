@@ -60,4 +60,11 @@ export const config = {
   //   EXPORT_LINK_TTL_SECONDS 不设时，默认 86400（24h，AD-7）。
   exportFileDir: process.env.EXPORT_FILE_DIR || '',
   exportLinkTtlSeconds: Number(process.env.EXPORT_LINK_TTL_SECONDS) || 86400,
+  // 人脸识别微服务（FastAPI + InsightFace）。
+  //   容器间用服务名 http://face:8000；本地开发直接跑 python app.py 时用 http://localhost:8000。
+  //   开发期可不配，配了才支持人脸比对。
+  faceServiceUrl: process.env.FACE_SERVICE_URL || '',
+  // 人脸图片本地存储根目录（注册照 + 现场照）。
+  //   不设时默认写 ./faces；生产通过 docker-compose 挂载 ./faces:/app/faces 持久化。
+  facePhotoDir: process.env.FACE_PHOTO_DIR || '',
 };

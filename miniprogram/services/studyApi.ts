@@ -1,4 +1,4 @@
-import { get } from '../../services/api';
+import { get } from './api';
 
 export interface StudyRecordItem {
   id: string;
