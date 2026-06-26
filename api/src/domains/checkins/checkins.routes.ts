@@ -7,10 +7,12 @@ import {
   getStudentCalendarController,
   submitReflectionController,
   getStudyRecordsController,
+  reverseGeocodeController,
 } from './checkins.controller.js';
 
 const router = Router();
 
+router.get('/reverse-geocode', authenticate, requireRoles('student'), reverseGeocodeController);
 router.post('/', authenticate, requireRoles('student'), createCheckIn);
 router.post('/:id/reflection', authenticate, requireRoles('student'), submitReflectionController);
 router.get('/:id/result', authenticate, requireRoles('student'), getCheckInResultController);

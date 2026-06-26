@@ -50,6 +50,21 @@ export interface CalendarMonth {
   days: CalendarDay[];
 }
 
+export interface ReverseGeocodeResult {
+  address: string;
+  formattedAddress: string;
+  province: string;
+  city: string;
+  district: string;
+  township: string;
+  street: string;
+  number: string;
+}
+
+export async function reverseGeocode(lat: number, lng: number) {
+  return get<ReverseGeocodeResult>(`/api/checkins/reverse-geocode?lat=${lat}&lng=${lng}`);
+}
+
 export async function createCheckIn(data: CreateCheckInData) {
   return post<CheckInResponse>('/api/checkins', data);
 }

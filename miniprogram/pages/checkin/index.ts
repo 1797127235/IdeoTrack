@@ -1,4 +1,4 @@
-import { createCheckIn, type CreateCheckInData } from '../../services/checkinApi';
+import { createCheckIn, reverseGeocode, type CreateCheckInData } from '../../services/checkinApi';
 import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
 import { formatDeadline } from '../../utils/format';
 
@@ -100,7 +100,7 @@ Page({
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
-          locationLoading: false,
+          locationLoading: true,
           locationReady: true,
           outOfRange,
         });
@@ -120,11 +120,25 @@ Page({
   },
 
   reverseGeocode(latitude: number, longitude: number) {
-    // V1：使用腾讯地图或其他逆地理编码服务可选；此处仅做占位，可显示经纬度。
-    // 如需真实地址，可在 V2 接入腾讯地图 SDK 或后端调用地理编码服务。
-    this.setData({
-      address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}`,
-    });
+    this.setData({ locationLoading: true });
+    reverseGeocode(latitude, longitude)
+      .then((res) => {
+        if (res.success && res.data) {
+          this.setData({ address: res.data.formattedAddress || res.data.address });
+        } else {
+          this.setData({
+            address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}`,
+          });
+        }
+      })
+      .catch(() => {
+        this.setData({
+          address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}`,
+        });
+      })
+      .finally(() => {
+        this.setData({ locationLoading: false });
+      });
   },
 
   onOpenSetting() {

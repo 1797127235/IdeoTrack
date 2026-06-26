@@ -67,4 +67,6 @@ export const config = {
   // 人脸图片本地存储根目录（注册照 + 现场照）。
   //   不设时默认写 ./faces；生产通过 docker-compose 挂载 ./faces:/app/faces 持久化。
   facePhotoDir: process.env.FACE_PHOTO_DIR || '',
+  // 高德地图 Web 服务 Key（服务端调用逆地理编码）。开发期可不配。
+  amapWebKey: process.env.AMAP_WEB_KEY || '',
 };

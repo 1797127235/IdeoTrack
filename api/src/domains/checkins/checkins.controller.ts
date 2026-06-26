@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
+import { reverseGeocode } from '../../lib/geo.js';
 import { createOrUpdateCheckIn, getCheckInResult, getStudentCalendar, submitReflection, getStudyRecords } from './checkins.service.js';
 import { createCheckInSchema, submitReflectionSchema } from './checkins.schema.js';
 
@@ -7,6 +8,30 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
+}
+
+export async function reverseGeocodeController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      throw new AppError('VALIDATION_ERROR', 'lat 和 lng 必须为有效数字', 400);
+    }
+
+    const result = await reverseGeocode(lat, lng);
+    res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function createCheckIn(
