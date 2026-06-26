@@ -18,6 +18,23 @@ import {
   type Counselor,
   type ManagedClass,
 } from "@/lib/users";
+import {
+  Button,
+  Input,
+  Select,
+  Card,
+  EmptyState,
+  Skeleton,
+  FormField,
+} from "@/components/ui";
+import {
+  Building2,
+  Users,
+  GraduationCap,
+  Pencil,
+  Trash2,
+  Check,
+} from "lucide-react";
 
 export default function OrganizationsPage() {
   const [colleges, setColleges] = useState<College[]>([]);
@@ -190,7 +207,40 @@ export default function OrganizationsPage() {
   };
 
   if (loading) {
-    return <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>;
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-6 space-y-4">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-10 w-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </Card>
+          <Card className="p-6 space-y-4">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-10 w-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </Card>
+        </div>
+        <Card className="p-6 space-y-4">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-10 w-full sm:w-72" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-9 w-36" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-32" />
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -201,164 +251,242 @@ export default function OrganizationsPage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Colleges */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">学院管理</h2>
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">
+            学院管理
+          </h2>
 
           <form
             onSubmit={editingCollege ? handleUpdateCollege : handleCreateCollege}
-            className="flex gap-3 mb-4"
+            className="flex flex-col sm:flex-row gap-3 items-end mb-4"
           >
-            <input
-              type="text"
-              value={collegeName}
-              onChange={(e) => setCollegeName(e.target.value)}
-              placeholder="学院名称"
-              className="flex-1 h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            />
-            <button
-              type="submit"
-              className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+            <FormField
+              label="学院名称"
+              htmlFor="collegeName"
+              className="flex-1"
             >
+              <Input
+                id="collegeName"
+                type="text"
+                value={collegeName}
+                onChange={(e) => setCollegeName(e.target.value)}
+                placeholder="学院名称"
+              />
+            </FormField>
+            <Button type="submit">
               {editingCollege ? "更新" : "新增"}
-            </button>
+            </Button>
             {editingCollege && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => {
                   setEditingCollege(null);
                   setCollegeName("");
                 }}
-                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
               >
                 取消
-              </button>
+              </Button>
             )}
           </form>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--color-border)]">
-                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">名称</th>
-                <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {colleges.map((college) => (
-                <tr key={college.id} className="border-b border-[var(--color-border)] last:border-0">
-                  <td className="py-3 text-[var(--color-ink)]">{college.name}</td>
-                  <td className="py-3 text-right space-x-3">
-                    <button
-                      onClick={() => {
-                        setEditingCollege(college);
-                        setCollegeName(college.name);
-                      }}
-                      className="text-[var(--color-accent)] hover:underline"
+          {colleges.length === 0 ? (
+            <EmptyState
+              title="暂无学院"
+              description="添加学院后即可创建班级"
+              icon={Building2}
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    <th className="text-left py-2 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                      名称
+                    </th>
+                    <th className="text-right py-2 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {colleges.map((college) => (
+                    <tr
+                      key={college.id}
+                      className="border-b border-[var(--color-border)] last:border-0"
                     >
-                      编辑
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCollege(college.id)}
-                      className="text-[var(--color-danger)] hover:underline"
-                    >
-                      删除
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <td className="py-3 text-[var(--color-ink)]">
+                        {college.name}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingCollege(college);
+                              setCollegeName(college.name);
+                            }}
+                            className="text-[var(--color-accent)]"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            编辑
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteCollege(college.id)}
+                            className="text-[var(--color-danger)]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            删除
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
         {/* Classes */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">班级管理</h2>
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">
+            班级管理
+          </h2>
 
           <form
             onSubmit={editingClass ? handleUpdateClass : handleCreateClass}
-            className="flex gap-3 mb-4"
+            className="flex flex-col sm:flex-row gap-3 items-end mb-4"
           >
-            <select
-              value={classCollegeId || (editingClass?.collegeId ?? "")}
-              onChange={(e) => setClassCollegeId(e.target.value)}
-              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            <FormField
+              label="所属学院"
+              htmlFor="classCollegeId"
+              className="w-full sm:w-44"
             >
-              <option value="">选择学院</option>
-              {colleges.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              value={className}
-              onChange={(e) => setClassName(e.target.value)}
-              placeholder="班级名称"
-              className="flex-1 h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            />
-            <button
-              type="submit"
-              className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+              <Select
+                id="classCollegeId"
+                value={classCollegeId || (editingClass?.collegeId ?? "")}
+                onChange={(e) => setClassCollegeId(e.target.value)}
+              >
+                <option value="">选择学院</option>
+                {colleges.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField
+              label="班级名称"
+              htmlFor="className"
+              className="flex-1"
             >
+              <Input
+                id="className"
+                type="text"
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+                placeholder="班级名称"
+              />
+            </FormField>
+            <Button type="submit">
               {editingClass ? "更新" : "新增"}
-            </button>
+            </Button>
             {editingClass && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => {
                   setEditingClass(null);
                   setClassName("");
                   setClassCollegeId("");
                 }}
-                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
               >
                 取消
-              </button>
+              </Button>
             )}
           </form>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--color-border)]">
-                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">班级</th>
-                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学院</th>
-                <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {classes.map((cls) => (
-                <tr key={cls.id} className="border-b border-[var(--color-border)] last:border-0">
-                  <td className="py-3 text-[var(--color-ink)]">{cls.name}</td>
-                  <td className="py-3 text-[var(--color-ink-secondary)]">{cls.collegeName}</td>
-                  <td className="py-3 text-right space-x-3">
-                    <button
-                      onClick={() => {
-                        setEditingClass(cls);
-                        setClassName(cls.name);
-                        setClassCollegeId(cls.collegeId);
-                      }}
-                      className="text-[var(--color-accent)] hover:underline"
+          {classes.length === 0 ? (
+            <EmptyState
+              title="暂无班级"
+              description="添加班级并关联到学院"
+              icon={Users}
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    <th className="text-left py-2 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                      班级
+                    </th>
+                    <th className="text-left py-2 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                      学院
+                    </th>
+                    <th className="text-right py-2 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classes.map((cls) => (
+                    <tr
+                      key={cls.id}
+                      className="border-b border-[var(--color-border)] last:border-0"
                     >
-                      编辑
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClass(cls.id)}
-                      className="text-[var(--color-danger)] hover:underline"
-                    >
-                      删除
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <td className="py-3 text-[var(--color-ink)]">{cls.name}</td>
+                      <td className="py-3 text-[var(--color-ink-secondary)]">
+                        {cls.collegeName}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingClass(cls);
+                              setClassName(cls.name);
+                              setClassCollegeId(cls.collegeId);
+                            }}
+                            className="text-[var(--color-accent)]"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            编辑
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClass(cls.id)}
+                            className="text-[var(--color-danger)]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            删除
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">辅导员班级分配</h2>
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">
+          辅导员班级分配
+        </h2>
 
         {assignmentError ? (
           <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
@@ -372,12 +500,15 @@ export default function OrganizationsPage() {
         ) : null}
 
         <div className="flex flex-col gap-4">
-          <div>
-            <label className="block text-xs text-[var(--color-ink-muted)] mb-1.5">选择辅导员</label>
-            <select
+          <FormField
+            label="选择辅导员"
+            htmlFor="counselorId"
+            className="w-full sm:min-w-[240px] sm:w-60"
+          >
+            <Select
+              id="counselorId"
               value={selectedCounselorId}
               onChange={(e) => handleCounselorChange(e.target.value)}
-              className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] min-w-[240px]"
             >
               <option value="">请选择</option>
               {counselors.map((c) => (
@@ -385,17 +516,20 @@ export default function OrganizationsPage() {
                   {c.name || c.schoolId}（{c.schoolId}）
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormField>
 
           {selectedCounselorId && (
             <>
-              <div>
-                <label className="block text-xs text-[var(--color-ink-muted)] mb-1.5">筛选学院</label>
-                <select
+              <FormField
+                label="筛选学院"
+                htmlFor="filterCollegeId"
+                className="w-full sm:min-w-[240px] sm:w-60"
+              >
+                <Select
+                  id="filterCollegeId"
                   value={assignmentCollegeId}
                   onChange={(e) => setAssignmentCollegeId(e.target.value)}
-                  className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] min-w-[240px]"
                 >
                   <option value="">全部学院</option>
                   {colleges.map((c) => (
@@ -403,48 +537,64 @@ export default function OrganizationsPage() {
                       {c.name}
                     </option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              </FormField>
 
               <div>
-                <label className="block text-xs text-[var(--color-ink-muted)] mb-2">所带班级</label>
+                <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-2">
+                  所带班级
+                </label>
                 {classes.length === 0 ? (
-                  <p className="text-sm text-[var(--color-ink-secondary)]">暂无班级</p>
+                  <EmptyState
+                    title="暂无班级"
+                    description="请先创建班级"
+                    icon={GraduationCap}
+                    className="py-8"
+                  />
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {classes
-                      .filter((cls) => !assignmentCollegeId || cls.collegeId === assignmentCollegeId)
-                      .map((cls) => (
-                        <label
-                          key={cls.id}
-                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
-                            selectedClassIds.has(cls.id)
-                              ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                              : "border-[var(--color-border)] text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)]"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="hidden"
-                            checked={selectedClassIds.has(cls.id)}
-                            onChange={() => toggleClass(cls.id)}
-                          />
-                          <span>{cls.collegeName} - {cls.name}</span>
-                        </label>
-                      ))}
+                      .filter(
+                        (cls) =>
+                          !assignmentCollegeId ||
+                          cls.collegeId === assignmentCollegeId
+                      )
+                      .map((cls) => {
+                        const selected = selectedClassIds.has(cls.id);
+                        return (
+                          <label
+                            key={cls.id}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
+                              selected
+                                ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                                : "border-[var(--color-border)] text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)]"
+                            }`}
+                          >
+                            <Input
+                              type="checkbox"
+                              className="hidden"
+                              checked={selected}
+                              onChange={() => toggleClass(cls.id)}
+                            />
+                            {selected && <Check className="w-4 h-4" />}
+                            <span>
+                              {cls.collegeName} - {cls.name}
+                            </span>
+                          </label>
+                        );
+                      })}
                   </div>
                 )}
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                <button
+                <Button
                   type="button"
                   onClick={handleSaveAssignments}
-                  disabled={savingAssignments}
-                  className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium transition-colors"
+                  isLoading={savingAssignments}
                 >
                   {savingAssignments ? "保存中…" : "保存分配"}
-                </button>
+                </Button>
                 {managedClassCount > 0 && (
                   <span className="text-sm text-[var(--color-ink-secondary)]">
                     当前已分配 {managedClassCount} 个班级
@@ -454,7 +604,7 @@ export default function OrganizationsPage() {
             </>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

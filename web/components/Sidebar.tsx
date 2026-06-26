@@ -2,63 +2,104 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "./AuthProvider";
+import { useEffect } from "react";
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Quote,
+  Building2,
+  Users,
+  BarChart3,
+  Settings,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "数据概览" },
-  { href: "/tasks", label: "任务管理" },
-  { href: "/quotes", label: "名言管理" },
-  { href: "/organizations", label: "组织架构" },
-  { href: "/users", label: "用户管理" },
-  { href: "/reports", label: "报表导出" },
-  { href: "/operations", label: "系统运维" },
+  { href: "/", label: "数据概览", icon: LayoutDashboard },
+  { href: "/tasks", label: "任务管理", icon: ClipboardList },
+  { href: "/quotes", label: "名言管理", icon: Quote },
+  { href: "/organizations", label: "组织架构", icon: Building2 },
+  { href: "/users", label: "用户管理", icon: Users },
+  { href: "/reports", label: "报表统计", icon: BarChart3 },
+  { href: "/operations", label: "系统运维", icon: Settings },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
+
+  useEffect(() => {
+    onCloseMobile?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
-    <aside className="w-60 h-screen fixed left-0 top-0 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col">
-      <div className="h-14 flex items-center px-6 border-b border-[var(--color-border)]">
-        <span className="text-base font-semibold text-[var(--color-ink)]">
-          IdeoTrack
-        </span>
-      </div>
+    <>
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
 
-      <nav className="flex-1 overflow-auto py-4 px-3 space-y-1">
-        {navItems.map((item) => {
-          const active =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`relative flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                  : "text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)]"
-              }`}
-            >
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--color-accent)]" />
-              )}
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <aside
+        className={cn(
+          "fixed top-0 left-0 z-50 h-screen w-60 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col transition-transform duration-200 ease-out",
+          "-translate-x-full lg:translate-x-0",
+          mobileOpen && "translate-x-0"
+        )}
+        aria-label="主导航"
+      >
+        {/* Logo */}
+        <div className="h-14 flex items-center px-5 border-b border-[var(--color-border)]">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center mr-3">
+            <LayoutDashboard className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-base font-semibold text-[var(--color-ink)] tracking-tight">
+            IdeoTrack
+          </span>
+        </div>
 
-      <div className="p-4 border-t border-[var(--color-border)]">
-        <button
-          onClick={logout}
-          className="w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] transition-colors"
-        >
-          退出登录
-        </button>
-      </div>
-    </aside>
+        {/* Nav */}
+        <nav className="flex-1 overflow-auto py-4 px-3 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  active
+                    ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                    : "text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-ink)]"
+                )}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon className="w-[1.125rem] h-[1.125rem] shrink-0" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer / version */}
+        <div className="p-4 border-t border-[var(--color-border)]">
+          <p className="text-xs text-[var(--color-ink-muted)]">
+            IdeoTrack 管理后台
+          </p>
+        </div>
+      </aside>
+    </>
   );
 }

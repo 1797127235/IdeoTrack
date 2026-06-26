@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Shield } from "lucide-react";
 import { changePassword } from "@/lib/auth";
 import { withBasePath } from "@/lib/paths";
+import { Button, Card, FormField, Input } from "@/components/ui";
 
 export default function ChangePasswordPage() {
   const [oldPassword, setOldPassword] = useState("");
@@ -46,8 +48,11 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)] px-4">
-      <div className="w-full max-w-sm bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8">
-        <div className="mb-8">
+      <Card className="w-full max-w-sm p-8">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--color-accent-subtle)] text-[var(--color-accent)] mb-4">
+            <Shield className="w-6 h-6" />
+          </div>
           <h1 className="text-xl font-semibold text-[var(--color-ink)] mb-2">
             修改默认密码
           </h1>
@@ -63,54 +68,46 @@ export default function ChangePasswordPage() {
         ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              原密码
-            </label>
-            <input
+          <FormField label="原密码" htmlFor="oldPassword">
+            <Input
+              id="oldPassword"
               type="password"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
               disabled={loading}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all disabled:opacity-50"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              新密码
-            </label>
-            <input
+          <FormField label="新密码" htmlFor="newPassword">
+            <Input
+              id="newPassword"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               disabled={loading}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all disabled:opacity-50"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              确认新密码
-            </label>
-            <input
+          <FormField label="确认新密码" htmlFor="confirm">
+            <Input
+              id="confirm"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               disabled={loading}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all disabled:opacity-50"
             />
-          </div>
+          </FormField>
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full h-10 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="primary"
+            isLoading={loading}
+            className="w-full"
           >
-            {loading ? "修改中..." : "确认修改"}
-          </button>
+            确认修改
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -21,6 +21,18 @@ import {
   type UserRole,
   type FaceImportJob,
 } from "@/lib/users";
+import {
+  Button,
+  Input,
+  Select,
+  Badge,
+  Card,
+  EmptyState,
+  Skeleton,
+  FormField,
+  Spinner,
+} from "@/components/ui";
+import { Download, Upload, X, Users } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -86,12 +98,9 @@ function Modal({
       >
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-base font-semibold text-[var(--color-ink)]">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] text-lg leading-none"
-          >
-            ×
-          </button>
+          <Button variant="ghost" size="sm" aria-label="关闭" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
         </div>
         {children}
       </div>
@@ -421,68 +430,75 @@ export default function UsersPage() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-ink)]">用户管理</h2>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={downloadUserImportTemplate}
-            className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center transition-colors"
-          >
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" size="sm" onClick={downloadUserImportTemplate}>
+            <Download className="w-4 h-4" />
             下载用户导入模板
-          </button>
-          <label
-            className={`h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center cursor-pointer transition-colors ${
-              batchImporting ? "opacity-60 pointer-events-none" : ""
-            }`}
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            asChild
+            className={batchImporting ? "opacity-60 pointer-events-none" : ""}
           >
-            {batchImporting ? "导入中…" : "批量导入用户"}
-            <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleBatchImportUsers(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          <label
-            className={`h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center cursor-pointer transition-colors ${
-              batchImporting ? "opacity-60 pointer-events-none" : ""
-            }`}
+            <label>
+              {batchImporting ? "导入中…" : "批量导入用户"}
+              <Input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleBatchImportUsers(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            asChild
+            className={batchImporting ? "opacity-60 pointer-events-none" : ""}
             title="上传 zip 包，文件名用学号（如 2024001.jpg），按学号匹配用户"
           >
-            {batchImporting ? "导入中…" : "批量导入照片"}
-            <input
-              type="file"
-              accept=".zip"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleBatchImport(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          <button
-            onClick={openCreate}
-            className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
-          >
+            <label>
+              {batchImporting ? "导入中…" : "批量导入照片"}
+              <Input
+                type="file"
+                accept=".zip"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleBatchImport(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </Button>
+
+          <Button variant="primary" size="sm" onClick={openCreate}>
+            <Users className="w-4 h-4" />
             新增用户
-          </button>
+          </Button>
         </div>
       </div>
 
       {batchImportResult && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm relative">
-          <button
+        <Card className="relative p-4 text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-3 top-2"
+            aria-label="关闭"
             onClick={() => setBatchImportResult(null)}
-            className="absolute right-3 top-2 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
           >
-            ×
-          </button>
+            <X className="w-4 h-4" />
+          </Button>
           <p className="text-[var(--color-ink)] mb-2 pr-6">
             导入完成：成功 {batchImportResult.success}，失败 {batchImportResult.failed}
           </p>
@@ -495,17 +511,20 @@ export default function UsersPage() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {faceJob && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm relative">
-          <button
+        <Card className="relative p-4 text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-3 top-2"
+            aria-label="关闭"
             onClick={closeFaceJob}
-            className="absolute right-3 top-2 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
           >
-            ×
-          </button>
+            <X className="w-4 h-4" />
+          </Button>
           {faceJob.status === "done" ? (
             <p className="text-[var(--color-ink)] mb-1 pr-6">
               导入完成：成功 {faceJob.success}，跳过 {faceJob.skipped}，失败 {faceJob.failed}
@@ -543,134 +562,126 @@ export default function UsersPage() {
                 ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          updateQuery({ page: 1 });
-        }}
-        className="flex flex-wrap items-end gap-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4"
-      >
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">关键词</label>
-          <input
-            type="text"
-            placeholder="学号/姓名"
-            value={query.keyword}
-            onChange={(e) => updateQuery({ keyword: e.target.value, page: 1 })}
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">角色</label>
-          <select
-            value={query.role}
-            onChange={(e) => updateQuery({ role: e.target.value as UserRole | "", page: 1 })}
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          >
-            <option value="">全部</option>
-            <option value="student">学生</option>
-            <option value="counselor">辅导员</option>
-            <option value="admin">管理员</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">学院</label>
-          <select
-            value={query.collegeId}
-            onChange={(e) => updateQuery({ collegeId: e.target.value, classId: "", page: 1 })}
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          >
-            <option value="">全部学院</option>
-            {colleges.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">班级</label>
-          <select
-            value={query.classId}
-            onChange={(e) => updateQuery({ classId: e.target.value, page: 1 })}
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          >
-            <option value="">全部班级</option>
-            {filteredClasses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.collegeName} - {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">账号状态</label>
-          <select
-            value={query.isEnabled}
-            onChange={(e) =>
-              updateQuery({ isEnabled: e.target.value as "" | "true" | "false", page: 1 })
-            }
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          >
-            <option value="">全部</option>
-            <option value="true">正常</option>
-            <option value="false">禁用</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">注册照</label>
-          <select
-            value={query.hasFace}
-            onChange={(e) =>
-              updateQuery({ hasFace: e.target.value as HasFaceFilter, page: 1 })
-            }
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          >
-            <option value="">全部</option>
-            <option value="true">已上传</option>
-            <option value="false">未上传</option>
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
+      <Card className="p-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            updateQuery({ page: 1 });
+          }}
+          className="flex flex-wrap items-end gap-3"
         >
-          查询
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            updateQuery({
-              keyword: "",
-              role: "",
-              collegeId: "",
-              classId: "",
-              isEnabled: "",
-              hasFace: "",
-              page: 1,
-            })
-          }
-          className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
-        >
-          重置
-        </button>
-      </form>
+          <FormField label="关键词" htmlFor="user-keyword" className="min-w-[180px] flex-1">
+            <Input
+              id="user-keyword"
+              type="text"
+              placeholder="学号/姓名"
+              value={query.keyword}
+              onChange={(e) => updateQuery({ keyword: e.target.value, page: 1 })}
+            />
+          </FormField>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+          <FormField label="角色" htmlFor="user-role" className="min-w-[120px] flex-1">
+            <Select
+              id="user-role"
+              value={query.role}
+              onChange={(e) => updateQuery({ role: e.target.value as UserRole | "", page: 1 })}
+            >
+              <option value="">全部</option>
+              <option value="student">学生</option>
+              <option value="counselor">辅导员</option>
+              <option value="admin">管理员</option>
+            </Select>
+          </FormField>
+
+          <FormField label="学院" htmlFor="user-college" className="min-w-[160px] flex-1">
+            <Select
+              id="user-college"
+              value={query.collegeId}
+              onChange={(e) => updateQuery({ collegeId: e.target.value, classId: "", page: 1 })}
+            >
+              <option value="">全部学院</option>
+              {colleges.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <FormField label="班级" htmlFor="user-class" className="min-w-[200px] flex-1">
+            <Select
+              id="user-class"
+              value={query.classId}
+              onChange={(e) => updateQuery({ classId: e.target.value, page: 1 })}
+            >
+              <option value="">全部班级</option>
+              {filteredClasses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.collegeName} - {c.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <FormField label="账号状态" htmlFor="user-status" className="min-w-[120px] flex-1">
+            <Select
+              id="user-status"
+              value={query.isEnabled}
+              onChange={(e) =>
+                updateQuery({ isEnabled: e.target.value as "" | "true" | "false", page: 1 })
+              }
+            >
+              <option value="">全部</option>
+              <option value="true">正常</option>
+              <option value="false">禁用</option>
+            </Select>
+          </FormField>
+
+          <FormField label="注册照" htmlFor="user-face" className="min-w-[120px] flex-1">
+            <Select
+              id="user-face"
+              value={query.hasFace}
+              onChange={(e) =>
+                updateQuery({ hasFace: e.target.value as HasFaceFilter, page: 1 })
+              }
+            >
+              <option value="">全部</option>
+              <option value="true">已上传</option>
+              <option value="false">未上传</option>
+            </Select>
+          </FormField>
+
+          <Button type="submit" variant="primary" size="sm">
+            查询
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              updateQuery({
+                keyword: "",
+                role: "",
+                collegeId: "",
+                classId: "",
+                isEnabled: "",
+                hasFace: "",
+                page: 1,
+              })
+            }
+          >
+            重置
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="p-6">
         {loading || metaLoading ? (
-          <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>
-        ) : (
-          <>
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)]">
                   <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学号/工号</th>
@@ -684,17 +695,42 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="py-8 text-center text-sm text-[var(--color-ink-secondary)]"
-                    >
-                      暂无用户
-                    </td>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-b border-[var(--color-border)] last:border-0">
+                    {Array.from({ length: 8 }).map((__, j) => (
+                      <td key={j} className="py-3">
+                        <Skeleton className="h-4 w-full" />
+                      </td>
+                    ))}
                   </tr>
-                ) : (
-                  users.map((user) => (
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : users.length === 0 ? (
+          <EmptyState
+            title="暂无用户"
+            description="当前筛选条件下没有找到用户，请调整条件或新增用户。"
+            icon={Users}
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学号/工号</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">姓名</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">角色</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">学院</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">班级</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">注册照</th>
+                    <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
                     <tr key={user.id} className="border-b border-[var(--color-border)] last:border-0">
                       <td className="py-3 text-[var(--color-ink)]">{user.schoolId}</td>
                       <td className="py-3 text-[var(--color-ink)]">{user.name || "-"}</td>
@@ -702,154 +738,164 @@ export default function UsersPage() {
                       <td className="py-3 text-[var(--color-ink-secondary)]">{user.collegeName || "-"}</td>
                       <td className="py-3 text-[var(--color-ink-secondary)]">{user.className || "-"}</td>
                       <td className="py-3">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                            user.isEnabled
-                              ? "bg-[var(--color-success-subtle)] text-[var(--color-success)]"
-                              : "bg-[var(--color-danger-subtle)] text-[var(--color-danger)]"
-                          }`}
-                        >
+                        <Badge variant={user.isEnabled ? "success" : "danger"}>
                           {user.isEnabled ? "正常" : "禁用"}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="py-3">
                         {uploadingId === user.id ? (
                           <span className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]">
-                            <span className="w-3.5 h-3.5 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                            <Spinner size={14} />
                             处理中…
                           </span>
                         ) : user.hasFace ? (
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setPreviewUser(user)}
-                              className="h-9 w-9 rounded-full overflow-hidden border border-[var(--color-border)] hover:ring-2 hover:ring-[var(--color-accent)]"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="h-9 w-9 rounded-full overflow-hidden border border-[var(--color-border)] p-0 hover:ring-2 hover:ring-[var(--color-accent)]"
                             >
-                              <img
-                                src={userFacePhotoUrl(user.id)}
-                                alt="注册照"
-                                className="h-full w-full object-cover"
-                              />
-                            </button>
-                            <div className="flex flex-col text-xs gap-0.5">
                               <button
+                                type="button"
                                 onClick={() => setPreviewUser(user)}
-                                className="text-[var(--color-accent)] hover:underline text-left"
+                                aria-label="查看注册照"
+                              >
+                                <img
+                                  src={userFacePhotoUrl(user.id)}
+                                  alt="注册照"
+                                  className="h-full w-full object-cover"
+                                />
+                              </button>
+                            </Button>
+                            <div className="flex flex-col text-xs gap-0.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto px-0"
+                                onClick={() => setPreviewUser(user)}
                               >
                                 查看
-                              </button>
-                              <button
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto px-0 text-[var(--color-danger)] hover:text-[var(--color-danger)]"
                                 onClick={() => handleDeleteFace(user)}
-                                className="text-[var(--color-danger)] hover:underline text-left"
                               >
                                 删除
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         ) : (
-                          <label className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--color-accent)] text-[var(--color-accent)] text-xs font-medium hover:bg-[var(--color-accent-subtle)] cursor-pointer transition-colors">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                            上传
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp"
-                              className="hidden"
-                              onChange={(e) => {
-                                const f = e.target.files?.[0];
-                                if (f) handleUploadFace(user.id, f);
-                                e.target.value = "";
-                              }}
-                            />
-                          </label>
+                          <Button variant="secondary" size="sm" asChild>
+                            <label className="cursor-pointer">
+                              <Upload className="w-4 h-4" />
+                              上传
+                              <Input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) handleUploadFace(user.id, f);
+                                  e.target.value = "";
+                                }}
+                              />
+                            </label>
+                          </Button>
                         )}
                       </td>
-                      <td className="py-3 text-right space-x-3">
-                        <button
-                          onClick={() => openEdit(user)}
-                          className="text-[var(--color-accent)] hover:underline"
-                        >
-                          编辑
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(user)}
-                          className="text-[var(--color-ink-secondary)] hover:underline"
-                        >
-                          {user.isEnabled ? "禁用" : "启用"}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="text-[var(--color-danger)] hover:underline"
-                        >
-                          删除
-                        </button>
+                      <td className="py-3 text-right">
+                        <div className="inline-flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(user)}
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleStatus(user)}
+                          >
+                            {user.isEnabled ? "禁用" : "启用"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[var(--color-danger)] hover:text-[var(--color-danger)]"
+                            onClick={() => handleDelete(user.id)}
+                          >
+                            删除
+                          </Button>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--color-border)]">
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-[var(--color-border)] gap-3">
                 <div className="text-sm text-[var(--color-ink-secondary)]">
                   共 {total} 条，第 {query.page} / {totalPages} 页
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     disabled={query.page <= 1}
                     onClick={() => updateQuery({ page: query.page - 1 })}
-                    className="h-9 px-3 rounded-lg border border-[var(--color-border)] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     上一页
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     disabled={query.page >= totalPages}
                     onClick={() => updateQuery({ page: query.page + 1 })}
-                    className="h-9 px-3 rounded-lg border border-[var(--color-border)] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     下一页
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </>
         )}
-      </div>
+      </Card>
 
       {isModalOpen && (
         <Modal title={editingUser ? "编辑用户" : "新增用户"} onClose={closeModal}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">
-                学号/工号
-              </label>
-              <input
+            <FormField label="学号/工号" htmlFor="user-schoolId" required>
+              <Input
+                id="user-schoolId"
                 type="text"
                 value={form.schoolId}
                 onChange={(e) => setForm((f) => ({ ...f, schoolId: e.target.value }))}
                 placeholder="请输入学号/工号"
                 disabled={!!editingUser}
-                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:bg-[var(--color-bg)]"
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">姓名</label>
-              <input
+            <FormField label="姓名" htmlFor="user-name">
+              <Input
+                id="user-name"
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="请输入姓名"
-                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">角色</label>
-              <select
+            <FormField label="角色" htmlFor="user-form-role">
+              <Select
+                id="user-form-role"
                 value={form.role}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -858,22 +904,20 @@ export default function UsersPage() {
                     classId: e.target.value === "student" ? f.classId : "",
                   }))
                 }
-                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
               >
                 <option value="student">学生</option>
                 <option value="counselor">辅导员</option>
                 <option value="admin">管理员</option>
-              </select>
-            </div>
+              </Select>
+            </FormField>
 
             {form.role === "student" && (
               <>
-                <div>
-                  <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">学院</label>
-                  <select
+                <FormField label="学院" htmlFor="user-form-college">
+                  <Select
+                    id="user-form-college"
                     value={form.collegeId}
                     onChange={(e) => setForm((f) => ({ ...f, collegeId: e.target.value, classId: "" }))}
-                    className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
                   >
                     <option value="">请选择学院</option>
                     {colleges.map((c) => (
@@ -881,15 +925,14 @@ export default function UsersPage() {
                         {c.name}
                       </option>
                     ))}
-                  </select>
-                </div>
+                  </Select>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">班级</label>
-                  <select
+                <FormField label="班级" htmlFor="user-form-class">
+                  <Select
+                    id="user-form-class"
                     value={form.classId}
                     onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))}
-                    className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
                   >
                     <option value="">请选择班级</option>
                     {classes
@@ -899,26 +942,24 @@ export default function UsersPage() {
                           {c.name}
                         </option>
                       ))}
-                  </select>
-                </div>
+                  </Select>
+                </FormField>
               </>
             )}
 
             <div className="flex gap-3 pt-2">
-              <button
+              <Button
                 type="submit"
-                disabled={saving || !form.schoolId.trim()}
-                className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium"
+                variant="primary"
+                size="sm"
+                isLoading={saving}
+                disabled={!form.schoolId.trim()}
               >
-                {saving ? "保存中…" : "保存"}
-              </button>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
-              >
+                保存
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
                 取消
-              </button>
+              </Button>
             </div>
           </form>
         </Modal>
@@ -937,12 +978,14 @@ export default function UsersPage() {
               <span className="text-sm font-medium text-[var(--color-ink)]">
                 {previewUser.name || previewUser.schoolId} 的注册照
               </span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="关闭"
                 onClick={() => setPreviewUser(null)}
-                className="text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] text-sm"
               >
-                关闭
-              </button>
+                <X className="w-4 h-4" />
+              </Button>
             </div>
             <img
               src={userFacePhotoUrl(previewUser.id)}

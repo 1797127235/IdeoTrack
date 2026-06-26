@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   listTasks,
   delistTask,
@@ -11,6 +11,17 @@ import {
   scopeLabel,
   statusLabel,
 } from "@/lib/tasks";
+import {
+  Button,
+  Input,
+  Select,
+  Badge,
+  Card,
+  EmptyState,
+  Skeleton,
+  FormField,
+} from "@/components/ui";
+import { Inbox } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -26,6 +37,7 @@ interface TaskQuery {
 }
 
 export default function TasksPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -108,147 +120,136 @@ export default function TasksPage() {
       ) : null}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[var(--color-ink)]">任务管理</h2>
-        <Link
-          href="/tasks/create"
-          className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium flex items-center"
-        >
+        <h1 className="text-lg font-semibold text-[var(--color-ink)]">任务管理</h1>
+        <Button variant="primary" onClick={() => router.push("/tasks/create")}>
           新建任务
-        </Link>
+        </Button>
       </div>
 
-      <form
-        onSubmit={handleSearch}
-        className="flex flex-wrap items-end gap-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4"
-      >
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">关键词</label>
-          <input
-            type="text"
-            placeholder="搜索任务名称"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          />
-        </div>
+      <Card className="p-4">
+        <form onSubmit={handleSearch} className="flex flex-wrap items-end gap-3">
+          <FormField label="关键词" htmlFor="keyword" className="min-w-[200px]">
+            <Input
+              id="keyword"
+              type="text"
+              placeholder="搜索任务名称"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          </FormField>
 
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">状态</label>
-          <select
-            value={query.status}
-            onChange={(e) => updateQuery({ status: e.target.value as TaskStatus | "", page: 1 })}
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          >
-            <option value="">全部</option>
-            <option value="published">进行中</option>
-            <option value="delisted">已下架</option>
-          </select>
-        </div>
+          <FormField label="状态" htmlFor="status" className="min-w-[140px]">
+            <Select
+              id="status"
+              value={query.status}
+              onChange={(e) => updateQuery({ status: e.target.value as TaskStatus | "", page: 1 })}
+            >
+              <option value="">全部</option>
+              <option value="published">进行中</option>
+              <option value="delisted">已下架</option>
+            </Select>
+          </FormField>
 
-        <div>
-          <label className="block text-xs text-[var(--color-ink-muted)] mb-1">范围</label>
-          <select
-            value={query.scopeType}
-            onChange={(e) => updateQuery({ scopeType: e.target.value as TaskScopeType | "", page: 1 })}
-            className="h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          >
-            <option value="">全部</option>
-            <option value="school">全校</option>
-            <option value="college">学院</option>
-            <option value="class">班级</option>
-            <option value="pool">任务池</option>
-          </select>
-        </div>
+          <FormField label="范围" htmlFor="scopeType" className="min-w-[140px]">
+            <Select
+              id="scopeType"
+              value={query.scopeType}
+              onChange={(e) => updateQuery({ scopeType: e.target.value as TaskScopeType | "", page: 1 })}
+            >
+              <option value="">全部</option>
+              <option value="school">全校</option>
+              <option value="college">学院</option>
+              <option value="class">班级</option>
+              <option value="pool">任务池</option>
+            </Select>
+          </FormField>
 
-        <button
-          type="submit"
-          className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
-        >
-          查询
-        </button>
-        <button
-          type="button"
-          onClick={handleReset}
-          className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
-        >
-          重置
-        </button>
-      </form>
+          <Button type="submit">查询</Button>
+          <Button type="button" variant="secondary" onClick={handleReset}>
+            重置
+          </Button>
+        </form>
+      </Card>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+      <Card className="p-6">
         {loading ? (
-          <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-2/3" />
+          </div>
         ) : (
           <>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">任务名称</th>
-                  <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">范围</th>
-                  <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">发布时间</th>
-                  <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">截止时间</th>
-                  <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
-                  <th
-                    className="text-left py-2 text-[var(--color-ink-muted)] font-medium"
-                    title="完成率 = 人工终审通过(approved)人数 / 应打卡人数。与首页「累计完成打卡」(含 AI 通过)口径不同。"
-                  >
-                    完成率
-                  </th>
-                  <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTasks.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="py-8 text-center text-sm text-[var(--color-ink-secondary)]"
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[800px] text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">任务名称</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">范围</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">发布时间</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">截止时间</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
+                    <th
+                      className="text-left py-2 text-[var(--color-ink-muted)] font-medium"
+                      title="完成率 = 人工终审通过(approved)人数 / 应打卡人数。与首页「累计完成打卡」(含 AI 通过)口径不同。"
                     >
-                      暂无任务
-                    </td>
+                      完成率
+                    </th>
+                    <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
                   </tr>
-                ) : (
-                  filteredTasks.map((task) => (
-                    <tr key={task.id} className="border-b border-[var(--color-border)] last:border-0">
-                      <td className="py-3 text-[var(--color-ink)]">{task.title}</td>
-                      <td className="py-3 text-[var(--color-ink-secondary)]">{scopeLabel(task)}</td>
-                      <td className="py-3 text-[var(--color-ink-secondary)]">{formatDate(task.published_at)}</td>
-                      <td className="py-3 text-[var(--color-ink-secondary)]">{formatDate(task.deadline_at)}</td>
-                      <td className="py-3">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                            task.status === "published"
-                              ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {statusLabel(task.status)}
-                        </span>
-                      </td>
-                      <td className="py-3 text-[var(--color-ink-secondary)]">
-                        {task.completion_rate !== undefined ? `${Math.round(task.completion_rate)}%` : "-"}
-                      </td>
-                      <td className="py-3 text-right space-x-3">
-                        <Link
-                          href={`/tasks/${task.id}/edit`}
-                          className="text-[var(--color-accent)] hover:underline"
-                        >
-                          编辑
-                        </Link>
-                        {task.status === "published" && (
-                          <button
-                            onClick={() => handleDelist(task.id)}
-                            className="text-[var(--color-danger)] hover:underline"
-                          >
-                            下架
-                          </button>
-                        )}
+                </thead>
+                <tbody>
+                  {filteredTasks.length === 0 ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <EmptyState
+                          title="暂无任务"
+                          icon={Inbox}
+                        />
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredTasks.map((task) => (
+                      <tr key={task.id} className="border-b border-[var(--color-border)] last:border-0">
+                        <td className="py-3 text-[var(--color-ink)]">{task.title}</td>
+                        <td className="py-3 text-[var(--color-ink-secondary)]">{scopeLabel(task)}</td>
+                        <td className="py-3 text-[var(--color-ink-secondary)]">{formatDate(task.published_at)}</td>
+                        <td className="py-3 text-[var(--color-ink-secondary)]">{formatDate(task.deadline_at)}</td>
+                        <td className="py-3">
+                          <Badge variant={task.status === "published" ? "info" : "neutral"}>
+                            {statusLabel(task.status)}
+                          </Badge>
+                        </td>
+                        <td className="py-3 text-[var(--color-ink-secondary)]">
+                          {task.completion_rate !== undefined ? `${Math.round(task.completion_rate)}%` : "-"}
+                        </td>
+                        <td className="py-3 text-right space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/tasks/${task.id}/edit`)}
+                          >
+                            编辑
+                          </Button>
+                          {task.status === "published" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelist(task.id)}
+                              className="text-[var(--color-danger)] hover:text-[var(--color-danger)]"
+                            >
+                              下架
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--color-border)]">
@@ -256,28 +257,30 @@ export default function TasksPage() {
                   共 {total} 条，第 {query.page} / {totalPages} 页
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     disabled={query.page <= 1}
                     onClick={() => updateQuery({ page: query.page - 1 })}
-                    className="h-9 px-3 rounded-lg border border-[var(--color-border)] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     上一页
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     disabled={query.page >= totalPages}
                     onClick={() => updateQuery({ page: query.page + 1 })}
-                    className="h-9 px-3 rounded-lg border border-[var(--color-border)] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     下一页
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

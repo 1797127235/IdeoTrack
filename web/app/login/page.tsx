@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Shield } from "lucide-react";
 import { login } from "@/lib/auth";
+import { Button, Card, FormField, Input } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,8 +43,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)] px-4">
-      <div className="w-full max-w-sm bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8">
-        <div className="mb-8">
+      <Card className="w-full max-w-sm p-8">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--color-accent-subtle)] text-[var(--color-accent)] mb-4">
+            <Shield className="w-6 h-6" />
+          </div>
           <h1 className="text-xl font-semibold text-[var(--color-ink)] mb-2">
             IdeoTrack
           </h1>
@@ -58,47 +63,42 @@ export default function LoginPage() {
         ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              用户名
-            </label>
-            <input
+          <FormField label="用户名" htmlFor="schoolId">
+            <Input
+              id="schoolId"
               type="text"
               value={schoolId}
               onChange={(e) => setSchoolId(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
               placeholder="admin"
               disabled={loading}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              密码
-            </label>
-            <input
+          <FormField label="密码" htmlFor="password">
+            <Input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
               placeholder="••••••••"
               disabled={loading}
             />
-          </div>
+          </FormField>
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full h-10 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium transition-colors"
+            variant="primary"
+            isLoading={loading}
+            className="w-full"
           >
-            {loading ? "登录中…" : "登录"}
-          </button>
+            登录
+          </Button>
         </form>
 
         <p className="mt-6 text-xs text-center text-[var(--color-ink-muted)]">
           首次登录需修改默认密码
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

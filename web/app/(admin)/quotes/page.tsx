@@ -8,6 +8,16 @@ import {
   deleteQuote,
   type Quote,
 } from "@/lib/quotes";
+import {
+  Button,
+  Input,
+  Textarea,
+  Badge,
+  Card,
+  EmptyState,
+  Skeleton,
+  FormField,
+} from "@/components/ui";
 
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -70,7 +80,28 @@ export default function QuotesPage() {
   };
 
   if (loading) {
-    return <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>;
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <Card className="p-6 space-y-4">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <div className="flex gap-3">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-20" />
+          </div>
+        </Card>
+        <Card className="p-6 space-y-3">
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -83,103 +114,103 @@ export default function QuotesPage() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-ink)]">名言管理</h2>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
-        >
-          新增名言
-        </button>
+        <Button onClick={() => setIsFormOpen(true)}>新增名言</Button>
       </div>
 
       {isFormOpen && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+        <Card className="p-6">
           <h3 className="text-base font-medium text-[var(--color-ink)] mb-4">
             {editingQuote ? "编辑名言" : "新增名言"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="名言内容"
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            />
-            <input
-              type="text"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="作者"
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            />
+            <FormField label="名言内容" htmlFor="content" required>
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="名言内容"
+                rows={3}
+              />
+            </FormField>
+            <FormField label="作者" htmlFor="author">
+              <Input
+                id="author"
+                type="text"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="作者"
+              />
+            </FormField>
             <div className="flex gap-3">
-              <button
-                type="submit"
-                className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-sm font-medium"
-              >
-                保存
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm"
-              >
+              <Button type="submit">保存</Button>
+              <Button type="button" variant="secondary" onClick={resetForm}>
                 取消
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </Card>
       )}
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[var(--color-border)]">
-              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">名言内容</th>
-              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">作者</th>
-              <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
-              <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quotes.map((quote) => (
-              <tr key={quote.id} className="border-b border-[var(--color-border)] last:border-0">
-                <td className="py-3 text-[var(--color-ink)] max-w-md truncate">{quote.content}</td>
-                <td className="py-3 text-[var(--color-ink-secondary)]">{quote.author || "-"}</td>
-                <td className="py-3">
-                  <span
-                    className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                      quote.is_enabled
-                        ? "bg-[var(--color-success-subtle)] text-[var(--color-success)]"
-                        : "bg-[var(--color-danger-subtle)] text-[var(--color-danger)]"
-                    }`}
-                  >
-                    {quote.is_enabled ? "启用" : "禁用"}
-                  </span>
-                </td>
-                <td className="py-3 text-right space-x-3">
-                  <button
-                    onClick={() => {
-                      setEditingQuote(quote);
-                      setContent(quote.content);
-                      setAuthor(quote.author || "");
-                      setIsFormOpen(true);
-                    }}
-                    className="text-[var(--color-accent)] hover:underline"
-                  >
-                    编辑
-                  </button>
-                  <button
-                    onClick={() => handleDelete(quote.id)}
-                    className="text-[var(--color-danger)] hover:underline"
-                  >
-                    删除
-                  </button>
-                </td>
+      <Card className="p-5">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]">
+                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">名言内容</th>
+                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">作者</th>
+                <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
+                <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {quotes.length === 0 ? (
+                <tr>
+                  <td colSpan={4}>
+                    <EmptyState
+                      title="暂无可用的名言"
+                      description="点击右上角按钮添加一条名言。"
+                    />
+                  </td>
+                </tr>
+              ) : (
+                quotes.map((quote) => (
+                  <tr key={quote.id} className="border-b border-[var(--color-border)] last:border-0">
+                    <td className="py-3 text-[var(--color-ink)] max-w-md truncate">{quote.content}</td>
+                    <td className="py-3 text-[var(--color-ink-secondary)]">{quote.author || "-"}</td>
+                    <td className="py-3">
+                      <Badge variant={quote.is_enabled ? "success" : "danger"}>
+                        {quote.is_enabled ? "启用" : "禁用"}
+                      </Badge>
+                    </td>
+                    <td className="py-3 text-right space-x-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                        onClick={() => {
+                          setEditingQuote(quote);
+                          setContent(quote.content);
+                          setAuthor(quote.author || "");
+                          setIsFormOpen(true);
+                        }}
+                      >
+                        编辑
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(quote.id)}
+                      >
+                        删除
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

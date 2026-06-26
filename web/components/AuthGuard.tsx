@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
+import { Button, Spinner } from "@/components/ui";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -21,24 +22,22 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
-        <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>
+        <div className="flex flex-col items-center gap-3">
+          <Spinner size={28} />
+          <span className="text-sm text-[var(--color-ink-secondary)]">加载中…</span>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)] px-4">
         <div className="text-center">
-          <div className="text-sm text-[var(--color-danger)] mb-4">
+          <p className="text-sm text-[var(--color-danger)] mb-4">
             登录已过期，请重新登录
-          </div>
-          <a
-            href="/login"
-            className="text-sm text-[var(--color-accent)] hover:underline"
-          >
-            返回登录
-          </a>
+          </p>
+          <Button onClick={() => router.push("/login")}>返回登录</Button>
         </div>
       </div>
     );

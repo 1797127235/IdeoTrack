@@ -11,6 +11,8 @@ import {
   type Class,
 } from "@/lib/server/users";
 import { ServerApiError } from "@/lib/server-api";
+import { EmptyState } from "@/components/ui";
+import { AlertCircle } from "lucide-react";
 import ReportsFilterForm from "./ReportsFilterForm";
 
 interface ReportsPageProps {
@@ -43,9 +45,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       redirect("/login");
     }
     return (
-      <div className="px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
-        {err instanceof Error ? err.message : "加载失败"}
-      </div>
+      <EmptyState
+        title={err instanceof Error ? err.message : "加载失败"}
+        description="请刷新页面或稍后重试"
+        icon={AlertCircle}
+      />
     );
   }
 

@@ -7,6 +7,15 @@ import { useRouter } from "next/navigation";
 import { getTask, updateTask, type TaskScopeType } from "@/lib/tasks";
 import { listColleges, listClasses, type College, type Class } from "@/lib/users";
 import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
+import {
+  Button,
+  Input,
+  Textarea,
+  Select,
+  Card,
+  Skeleton,
+  FormField,
+} from "@/components/ui";
 
 export default function EditTaskPage() {
   const params = useParams();
@@ -104,7 +113,33 @@ export default function EditTaskPage() {
   };
 
   if (loading) {
-    return <div className="text-sm text-[var(--color-ink-secondary)]">加载中…</div>;
+    return (
+      <div className="max-w-2xl">
+        {error ? (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--color-danger-subtle)] text-sm text-[var(--color-danger)]">
+            {error}
+          </div>
+        ) : null}
+        <Card className="p-6 space-y-6">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <Skeleton className="h-24 w-full" />
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -115,186 +150,148 @@ export default function EditTaskPage() {
         </div>
       ) : null}
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 space-y-6"
-      >
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-            任务名称
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-            任务内容
-          </label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={5}
-            className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-            思考题（每行一个，可选）
-          </label>
-          <textarea
-            value={guidingQuestions}
-            onChange={(e) => setGuidingQuestions(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              外部链接（可选）
-            </label>
-            <input
-              type="url"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+      <Card className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <FormField label="任务名称" htmlFor="title" required>
+            <Input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              视频 URL（可选）
-            </label>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-            />
-          </div>
-        </div>
+          </FormField>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              发布范围
-            </label>
-            <select
-              value={scopeType}
-              onChange={(e) => {
-                setScopeType(e.target.value as TaskScopeType);
-                setScopeId("");
-              }}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+          <FormField label="任务内容" htmlFor="content" required>
+            <Textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={5}
+              required
+            />
+          </FormField>
+
+          <FormField label="思考题（每行一个，可选）" htmlFor="guidingQuestions">
+            <Textarea
+              id="guidingQuestions"
+              value={guidingQuestions}
+              onChange={(e) => setGuidingQuestions(e.target.value)}
+              rows={3}
+            />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="外部链接（可选）" htmlFor="sourceUrl">
+              <Input
+                id="sourceUrl"
+                type="url"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+              />
+            </FormField>
+            <FormField label="视频 URL（可选）" htmlFor="videoUrl">
+              <Input
+                id="videoUrl"
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="发布范围" htmlFor="scopeType">
+              <Select
+                id="scopeType"
+                value={scopeType}
+                onChange={(e) => {
+                  setScopeType(e.target.value as TaskScopeType);
+                  setScopeId("");
+                }}
+              >
+                <option value="school">全校</option>
+                <option value="college">学院</option>
+                <option value="class">班级</option>
+                <option value="pool">任务池</option>
+              </Select>
+            </FormField>
+
+            {scopeType === "college" && (
+              <FormField label="选择学院" htmlFor="scopeId" required>
+                <Select
+                  id="scopeId"
+                  value={scopeId}
+                  onChange={(e) => setScopeId(e.target.value)}
+                  required
+                >
+                  <option value="">请选择</option>
+                  {colleges.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            )}
+
+            {scopeType === "class" && (
+              <FormField label="选择班级" htmlFor="scopeId" required>
+                <Select
+                  id="scopeId"
+                  value={scopeId}
+                  onChange={(e) => setScopeId(e.target.value)}
+                  required
+                >
+                  <option value="">请选择</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.collegeName} - {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="发布时间" htmlFor="publishedAt" required>
+              <Input
+                id="publishedAt"
+                type="datetime-local"
+                value={publishedAt}
+                onChange={(e) => setPublishedAt(e.target.value)}
+                required
+              />
+            </FormField>
+            <FormField label="截止时间" htmlFor="deadlineAt" required>
+              <Input
+                id="deadlineAt"
+                type="datetime-local"
+                value={deadlineAt}
+                onChange={(e) => setDeadlineAt(e.target.value)}
+                required
+              />
+            </FormField>
+          </div>
+
+          <FormField label="签到范围（可选）">
+            <GeofencePicker value={geofence} onChange={setGeofence} />
+          </FormField>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+            <Link
+              href="/tasks"
+              className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center transition-colors"
             >
-              <option value="school">全校</option>
-              <option value="college">学院</option>
-              <option value="class">班级</option>
-              <option value="pool">任务池</option>
-            </select>
+              取消
+            </Link>
+            <Button type="submit" isLoading={saving}>
+              {saving ? "保存中…" : "保存"}
+            </Button>
           </div>
-
-          {scopeType === "college" && (
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-                选择学院
-              </label>
-              <select
-                value={scopeId}
-                onChange={(e) => setScopeId(e.target.value)}
-                required
-                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-              >
-                <option value="">请选择</option>
-                {colleges.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {scopeType === "class" && (
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-                选择班级
-              </label>
-              <select
-                value={scopeId}
-                onChange={(e) => setScopeId(e.target.value)}
-                required
-                className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-              >
-                <option value="">请选择</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.collegeName} - {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              发布时间
-            </label>
-            <input
-              type="datetime-local"
-              value={publishedAt}
-              onChange={(e) => setPublishedAt(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-              截止时间
-            </label>
-            <input
-              type="datetime-local"
-              value={deadlineAt}
-              onChange={(e) => setDeadlineAt(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-1.5">
-            签到范围（可选）
-          </label>
-          <GeofencePicker value={geofence} onChange={setGeofence} />
-        </div>
-
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
-          <Link
-            href="/tasks"
-            className="h-10 px-4 rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] flex items-center transition-colors"
-          >
-            取消
-          </Link>
-          <button
-            type="submit"
-            disabled={saving}
-            className="h-10 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60 text-white text-sm font-medium transition-colors"
-          >
-            {saving ? "保存中…" : "保存"}
-          </button>
-        </div>
-      </form>
+        </form>
+      </Card>
     </div>
   );
 }
