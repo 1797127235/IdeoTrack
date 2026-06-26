@@ -25,8 +25,9 @@ import {
   type BackupResult,
   type CleanupResult,
 } from "@/lib/admin";
-import { Card, Button, Input, Select, EmptyState, Spinner } from "@/components/ui";
+import { Card, Button, Spinner, EmptyState } from "@/components/ui";
 import SecurityAudit from "./SecurityAudit";
+import LogViewer from "./LogViewer";
 import {
   CheckCircle2,
   XCircle,
@@ -457,9 +458,6 @@ export default function OperationsPage() {
   const [logsLoading, setLogsLoading] = useState(true);
   const [logsError, setLogsError] = useState("");
 
-  const [filter, setFilter] = useState("");
-  const [level, setLevel] = useState("all");
-
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupResult, setBackupResult] = useState("");
   const [cleanupExportsLoading, setCleanupExportsLoading] = useState(false);
@@ -530,23 +528,6 @@ export default function OperationsPage() {
       setCleanupTempLoading(false);
     }
   };
-
-  const filteredLogs = useMemo(() => {
-    return logs.filter((line) => {
-      const matchesFilter = filter ? line.toLowerCase().includes(filter.toLowerCase()) : true;
-      const matchesLevel =
-        level === "all"
-          ? true
-          : level === "error"
-          ? line.includes('"level":50') || line.includes("ERROR") || line.includes('"status":5')
-          : level === "warn"
-          ? line.includes('"level":40') || line.includes("WARN")
-          : level === "info"
-          ? line.includes('"level":30') || line.includes("INFO")
-          : true;
-      return matchesFilter && matchesLevel;
-    });
-  }, [logs, filter, level]);
 
   if (statusLoading) {
     return (
@@ -666,52 +647,17 @@ export default function OperationsPage() {
       {/* Section 7: Logs */}
       <section>
         <SectionHeader number={7} title="服务器日志" icon={FileText} />
-        <Card className="p-4 mb-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Input
-              type="text"
-              placeholder="搜索日志内容"
-              className="w-72"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-            <Select className="w-40" value={level} onChange={(e) => setLevel(e.target.value)}>
-              <option value="all">全部级别</option>
-              <option value="error">错误</option>
-              <option value="warn">警告</option>
-              <option value="info">信息</option>
-            </Select>
+        {logsLoading ? (
+          <div className="py-12 flex items-center justify-center">
+            <Spinner size={28} />
           </div>
-        </Card>
-
-        <Card className="p-0 overflow-hidden">
-          {logsLoading ? (
-            <div className="py-12 flex items-center justify-center">
-              <Spinner size={28} />
-            </div>
-          ) : logsError ? (
-            <EmptyState title="加载失败" description={logsError} />
-          ) : filteredLogs.length === 0 ? (
-            <EmptyState title="暂无日志" description="当前筛选条件下没有匹配日志" />
-          ) : (
-            <div className="overflow-auto max-h-[60vh]">
-              <table className="w-full text-xs font-mono">
-                <tbody>
-                  {filteredLogs.map((line, idx) => (
-                    <tr
-                      key={idx}
-                      className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)]"
-                    >
-                      <td className="py-2 px-4 text-[var(--color-ink-secondary)] whitespace-pre-wrap break-all">
-                        {line}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        ) : logsError ? (
+          <Card className="p-8">
+            <p className="text-sm text-[var(--color-danger)]">加载失败：{logsError}</p>
+          </Card>
+        ) : (
+          <LogViewer logs={logs} />
+        )}
       </section>
     </div>
   );
