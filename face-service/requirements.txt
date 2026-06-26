@@ -1,0 +1,10 @@
+# IdeoTrack 人脸识别微服务依赖
+# onnxruntime 不发布 alpine wheel，必须用 Debian-based 镜像（python:3.11-slim）
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+insightface==0.7.3
+onnxruntime==1.20.1
+numpy==1.26.4
+Pillow==11.0.0
+python-multipart==0.0.20
