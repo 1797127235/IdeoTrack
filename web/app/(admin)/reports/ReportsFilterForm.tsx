@@ -131,7 +131,7 @@ export default function ReportsFilterForm({
           <EmptyState
             title="暂无统计数据"
             description="请调整筛选条件后重新查询"
-            icon={FileBarChart}
+            icon={<FileBarChart className="w-6 h-6 text-[var(--color-ink-muted)]" />}
           />
         ) : (
           <div className="overflow-x-auto">

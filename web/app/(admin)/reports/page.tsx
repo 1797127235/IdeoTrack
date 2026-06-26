@@ -48,7 +48,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       <EmptyState
         title={err instanceof Error ? err.message : "加载失败"}
         description="请刷新页面或稍后重试"
-        icon={AlertCircle}
+        icon={<AlertCircle className="w-6 h-6 text-[var(--color-ink-muted)]" />}
       />
     );
   }

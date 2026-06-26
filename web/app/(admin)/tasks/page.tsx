@@ -206,7 +206,7 @@ export default function TasksPage() {
                       <td colSpan={7}>
                         <EmptyState
                           title="暂无任务"
-                          icon={Inbox}
+                          icon={<Inbox className="w-6 h-6 text-[var(--color-ink-muted)]" />}
                         />
                       </td>
                     </tr>

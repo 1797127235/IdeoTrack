@@ -711,7 +711,7 @@ export default function UsersPage() {
           <EmptyState
             title="暂无用户"
             description="当前筛选条件下没有找到用户，请调整条件或新增用户。"
-            icon={Users}
+            icon={<Users className="w-6 h-6 text-[var(--color-ink-muted)]" />}
           />
         ) : (
           <>

@@ -296,7 +296,7 @@ export default function OrganizationsPage() {
             <EmptyState
               title="暂无学院"
               description="添加学院后即可创建班级"
-              icon={Building2}
+              icon={<Building2 className="w-6 h-6 text-[var(--color-ink-muted)]" />}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -418,7 +418,7 @@ export default function OrganizationsPage() {
             <EmptyState
               title="暂无班级"
               description="添加班级并关联到学院"
-              icon={Users}
+              icon={<Users className="w-6 h-6 text-[var(--color-ink-muted)]" />}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -548,7 +548,7 @@ export default function OrganizationsPage() {
                   <EmptyState
                     title="暂无班级"
                     description="请先创建班级"
-                    icon={GraduationCap}
+                    icon={<GraduationCap className="w-6 h-6 text-[var(--color-ink-muted)]" />}
                     className="py-8"
                   />
                 ) : (
