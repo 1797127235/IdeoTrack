@@ -44,6 +44,7 @@ export interface CreateCheckInInput {
   latitude: number;
   longitude: number;
   address?: string;
+  reflection_content?: string;
 }
 
 export interface SubmitReflectionInput {

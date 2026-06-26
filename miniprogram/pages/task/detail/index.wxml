@@ -28,26 +28,6 @@
         <text class="task-title">{{task.title}}</text>
       </view>
 
-      <!-- 任务步骤 -->
-      <view class="steps-card">
-        <view class="steps-title">任务步骤</view>
-        <view class="steps-list">
-          <view class="step-item {{step.status}}" wx:for="{{steps}}" wx:for-item="step" wx:key="index">
-            <view class="step-left">
-              <view class="step-number">
-                <text wx:if="{{step.status === 'completed'}}">✓</text>
-                <text wx:else>{{step.index}}</text>
-              </view>
-              <view class="step-line" wx:if="{{step.index < 3}}"></view>
-            </view>
-            <view class="step-content">
-              <text class="step-title">{{step.title}}</text>
-              <text class="step-desc">{{step.desc}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-
       <!-- 任务内容 -->
       <view class="content-card">
         <text class="section-title">任务内容</text>
@@ -78,6 +58,50 @@
             <text class="link-icon">▶️</text>
             <text class="link-text">{{task.video_url}}</text>
           </view>
+        </view>
+      </view>
+
+      <!-- 打卡表单 -->
+      <view class="checkin-form-card" wx:if="{{canCheckIn}}">
+        <view class="form-title">{{requireLocation ? '定位签到' : '确认签到'}}</view>
+
+        <!-- 定位状态 -->
+        <view class="location-section" wx:if="{{requireLocation}}">
+          <view wx:if="{{locationLoading}}" class="location-loading">
+            <view class="spinner"></view>
+            <text>正在获取位置…</text>
+          </view>
+          <view wx:elif="{{locationError}}" class="location-error">
+            <text>{{locationError}}</text>
+            <text class="location-retry" bindtap="loadLocation">重新获取</text>
+          </view>
+          <view wx:elif="{{address}}" class="location-info">
+            <text class="location-icon">📍</text>
+            <text class="location-address">{{address}}</text>
+          </view>
+          <view wx:else class="location-hint">
+            <text>点击按钮获取当前位置</text>
+            <text class="location-retry" bindtap="loadLocation">获取位置</text>
+          </view>
+          <view wx:if="{{outOfRange}}" class="location-warning">
+            当前位置不在签到范围内，请到指定地点打卡
+          </view>
+        </view>
+
+        <!-- 心得输入 -->
+        <view class="reflection-section">
+          <view class="reflection-label-row">
+            <text class="reflection-label">学习心得</text>
+            <text class="reflection-count">{{reflectionContent.length}}/500</text>
+          </view>
+          <textarea
+            class="reflection-input"
+            value="{{reflectionContent}}"
+            bindinput="onReflectionInput"
+            placeholder="结合任务内容，写下你的学习心得（不少于10字）"
+            maxlength="500"
+            auto-height
+          />
         </view>
       </view>
 
@@ -113,9 +137,9 @@
         修改心得
       </button>
       <button
-        class="checkin-btn {{buttonDisabled ? 'disabled' : ''}}"
-        disabled="{{buttonDisabled}}"
-        bindtap="onCheckIn"
+        class="checkin-btn {{buttonDisabled || !canSubmit ? 'disabled' : ''}}"
+        disabled="{{buttonDisabled || !canSubmit}}"
+        bindtap="onSubmit"
       >
         {{buttonText}}
       </button>

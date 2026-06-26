@@ -1,3 +1,6 @@
+"use client";
+
+import { createCheckIn, reverseGeocode, type CreateCheckInData } from '../../../services/checkinApi';
 import { getMyTaskDetail, type TaskDetail } from '../../../services/taskApi';
 import { formatDeadline } from '../../../utils/format';
 import { theme } from '../../../theme';
@@ -11,6 +14,17 @@ interface TaskStep {
   status: StepStatus;
 }
 
+function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return 6371000 * c;
+}
+
 function getStatusMeta(status: TaskDetail['status']) {
   switch (status) {
     case 'completed':
@@ -22,17 +36,6 @@ function getStatusMeta(status: TaskDetail['status']) {
     default:
       return { label: '进行中', color: theme.colors.primary };
   }
-}
-
-function getButtonMeta(task: TaskDetail) {
-  if (task.status === 'completed') return { text: '今日已打卡', disabled: true };
-  if (task.status === 'overdue') return { text: '已逾期', disabled: true };
-  const checkInStatus = task.check_in_status || '';
-  if (checkInStatus === 'submitted') return { text: '去写心得', disabled: false };
-  if (checkInStatus === 'rejected') return { text: '未通过复核', disabled: true };
-  if (checkInStatus === 'requires_modification') return { text: '需修改心得', disabled: false };
-  if (checkInStatus === 'pending_manual_review') return { text: '等待辅导员复核', disabled: true };
-  return { text: '立即打卡 +10 积分', disabled: false };
 }
 
 function getReviewStatusMeta(status: string) {
@@ -76,27 +79,6 @@ function canModifyReflection(task: TaskDetail): boolean {
   return false;
 }
 
-function buildSteps(task: TaskDetail): TaskStep[] {
-  const requireLocation = task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null;
-  const steps: TaskStep[] = [
-    { index: 1, title: '阅读任务', desc: '了解学习内容', status: 'current' },
-    { index: 2, title: requireLocation ? '定位签到' : '确认签到', desc: requireLocation ? '在指定位置打卡' : '点击确认完成打卡', status: 'pending' },
-    { index: 3, title: '撰写心得', desc: '提交学习体会', status: 'pending' },
-  ];
-
-  if (task.status === 'completed') {
-    steps[0].status = 'completed';
-    steps[1].status = 'completed';
-    steps[2].status = 'completed';
-  } else if (task.check_in_id) {
-    steps[0].status = 'completed';
-    steps[1].status = 'completed';
-    steps[2].status = 'current';
-  }
-
-  return steps;
-}
-
 Page({
   data: {
     taskId: '',
@@ -109,10 +91,19 @@ Page({
     buttonDisabled: true,
     showModifyReflection: false,
     deadlineText: '',
-    steps: [] as TaskStep[],
+    requireLocation: false,
+    canCheckIn: false,
+    canSubmit: false,
+    reflectionContent: '',
+    latitude: 0,
+    longitude: 0,
+    address: '',
+    locationLoading: false,
+    locationError: '',
+    outOfRange: false,
+    submitting: false,
     reviewMeta: null as { label: string; color: string; icon: string } | null,
     reviewReasonText: '',
-    requireLocation: false,
   },
 
   onLoad(options: { id?: string }) {
@@ -132,25 +123,55 @@ Page({
       if (res.success && res.data) {
         const task = res.data;
         const statusMeta = getStatusMeta(task.status);
-        const buttonMeta = getButtonMeta(task);
-        const steps = buildSteps(task);
         const reviewMeta = getReviewStatusMeta(task.check_in_status || '');
         const reviewReasonText = getReviewReasonText(task.ai_review_reason_code, task.ai_review_reason);
         const requireLocation = task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null;
+
+        const canCheckIn = task.status === 'in_progress';
+        let buttonText = '立即打卡';
+        let buttonDisabled = false;
+
+        if (task.status === 'completed') {
+          buttonText = '已完成';
+          buttonDisabled = true;
+        } else if (task.status === 'overdue') {
+          buttonText = '已逾期';
+          buttonDisabled = true;
+        } else if (task.check_in_status === 'submitted') {
+          buttonText = '去写心得';
+          buttonDisabled = false;
+        } else if (task.check_in_status === 'rejected') {
+          buttonText = '未通过复核';
+          buttonDisabled = true;
+        } else if (task.check_in_status === 'requires_modification') {
+          buttonText = '需修改心得';
+          buttonDisabled = false;
+        } else if (task.check_in_status === 'pending_manual_review') {
+          buttonText = '等待辅导员复核';
+          buttonDisabled = true;
+        }
+
         this.setData({
           task,
           loading: false,
           statusLabel: statusMeta.label,
           statusColor: statusMeta.color,
-          buttonText: buttonMeta.text,
-          buttonDisabled: buttonMeta.disabled,
+          buttonText,
+          buttonDisabled,
           showModifyReflection: canModifyReflection(task),
           deadlineText: formatDeadline(task.deadline_at),
-          steps,
+          requireLocation,
+          canCheckIn,
+          reflectionContent: task.reflection_content || '',
           reviewMeta,
           reviewReasonText,
-          requireLocation,
         });
+
+        if (canCheckIn && requireLocation) {
+          this.loadLocation();
+        }
+
+        this.updateCanSubmit();
       } else {
         this.setData({ error: res.error?.message || '获取任务详情失败', loading: false });
       }
@@ -160,15 +181,112 @@ Page({
     }
   },
 
-  onPullDownRefresh() {
-    const { taskId } = this.data;
-    if (taskId) {
-      this.loadTaskDetail(taskId).finally(() => {
-        wx.stopPullDownRefresh();
+  loadLocation() {
+    this.setData({ locationLoading: true, locationError: '', outOfRange: false });
+    wx.getLocation({
+      type: 'gcj02',
+      success: (res) => {
+        const { task } = this.data;
+        let outOfRange = false;
+        if (task?.geo_lat != null && task?.geo_lng != null && task?.geo_radius_meters != null) {
+          const distance = haversineDistance(
+            res.latitude,
+            res.longitude,
+            task.geo_lat,
+            task.geo_lng
+          );
+          outOfRange = distance > task.geo_radius_meters;
+        }
+        this.setData({
+          latitude: res.latitude,
+          longitude: res.longitude,
+          outOfRange,
+        });
+        this.reverseGeocode(res.latitude, res.longitude);
+      },
+      fail: (err) => {
+        const isAuthDenied = err.errMsg?.includes('deny') || err.errMsg?.includes('auth');
+        this.setData({
+          locationLoading: false,
+          locationError: isAuthDenied
+            ? '请开启定位权限以完成签到'
+            : '获取位置失败，请重试',
+        });
+        this.updateCanSubmit();
+      },
+    });
+  },
+
+  reverseGeocode(latitude: number, longitude: number) {
+    reverseGeocode(latitude, longitude)
+      .then((res) => {
+        if (res.success && res.data) {
+          this.setData({ address: res.data.formattedAddress || res.data.address });
+        } else {
+          this.setData({ address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}` });
+        }
+      })
+      .catch(() => {
+        this.setData({ address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}` });
+      })
+      .finally(() => {
+        this.setData({ locationLoading: false });
+        this.updateCanSubmit();
       });
-    } else {
-      wx.stopPullDownRefresh();
+  },
+
+  onReflectionInput(e: WechatMiniprogram.TextareaInput) {
+    this.setData({ reflectionContent: e.detail.value || '' });
+    this.updateCanSubmit();
+  },
+
+  updateCanSubmit() {
+    const { reflectionContent, requireLocation, locationLoading, locationError, outOfRange } = this.data;
+    const hasReflection = reflectionContent.trim().length >= 10;
+    const locationReady = !requireLocation || (!locationLoading && !locationError && !outOfRange && !!this.data.address);
+    this.setData({ canSubmit: hasReflection && locationReady });
+  },
+
+  async onSubmit() {
+    const { taskId, reflectionContent, requireLocation, latitude, longitude, address, canSubmit, submitting } = this.data;
+    if (!canSubmit || submitting) return;
+
+    this.setData({ submitting: true });
+    try {
+      const payload: CreateCheckInData = {
+        task_id: taskId,
+        reflection_content: reflectionContent.trim(),
+      };
+      if (requireLocation) {
+        payload.latitude = latitude;
+        payload.longitude = longitude;
+        payload.address = address;
+      }
+      const res = await createCheckIn(payload);
+      if (res.success && res.data) {
+        wx.showToast({ title: '打卡成功', icon: 'success' });
+        setTimeout(() => {
+          wx.redirectTo({
+            url: `/pages/checkin/result/index?checkInId=${res.data!.id}&taskId=${taskId}`,
+          });
+        }, 800);
+      } else {
+        wx.showToast({ title: res.error?.message || '打卡失败', icon: 'none' });
+        this.setData({ submitting: false });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '打卡失败';
+      wx.showToast({ title: message, icon: 'none' });
+      this.setData({ submitting: false });
     }
+  },
+
+  onModifyReflection() {
+    const { task, taskId } = this.data;
+    if (!task?.check_in_id) return;
+    wx.navigateTo({
+      url: `/pages/reflection/index?checkInId=${task.check_in_id}&taskId=${taskId}&mode=modify`,
+    });
   },
 
   onRetry() {
@@ -178,52 +296,13 @@ Page({
     }
   },
 
-  onCheckIn() {
-    const task = this.data.task as TaskDetail | null;
-    const taskId = this.data.taskId as string;
-    if (!task) return;
-
-    if (task.status === 'completed') {
-      wx.showToast({ title: '今日已打卡', icon: 'none' });
-      return;
-    }
-    if (task.status === 'overdue') {
-      wx.showToast({ title: '任务已截止，无法打卡', icon: 'none' });
-      return;
-    }
-
-    // 已签到但尚未提交心得时，直接进入心得页
-    if (task.check_in_status === 'submitted' && task.check_in_id) {
-      wx.navigateTo({
-        url: `/pages/reflection/index?checkInId=${task.check_in_id}&taskId=${taskId}&mode=create`,
+  onOpenLink(e: WechatMiniprogram.BaseEvent) {
+    const url = e.currentTarget.dataset.url as string;
+    if (url) {
+      wx.setClipboardData({
+        data: url,
+        success: () => wx.showToast({ title: '链接已复制', icon: 'success' }),
       });
-      return;
     }
-
-    wx.navigateTo({
-      url: `/pages/checkin/index?taskId=${taskId}`,
-    });
-  },
-
-  onModifyReflection() {
-    const task = this.data.task as TaskDetail | null;
-    const taskId = this.data.taskId as string;
-    const checkInId = task?.check_in_id;
-    const status = task?.check_in_status;
-    if (!checkInId || !status) return;
-    wx.navigateTo({
-      url: `/pages/reflection/index?checkInId=${checkInId}&taskId=${taskId}&mode=edit&status=${status}`,
-    });
-  },
-
-  onOpenLink(event: WechatMiniprogram.BaseEvent) {
-    const { url } = event.currentTarget.dataset as { url?: string };
-    if (!url) return;
-    wx.setClipboardData({
-      data: url,
-      success: () => {
-        wx.showToast({ title: '链接已复制', icon: 'success' });
-      },
-    });
   },
 });

@@ -139,7 +139,7 @@ export async function createOrUpdateCheckIn(
   userId: string,
   input: CreateCheckInInput
 ): Promise<CheckInResponse> {
-  const { task_id, latitude, longitude, address } = input;
+  const { task_id, latitude, longitude, address, reflection_content } = input;
 
   if (!task_id || !isUuid(task_id)) {
     throw new AppError('VALIDATION_ERROR', '任务 ID 无效', 400);
@@ -166,8 +166,8 @@ export async function createOrUpdateCheckIn(
 
   const rows = await query<CheckIn>(
     `INSERT INTO check_ins (
-      task_id, user_id, status, latitude, longitude, address, checked_in_at
-    ) VALUES ($1, $2, 'submitted', $3, $4, $5, $6)
+      task_id, user_id, status, latitude, longitude, address, checked_in_at, reflection_content
+    ) VALUES ($1, $2, 'submitted', $3, $4, $5, $6, $7)
     ON CONFLICT (task_id, user_id)
     DO UPDATE SET
       status = EXCLUDED.status,
@@ -175,9 +175,10 @@ export async function createOrUpdateCheckIn(
       longitude = EXCLUDED.longitude,
       address = EXCLUDED.address,
       checked_in_at = EXCLUDED.checked_in_at,
+      reflection_content = EXCLUDED.reflection_content,
       updated_at = NOW()
     RETURNING *`,
-    [task_id, userId, safeLatitude, safeLongitude, address ?? null, new Date().toISOString()]
+    [task_id, userId, safeLatitude, safeLongitude, address ?? null, new Date().toISOString(), reflection_content ?? null]
   );
 
   if (rows.length === 0) {
