@@ -27,6 +27,7 @@ export interface Task {
   geo_lng: number | null;
   geo_radius_meters: number | null;
   geo_address: string | null;
+  require_face: boolean;
   created_by: string;
   published_at: string;
   deadline_at: string;
@@ -61,6 +62,7 @@ export interface TaskDetail extends StudentTask {
   geo_lng?: number | null;
   geo_radius_meters?: number | null;
   geo_address?: string | null;
+  require_face?: boolean;
 }
 
 export interface TaskWithStats extends TaskResponse {
@@ -83,6 +85,7 @@ export interface CreateTaskInput {
   geo_lng?: number | null;
   geo_radius_meters?: number | null;
   geo_address?: string | null;
+  require_face?: boolean;
   published_at: string;
   deadline_at: string;
 }
@@ -106,6 +109,7 @@ export interface UpdateTaskInput {
   geo_lng?: number | null;
   geo_radius_meters?: number | null;
   geo_address?: string | null;
+  require_face?: boolean;
   published_at?: string;
   deadline_at?: string;
   status?: TaskStatus;

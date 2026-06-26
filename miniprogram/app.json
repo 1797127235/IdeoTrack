@@ -55,6 +55,9 @@
   "permission": {
     "scope.userLocation": {
       "desc": "用于完成思政学习任务的定位签到"
+    },
+    "scope.camera": {
+      "desc": "用于人脸打卡现场拍照验证身份"
     }
   },
   "requiredPrivateInfos": ["getLocation"],

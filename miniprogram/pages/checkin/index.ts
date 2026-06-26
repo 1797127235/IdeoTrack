@@ -1,4 +1,4 @@
-import { createCheckIn, reverseGeocode, type CreateCheckInData } from '../../services/checkinApi';
+import { createCheckIn, createCheckInWithPhoto, reverseGeocode, type CreateCheckInData } from '../../services/checkinApi';
 import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
 import { formatDeadline } from '../../utils/format';
 
@@ -31,6 +31,9 @@ Page({
     submitting: false,
     geofenceHint: '',
     outOfRange: false,
+    requireFace: false,
+    photoPath: '',
+    photoPreview: '',
   },
 
   onLoad(options: { taskId?: string; title?: string }) {
@@ -54,6 +57,7 @@ Page({
         const task = res.data;
         wx.setNavigationBarTitle({ title: task.title });
         const requireLocation = task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null;
+        const requireFace = !!task.require_face;
         const geofenceHint = requireLocation
           ? `该任务需在「${task.geo_address || '指定位置'}」${task.geo_radius_meters} 米范围内签到`
           : '该任务无需定位，直接确认打卡即可';
@@ -63,6 +67,7 @@ Page({
           deadlineText: formatDeadline(task.deadline_at),
           taskLoading: false,
           requireLocation,
+          requireFace,
           geofenceHint,
         });
         if (requireLocation) {
@@ -162,8 +167,48 @@ Page({
     }
   },
 
+  /** 人脸打卡：唤起系统相机拍一张现场照 */
+  onTakePhoto() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['camera'],
+      camera: 'back',
+      success: (res) => {
+        const file = res.tempFiles[0];
+        this.setData({
+          photoPath: file.tempFilePath,
+          photoPreview: file.tempFilePath,
+        });
+      },
+      fail: (err) => {
+        // 用户取消时不提示错误
+        if (!err.errMsg?.includes('cancel')) {
+          wx.showToast({ title: '拍照失败，请重试', icon: 'none' });
+        }
+      },
+    });
+  },
+
+  /** 重新拍照 */
+  onRetakePhoto() {
+    this.setData({ photoPath: '', photoPreview: '' });
+    this.onTakePhoto();
+  },
+
   async onSubmitCheckIn() {
-    const { taskId, latitude, longitude, address, locationReady, submitting, outOfRange, requireLocation } = this.data;
+    const {
+      taskId,
+      latitude,
+      longitude,
+      address,
+      locationReady,
+      submitting,
+      outOfRange,
+      requireLocation,
+      requireFace,
+      photoPath,
+    } = this.data;
 
     if (submitting) return;
     if (requireLocation && !locationReady) {
@@ -172,6 +217,10 @@ Page({
     }
     if (requireLocation && outOfRange) {
       wx.showToast({ title: '当前不在签到范围内', icon: 'none' });
+      return;
+    }
+    if (requireFace && !photoPath) {
+      wx.showToast({ title: '请先拍摄人脸照片', icon: 'none' });
       return;
     }
 
@@ -183,7 +232,9 @@ Page({
         payload.longitude = longitude;
         payload.address = address;
       }
-      const res = await createCheckIn(payload);
+      const res = requireFace && photoPath
+        ? await createCheckInWithPhoto(payload, photoPath)
+        : await createCheckIn(payload);
       if (res.success && res.data) {
         wx.showToast({ title: '签到成功', icon: 'success' });
         const checkInId = res.data.id;

@@ -20,6 +20,9 @@ export interface CheckIn {
   ai_review_reason: string | null;
   review_feedback: string | null;
   reflection_modified: boolean;
+  face_photo_path: string | null;
+  face_verified: boolean | null;
+  face_similarity: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +40,9 @@ export interface CheckInResponse {
   ai_review_reason_code?: string;
   review_feedback: string | null;
   reflection_modified: boolean;
+  face_photo_path: string | null;
+  face_verified: boolean | null;
+  face_similarity: number | null;
 }
 
 export interface CreateCheckInInput {

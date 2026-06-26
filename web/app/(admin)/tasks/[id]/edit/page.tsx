@@ -15,6 +15,7 @@ import {
   Card,
   Skeleton,
   FormField,
+  Switch,
 } from "@/components/ui";
 
 export default function EditTaskPage() {
@@ -32,6 +33,7 @@ export default function EditTaskPage() {
   const [publishedAt, setPublishedAt] = useState("");
   const [deadlineAt, setDeadlineAt] = useState("");
   const [geofence, setGeofence] = useState<GeofenceValue | null>(null);
+  const [requireFace, setRequireFace] = useState(false);
   const [colleges, setColleges] = useState<College[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [error, setError] = useState("");
@@ -64,6 +66,7 @@ export default function EditTaskPage() {
         } else {
           setGeofence(null);
         }
+        setRequireFace(task.require_face ?? false);
         setError("");
       })
       .catch((err) => {
@@ -103,6 +106,7 @@ export default function EditTaskPage() {
         geo_lng: geofence?.lng ?? null,
         geo_radius_meters: geofence?.radius ?? null,
         geo_address: geofence?.address ?? null,
+        require_face: requireFace,
       });
       router.push("/tasks");
     } catch (err) {
@@ -277,6 +281,23 @@ export default function EditTaskPage() {
 
           <FormField label="签到范围（可选）">
             <GeofencePicker value={geofence} onChange={setGeofence} />
+          </FormField>
+
+          <FormField
+            label="需人脸打卡"
+            htmlFor="requireFace"
+            hint="开启后，学生签到时必须用相机拍现场照，与注册照比对通过才能打卡"
+          >
+            <div className="flex items-center gap-3 pt-1">
+              <Switch
+                id="requireFace"
+                checked={requireFace}
+                onCheckedChange={setRequireFace}
+              />
+              <span className="text-sm text-[var(--color-ink-secondary)]">
+                {requireFace ? "已开启" : "未开启"}
+              </span>
+            </div>
           </FormField>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border)]">

@@ -56,6 +56,23 @@
       </block>
     </view>
 
+    <view class="location-card" wx:if="{{requireFace}}">
+      <text class="card-title">人脸打卡</text>
+      <view class="geofence-hint">
+        <text class="hint-icon">📸</text>
+        <text class="hint-text">该任务需人脸验证，请拍摄本人面部完成签到</text>
+      </view>
+      <block wx:if="{{photoPreview}}">
+        <view class="photo-preview-wrap">
+          <image class="photo-preview" src="{{photoPreview}}" mode="aspectFill" />
+          <button class="action-btn secondary" bindtap="onRetakePhoto">重新拍摄</button>
+        </view>
+      </block>
+      <block wx:else>
+        <button class="action-btn photo-btn" bindtap="onTakePhoto">点击拍照</button>
+      </block>
+    </view>
+
     <view class="tips-card">
       <text class="tips-title">签到说明</text>
       <text class="tips-item" wx:if="{{requireLocation}}">1. 请确保在真实位置完成签到</text>
@@ -66,8 +83,8 @@
 
     <view class="footer">
       <button
-        class="submit-btn {{submitting || (requireLocation && (locationLoading || locationError || outOfRange)) || taskLoading ? 'disabled' : ''}}"
-        disabled="{{submitting || (requireLocation && (locationLoading || locationError || outOfRange)) || taskLoading}}"
+        class="submit-btn {{submitting || (requireLocation && (locationLoading || locationError || outOfRange)) || (requireFace && !photoPath) || taskLoading ? 'disabled' : ''}}"
+        disabled="{{submitting || (requireLocation && (locationLoading || locationError || outOfRange)) || (requireFace && !photoPath) || taskLoading}}"
         bindtap="onSubmitCheckIn"
       >
         {{submitting ? '签到中...' : '确认签到'}}

@@ -1,6 +1,8 @@
 import { query, queryOne, withTransaction } from '../../lib/db.js';
 import { logger } from '../../lib/logger.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { verifyFaces, isFaceServiceConfigured } from '../../lib/face-client.js';
+import { saveCapturedPhoto, readRegisteredPhoto } from '../../lib/face-storage.js';
 import { aiReviewReflection, getReviewReasonCode, saveAIReviewRecord } from '../reviews/reviews.service.js';
 import { assertTaskVisibleToStudent, fetchTaskById } from '../tasks/task.service.js';
 import { haversineDistance } from '../tasks/task.utils.js';
@@ -132,12 +134,17 @@ function toCheckInResponse(checkIn: CheckIn): CheckInResponse {
     ai_review_reason_code: getReviewReasonCode(checkIn.ai_review_reason ?? undefined),
     review_feedback: checkIn.review_feedback,
     reflection_modified: checkIn.reflection_modified,
+    face_photo_path: checkIn.face_photo_path,
+    face_verified: checkIn.face_verified,
+    face_similarity: checkIn.face_similarity === null ? null : Number(checkIn.face_similarity),
   };
 }
 
 export async function createOrUpdateCheckIn(
   userId: string,
-  input: CreateCheckInInput
+  input: CreateCheckInInput,
+  photoBuffer?: Buffer,
+  photoExt?: string
 ): Promise<CheckInResponse> {
   const { task_id, latitude, longitude, address, reflection_content } = input;
 
@@ -164,10 +171,63 @@ export async function createOrUpdateCheckIn(
     }
   }
 
+  // 人脸打卡校验：任务开启 require_face 时，必须上传现场照并与注册照比对通过
+  // 任一环节失败均硬阻断签到（不通过/无人脸/无注册照/服务故障）
+  let facePhotoPath: string | null = null;
+  let faceVerified: boolean | null = null;
+  let faceSimilarity: number | null = null;
+
+  if (task.require_face) {
+    if (!photoBuffer) {
+      throw new AppError('FACE_PHOTO_REQUIRED', '该任务需要人脸打卡，请先拍照', 400);
+    }
+    if (!isFaceServiceConfigured()) {
+      throw new AppError('FACE_SERVICE_UNAVAILABLE', '人脸校验服务未启用，请联系管理员', 503);
+    }
+
+    // 查询该学生的注册照
+    const face = await queryOne<{ photo_path: string }>(
+      'SELECT photo_path FROM user_faces WHERE user_id = $1',
+      [userId]
+    );
+    if (!face) {
+      throw new AppError('FACE_NO_REFERENCE', '未找到您的注册照，请联系辅导员录入', 400);
+    }
+
+    // image vs image 比对（无需 embedding 向量）
+    const refBytes = await readRegisteredPhoto(face.photo_path);
+    let result;
+    try {
+      result = await verifyFaces(refBytes, photoBuffer);
+    } catch (err) {
+      // FaceServiceError（超时/HTTP错误/不可用）→ 硬阻断，避免无人脸校验即放行
+      logger.warn(
+        { err: err instanceof Error ? { message: err.message } : { message: String(err) } },
+        '人脸比对服务调用失败，阻断签到'
+      );
+      throw new AppError('FACE_SERVICE_UNAVAILABLE', '人脸校验服务暂时不可用，请重试', 503);
+    }
+    if (!result.detected) {
+      throw new AppError('FACE_NOT_DETECTED', '未检测到人脸，请在光线充足处正对镜头重拍', 400);
+    }
+    if (!result.isMatch) {
+      throw new AppError('FACE_MISMATCH', '人脸比对不通过，请使用本人面部', 403);
+    }
+
+    // 比对通过：落盘现场照并记录结果
+    facePhotoPath = await saveCapturedPhoto(photoBuffer, photoExt ?? 'jpg');
+    faceVerified = true;
+    faceSimilarity = result.similarity;
+  } else if (photoBuffer) {
+    // 非强制人脸任务但传了现场照：best-effort 落盘留痕（不影响签到结果）
+    facePhotoPath = await saveCapturedPhoto(photoBuffer, photoExt ?? 'jpg');
+  }
+
   const rows = await query<CheckIn>(
     `INSERT INTO check_ins (
-      task_id, user_id, status, latitude, longitude, address, checked_in_at, reflection_content
-    ) VALUES ($1, $2, 'submitted', $3, $4, $5, $6, $7)
+      task_id, user_id, status, latitude, longitude, address, checked_in_at, reflection_content,
+      face_photo_path, face_verified, face_similarity
+    ) VALUES ($1, $2, 'submitted', $3, $4, $5, $6, $7, $8, $9, $10)
     ON CONFLICT (task_id, user_id)
     DO UPDATE SET
       status = EXCLUDED.status,
@@ -176,9 +236,23 @@ export async function createOrUpdateCheckIn(
       address = EXCLUDED.address,
       checked_in_at = EXCLUDED.checked_in_at,
       reflection_content = EXCLUDED.reflection_content,
+      face_photo_path = EXCLUDED.face_photo_path,
+      face_verified = EXCLUDED.face_verified,
+      face_similarity = EXCLUDED.face_similarity,
       updated_at = NOW()
     RETURNING *`,
-    [task_id, userId, safeLatitude, safeLongitude, address ?? null, new Date().toISOString(), reflection_content ?? null]
+    [
+      task_id,
+      userId,
+      safeLatitude,
+      safeLongitude,
+      address ?? null,
+      new Date().toISOString(),
+      reflection_content ?? null,
+      facePhotoPath,
+      faceVerified,
+      faceSimilarity,
+    ]
   );
 
   if (rows.length === 0) {

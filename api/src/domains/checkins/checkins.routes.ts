@@ -3,6 +3,7 @@ import { authenticate } from '../../middleware/auth.js';
 import { requireRoles } from '../../middleware/rbac.js';
 import {
   createCheckIn,
+  checkinUpload,
   getCheckInResultController,
   getStudentCalendarController,
   submitReflectionController,
@@ -13,7 +14,7 @@ import {
 const router = Router();
 
 router.get('/reverse-geocode', authenticate, requireRoles('student'), reverseGeocodeController);
-router.post('/', authenticate, requireRoles('student'), createCheckIn);
+router.post('/', authenticate, requireRoles('student'), checkinUpload.single('photo'), createCheckIn);
 router.post('/:id/reflection', authenticate, requireRoles('student'), submitReflectionController);
 router.get('/:id/result', authenticate, requireRoles('student'), getCheckInResultController);
 router.get('/calendar', authenticate, requireRoles('student'), getStudentCalendarController);

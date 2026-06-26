@@ -213,7 +213,14 @@ export default function TasksPage() {
                   ) : (
                     filteredTasks.map((task) => (
                       <tr key={task.id} className="border-b border-[var(--color-border)] last:border-0">
-                        <td className="py-3 text-[var(--color-ink)]">{task.title}</td>
+                        <td className="py-3 text-[var(--color-ink)]">
+                          <span className="inline-flex items-center gap-2">
+                            {task.title}
+                            {task.require_face && (
+                              <Badge variant="warning">需人脸</Badge>
+                            )}
+                          </span>
+                        </td>
                         <td className="py-3 text-[var(--color-ink-secondary)]">{scopeLabel(task)}</td>
                         <td className="py-3 text-[var(--color-ink-secondary)]">{formatDate(task.published_at)}</td>
                         <td className="py-3 text-[var(--color-ink-secondary)]">{formatDate(task.deadline_at)}</td>

@@ -88,6 +88,17 @@
           </view>
         </view>
 
+        <!-- 人脸打卡 -->
+        <view class="face-section" wx:if="{{requireFace}}">
+          <view class="face-label">人脸验证</view>
+          <view class="face-hint">该任务需人脸验证，请拍摄本人面部完成签到</view>
+          <view wx:if="{{photoPreview}}" class="face-preview-wrap">
+            <image class="face-preview" src="{{photoPreview}}" mode="aspectFill" />
+            <text class="face-retake" bindtap="onRetakePhoto">重新拍摄</text>
+          </view>
+          <button wx:else class="face-btn" bindtap="onTakePhoto">点击拍照</button>
+        </view>
+
         <!-- 心得输入 -->
         <view class="reflection-section">
           <view class="reflection-label-row">

@@ -286,6 +286,64 @@ page {
   padding-top: 32rpx;
 }
 
+/* 人脸打卡 */
+.face-section {
+  border-top: 1rpx solid #F1F5F9;
+  padding-top: 32rpx;
+  margin-bottom: 32rpx;
+}
+
+.face-label {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #164E63;
+  margin-bottom: 12rpx;
+}
+
+.face-hint {
+  font-size: 26rpx;
+  color: #64748B;
+  margin-bottom: 20rpx;
+}
+
+.face-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.face-preview {
+  width: 100%;
+  height: 360rpx;
+  border-radius: 16rpx;
+  background-color: #F1F5F9;
+}
+
+.face-retake {
+  font-size: 26rpx;
+  color: #0891B2;
+}
+
+.face-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  background-color: #0891B2;
+  color: #FFFFFF;
+  font-size: 28rpx;
+  border-radius: 40rpx;
+  border: none;
+}
+
+.face-btn::after {
+  border: none;
+}
+
+.face-btn:active {
+  opacity: 0.85;
+}
+
 .reflection-label-row {
   display: flex;
   justify-content: space-between;

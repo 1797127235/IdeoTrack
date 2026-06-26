@@ -243,8 +243,8 @@ export async function createTask(
       title, content, guiding_questions, source_url, video_url,
       scope_type, scope_id, target_college_id, target_class_id, source_task_id,
       created_by, published_at, deadline_at,
-      geo_lat, geo_lng, geo_radius_meters, geo_address
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
     RETURNING *`,
     [
       input.title,
@@ -264,6 +264,7 @@ export async function createTask(
       input.geo_lng ?? null,
       input.geo_radius_meters ?? null,
       input.geo_address ?? null,
+      input.require_face ?? false,
     ]
   );
 
@@ -321,8 +322,8 @@ export async function dispatchTask(
       title, content, guiding_questions, source_url, video_url,
       scope_type, scope_id, target_college_id, target_class_id, source_task_id,
       created_by, published_at, deadline_at,
-      geo_lat, geo_lng, geo_radius_meters, geo_address
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
     RETURNING *`,
     [
       sourceTask.title,  // 快照：从源任务拷贝
@@ -342,6 +343,7 @@ export async function dispatchTask(
       sourceTask.geo_lng ?? null,
       sourceTask.geo_radius_meters ?? null,
       sourceTask.geo_address ?? null,
+      sourceTask.require_face ?? false,  // 快照：继承源任务的人脸打卡要求
     ]
   );
 
@@ -593,6 +595,7 @@ export async function updateTask(
   if (input.geo_lng !== undefined) addSet('geo_lng', input.geo_lng ?? null);
   if (input.geo_radius_meters !== undefined) addSet('geo_radius_meters', input.geo_radius_meters ?? null);
   if (input.geo_address !== undefined) addSet('geo_address', input.geo_address ?? null);
+  if (input.require_face !== undefined) addSet('require_face', input.require_face);
   if (input.status !== undefined) addSet('status', input.status);
 
   if (updates.length === 0) {
@@ -836,5 +839,6 @@ export async function getMyTaskDetail(userId: string, taskId: string): Promise<T
     geo_lng: task.geo_lng,
     geo_radius_meters: task.geo_radius_meters,
     geo_address: task.geo_address,
+    require_face: task.require_face,
   };
 }

@@ -9,5 +9,6 @@ export { Skeleton, type SkeletonProps } from "./Skeleton";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { FormField, Label, type FormFieldProps } from "./FormField";
+export { Switch, type SwitchProps } from "./Switch";
 export { ToastProvider, useToast } from "./ToastProvider";
 export { type ToastType } from "./Toast";

@@ -19,6 +19,7 @@ export interface Task {
   geo_lng: number | null;
   geo_radius_meters: number | null;
   geo_address: string | null;
+  require_face: boolean;
   published_at: string;
   deadline_at: string;
   status: TaskStatus;
@@ -70,6 +71,7 @@ export const createTask = (data: {
   geo_lng?: number | null;
   geo_radius_meters?: number | null;
   geo_address?: string | null;
+  require_face?: boolean;
   published_at: string;
   deadline_at: string;
 }) => api.post<Task>("/tasks", data);
@@ -89,6 +91,7 @@ export const updateTask = (
     geo_lng: number | null;
     geo_radius_meters: number | null;
     geo_address: string | null;
+    require_face?: boolean;
     published_at: string;
     deadline_at: string;
     status: TaskStatus;

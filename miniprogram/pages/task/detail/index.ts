@@ -1,6 +1,6 @@
 "use client";
 
-import { createCheckIn, reverseGeocode, type CreateCheckInData } from '../../../services/checkinApi';
+import { createCheckIn, createCheckInWithPhoto, reverseGeocode, type CreateCheckInData } from '../../../services/checkinApi';
 import { getMyTaskDetail, type TaskDetail } from '../../../services/taskApi';
 import { formatDeadline } from '../../../utils/format';
 import { theme } from '../../../theme';
@@ -102,6 +102,9 @@ Page({
     locationError: '',
     outOfRange: false,
     submitting: false,
+    requireFace: false,
+    photoPath: '',
+    photoPreview: '',
     reviewMeta: null as { label: string; color: string; icon: string } | null,
     reviewReasonText: '',
   },
@@ -126,6 +129,7 @@ Page({
         const reviewMeta = getReviewStatusMeta(task.check_in_status || '');
         const reviewReasonText = getReviewReasonText(task.ai_review_reason_code, task.ai_review_reason);
         const requireLocation = task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null;
+        const requireFace = !!task.require_face;
 
         const canCheckIn = task.status === 'in_progress';
         let buttonText = '立即打卡';
@@ -161,6 +165,7 @@ Page({
           showModifyReflection: canModifyReflection(task),
           deadlineText: formatDeadline(task.deadline_at),
           requireLocation,
+          requireFace,
           canCheckIn,
           reflectionContent: task.reflection_content || '',
           reviewMeta,
@@ -240,15 +245,45 @@ Page({
     this.updateCanSubmit();
   },
 
+  /** 人脸打卡：唤起系统相机拍一张现场照 */
+  onTakePhoto() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['camera'],
+      camera: 'back',
+      success: (res) => {
+        const file = res.tempFiles[0];
+        this.setData({
+          photoPath: file.tempFilePath,
+          photoPreview: file.tempFilePath,
+        });
+        this.updateCanSubmit();
+      },
+      fail: (err) => {
+        if (!err.errMsg?.includes('cancel')) {
+          wx.showToast({ title: '拍照失败，请重试', icon: 'none' });
+        }
+      },
+    });
+  },
+
+  /** 重新拍照 */
+  onRetakePhoto() {
+    this.setData({ photoPath: '', photoPreview: '' });
+    this.onTakePhoto();
+  },
+
   updateCanSubmit() {
-    const { reflectionContent, requireLocation, locationLoading, locationError, outOfRange } = this.data;
+    const { reflectionContent, requireLocation, locationLoading, locationError, outOfRange, requireFace, photoPath } = this.data;
     const hasReflection = reflectionContent.trim().length >= 10;
     const locationReady = !requireLocation || (!locationLoading && !locationError && !outOfRange && !!this.data.address);
-    this.setData({ canSubmit: hasReflection && locationReady });
+    const photoReady = !requireFace || !!photoPath;
+    this.setData({ canSubmit: hasReflection && locationReady && photoReady });
   },
 
   async onSubmit() {
-    const { taskId, reflectionContent, requireLocation, latitude, longitude, address, canSubmit, submitting } = this.data;
+    const { taskId, reflectionContent, requireLocation, latitude, longitude, address, canSubmit, submitting, requireFace, photoPath } = this.data;
     if (!canSubmit || submitting) return;
 
     this.setData({ submitting: true });
@@ -262,7 +297,9 @@ Page({
         payload.longitude = longitude;
         payload.address = address;
       }
-      const res = await createCheckIn(payload);
+      const res = requireFace && photoPath
+        ? await createCheckInWithPhoto(payload, photoPath)
+        : await createCheckIn(payload);
       if (res.success && res.data) {
         wx.showToast({ title: '打卡成功', icon: 'success' });
         setTimeout(() => {

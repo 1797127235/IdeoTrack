@@ -44,6 +44,7 @@ export interface TaskDetail extends StudentTask {
   geo_lng?: number | null;
   geo_radius_meters?: number | null;
   geo_address?: string | null;
+  require_face?: boolean;
 }
 
 export interface CounselorClass {

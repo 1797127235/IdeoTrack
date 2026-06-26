@@ -31,6 +31,7 @@ export const createTaskSchema = z.object({
   geo_lng: z.number().min(-180).max(180).nullable().optional(),
   geo_radius_meters: z.number().int().min(50).max(1000).nullable().optional(),
   geo_address: z.string().trim().max(200).nullable().optional(),
+  require_face: z.boolean().optional(),
 }).refine(
   (data) => {
     // AD-21: pool/school 不需要 scope_id；college/class 必须提供有效 scope_id
@@ -92,6 +93,7 @@ export const updateTaskSchema = z.object({
   geo_lng: z.number().min(-180).max(180).nullable().optional(),
   geo_radius_meters: z.number().int().min(50).max(1000).nullable().optional(),
   geo_address: z.string().trim().max(200).nullable().optional(),
+  require_face: z.boolean().optional(),
   // P1: status 字段保留以兼容前端类型，但 controller 会拒绝通过 update 修改 status
   status: z.enum(['published', 'delisted']).optional(),
 }).refine(

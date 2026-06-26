@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { AppError } from '../../middleware/error-handler.js';
 import { reverseGeocode } from '../../lib/geo.js';
 import { createOrUpdateCheckIn, getCheckInResult, getStudentCalendar, submitReflection, getStudyRecords } from './checkins.service.js';
@@ -8,6 +9,25 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
+}
+
+// 人脸现场照上传：内存存储，限 5MB，仅图片（与管理员注册照上传保持一致）
+export const checkinUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpe?g|png|webp)$/.test(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('仅支持 jpg/png/webp 图片'));
+    }
+  },
+});
+
+// 从 multipart 文件名解析扩展名
+function getExt(filename: string): string {
+  const dot = filename.lastIndexOf('.');
+  return dot >= 0 ? filename.slice(dot + 1).toLowerCase() : 'jpg';
 }
 
 export async function reverseGeocodeController(
@@ -44,7 +64,21 @@ export async function createCheckIn(
       throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
     }
 
-    const parseResult = createCheckInSchema.safeParse(req.body);
+    // multipart 上传时 req.body 字段均为字符串，需转换为 zod 期望的类型
+    const raw = req.body ?? {};
+    const payload: Record<string, unknown> = {
+      task_id: raw.task_id,
+      address: raw.address ?? undefined,
+      reflection_content: raw.reflection_content ?? undefined,
+    };
+    if (raw.latitude !== undefined && raw.latitude !== '') {
+      payload.latitude = Number(raw.latitude);
+    }
+    if (raw.longitude !== undefined && raw.longitude !== '') {
+      payload.longitude = Number(raw.longitude);
+    }
+
+    const parseResult = createCheckInSchema.safeParse(payload);
     if (!parseResult.success) {
       throw new AppError(
         'VALIDATION_ERROR',
@@ -53,7 +87,11 @@ export async function createCheckIn(
       );
     }
 
-    const checkIn = await createOrUpdateCheckIn(req.user.userId, parseResult.data);
+    // 现场照（仅 require_face 任务需要，存在与否、是否匹配由 service 校验）
+    const photoBuffer = req.file?.buffer;
+    const photoExt = req.file ? getExt(req.file.originalname) : undefined;
+
+    const checkIn = await createOrUpdateCheckIn(req.user.userId, parseResult.data, photoBuffer, photoExt);
 
     res.status(200).json({
       success: true,
