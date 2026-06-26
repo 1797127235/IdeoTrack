@@ -67,11 +67,11 @@ services:
     expose:
       - "3001"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/admin/login || wget -qO- http://localhost:3001/admin || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 10
+      start_period: 30s
 
   face:
     image: ${FACE_IMAGE:-ghcr.io/1797127235/ideotrack-face:${IMAGE_TAG:-latest}}

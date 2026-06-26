@@ -25,6 +25,7 @@ export interface User {
   isInitialPassword: boolean;
   classId: string | null;
   collegeId: string | null;
+  directCollegeId: string | null;
   collegeName: string | null;
   className: string | null;
   hasFace: boolean;
@@ -70,6 +71,7 @@ export interface CreateUserInput {
   schoolId: string;
   name?: string;
   role: UserRole;
+  collegeId?: string;
   classId?: string;
   isEnabled?: boolean;
 }
@@ -77,6 +79,7 @@ export interface CreateUserInput {
 export interface UpdateUserInput {
   name?: string;
   role?: UserRole;
+  collegeId?: string | null;
   classId?: string | null;
   isEnabled?: boolean;
 }
@@ -86,6 +89,7 @@ export interface BatchImportUserInput {
     schoolId: string;
     name?: string;
     role: UserRole;
+    collegeId?: string;
     classId?: string;
   }>;
 }

@@ -39,6 +39,7 @@ interface FormState {
   schoolId: string;
   name: string;
   role: UserRole;
+  collegeId: string;
   classId: string;
 }
 
@@ -46,6 +47,7 @@ const emptyForm: FormState = {
   schoolId: "",
   name: "",
   role: "student",
+  collegeId: "",
   classId: "",
 };
 
@@ -189,6 +191,7 @@ export default function UsersPage() {
       schoolId: user.schoolId,
       name: user.name || "",
       role: user.role,
+      collegeId: user.collegeId || "",
       classId: user.classId || "",
     });
     setIsModalOpen(true);
@@ -211,6 +214,7 @@ export default function UsersPage() {
         await updateUser(editingUser.id, {
           name: form.name.trim(),
           role: form.role,
+          collegeId: form.collegeId || null,
           classId: form.role === "student" ? form.classId || null : null,
         });
       } else {
@@ -218,6 +222,7 @@ export default function UsersPage() {
           schoolId: form.schoolId.trim(),
           name: form.name.trim(),
           role: form.role,
+          collegeId: form.collegeId || undefined,
           classId: form.role === "student" ? form.classId : undefined,
         });
       }
@@ -716,21 +721,41 @@ export default function UsersPage() {
             </div>
 
             {form.role === "student" && (
-              <div>
-                <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">班级</label>
-                <select
-                  value={form.classId}
-                  onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-                >
-                  <option value="">请选择班级</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.collegeName} - {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">学院</label>
+                  <select
+                    value={form.collegeId}
+                    onChange={(e) => setForm((f) => ({ ...f, collegeId: e.target.value, classId: "" }))}
+                    className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+                  >
+                    <option value="">请选择学院</option>
+                    {colleges.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-[var(--color-ink-secondary)] mb-1.5">班级</label>
+                  <select
+                    value={form.classId}
+                    onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))}
+                    className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+                  >
+                    <option value="">请选择班级</option>
+                    {classes
+                      .filter((c) => !form.collegeId || c.collegeId === form.collegeId)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </>
             )}
 
             <div className="flex gap-3 pt-2">

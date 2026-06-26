@@ -203,9 +203,10 @@ function buildUserListQuery(): string {
       u.is_enabled AS "isEnabled",
       u.is_initial_password AS "isInitialPassword",
       u.class_id AS "classId",
-      c.college_id AS "collegeId",
+      COALESCE(c.college_id, u.college_id) AS "collegeId",
+      u.college_id AS "directCollegeId",
       c.name AS "className",
-      co.name AS "collegeName",
+      COALESCE(co.name, co2.name) AS "collegeName",
       -- hasFace：有可用比对向量才算「已注册」，仅存原图无向量（face 服务降级）的不计
       (uf.id IS NOT NULL AND uf.embedding IS NOT NULL) AS "hasFace",
       u.created_at AS "createdAt",
@@ -213,6 +214,7 @@ function buildUserListQuery(): string {
     FROM users u
     LEFT JOIN classes c ON u.class_id = c.id
     LEFT JOIN colleges co ON c.college_id = co.id
+    LEFT JOIN colleges co2 ON u.college_id = co2.id
     LEFT JOIN user_faces uf ON uf.user_id = u.id
   `;
 }
@@ -243,7 +245,7 @@ export async function listUsers(
     paramIndex++;
   }
   if (filters.collegeId) {
-    conditions.push(`c.college_id = $${paramIndex}`);
+    conditions.push(`(c.college_id = $${paramIndex} OR u.college_id = $${paramIndex})`);
     values.push(filters.collegeId);
     paramIndex++;
   }
@@ -265,6 +267,8 @@ export async function listUsers(
      FROM users u
      LEFT JOIN classes c ON u.class_id = c.id
      LEFT JOIN colleges co ON c.college_id = co.id
+     LEFT JOIN colleges co2 ON u.college_id = co2.id
+     LEFT JOIN user_faces uf ON uf.user_id = u.id
      ${whereClause}`,
     values
   );
@@ -313,9 +317,16 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 
   const passwordHash = await bcrypt.hash(generateDefaultPassword(input.schoolId), BCRYPT_SALT_ROUNDS);
 
+  // 如果传了 classId，从班级推断学院；否则用显式 collegeId
+  let collegeId = input.collegeId ?? null;
+  if (input.classId) {
+    const cls = await queryOne<{ college_id: string }>('SELECT college_id FROM classes WHERE id = $1 LIMIT 1', [input.classId]);
+    if (cls) collegeId = cls.college_id;
+  }
+
   const user = await queryOne<User>(
-    `INSERT INTO users (school_id, password_hash, name, role, class_id, is_enabled, is_initial_password)
-     VALUES ($1, $2, $3, $4, $5, $6, true)
+    `INSERT INTO users (school_id, password_hash, name, role, class_id, college_id, is_enabled, is_initial_password)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, true)
      RETURNING id`,
     [
       input.schoolId,
@@ -323,6 +334,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
       input.name || null,
       input.role,
       input.classId || null,
+      collegeId,
       input.isEnabled ?? true,
     ]
   );
@@ -357,9 +369,18 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
     updates.push(`role = $${paramIndex++}`);
     values.push(input.role);
   }
+  if (input.collegeId !== undefined) {
+    updates.push(`college_id = $${paramIndex++}`);
+    values.push(input.collegeId);
+  }
   if (input.classId !== undefined) {
     updates.push(`class_id = $${paramIndex++}`);
     values.push(input.classId);
+    // 当 classId 变更时，自动同步 college_id 为班级所属学院
+    if (input.classId) {
+      updates.push(`college_id = (SELECT college_id FROM classes WHERE id = $${paramIndex++})`);
+      values.push(input.classId);
+    }
   }
   if (input.isEnabled !== undefined) {
     updates.push(`is_enabled = $${paramIndex++}`);

@@ -23,10 +23,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget \
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY web/package*.json ./
-RUN npm install --omit=dev --omit=optional
+# 生产环境保留 @next/swc-* 平台包，避免 next start 启动时联网下载 SWC 二进制
+RUN npm install --omit=dev && \
+    npm install --no-save @next/swc-linux-x64-gnu @next/swc-linux-x64-musl || true
 
+# 将构建产物中的 SWC 二进制保留，避免启动时联网下载
+# 将构建产物复制到生产镜像
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.ts ./next.config.ts

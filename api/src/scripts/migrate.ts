@@ -71,6 +71,16 @@ CREATE TRIGGER update_users_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- 用户表添加学院字段（与 class_id 保持一致，方便按学院查询）
+ALTER TABLE users ADD COLUMN IF NOT EXISTS college_id UUID REFERENCES colleges(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_users_college_id ON users(college_id);
+
+-- 存量数据回刷：根据班级所属学院填充用户 college_id
+UPDATE users u
+SET college_id = c.college_id
+FROM classes c
+WHERE u.class_id = c.id AND u.college_id IS NULL;
+
 -- 微信 openid 字段（学生微信登录绑定，AD-17）
 ALTER TABLE users ADD COLUMN IF NOT EXISTS wechat_openid TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN NOT NULL DEFAULT true;

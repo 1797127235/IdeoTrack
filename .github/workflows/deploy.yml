@@ -227,15 +227,16 @@ jobs:
 
             # 等待 Web 就绪（检查静态资源端口）
             echo "Waiting for Web..."
-            for i in {1..30}; do
-              if docker compose exec -T web wget -qO- http://localhost:3001 >/dev/null 2>&1; then
+            for i in {1..60}; do
+              if docker compose exec -T web wget -qO- http://localhost:3001/admin/login >/dev/null 2>&1 || \
+                 docker compose exec -T web wget -qO- http://localhost:3001/admin >/dev/null 2>&1; then
                 echo "Web is ready"
                 break
               fi
-              if [ "$i" -eq 30 ]; then
-                echo "ERROR: Web did not become ready within 60s"
+              if [ "$i" -eq 60 ]; then
+                echo "ERROR: Web did not become ready within 120s"
                 docker compose ps
-                docker compose logs --tail=50 web
+                docker compose logs --tail=80 web
                 exit 1
               fi
               sleep 2

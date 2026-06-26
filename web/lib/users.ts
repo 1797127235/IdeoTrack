@@ -84,6 +84,7 @@ export const createUser = (data: {
   schoolId: string;
   name?: string;
   role: UserRole;
+  collegeId?: string;
   classId?: string;
 }) => api.post<User>("/users", data);
 export const updateUser = (
@@ -91,6 +92,7 @@ export const updateUser = (
   data: {
     name?: string;
     role?: UserRole;
+    collegeId?: string | null;
     classId?: string | null;
     isEnabled?: boolean;
   }
@@ -101,6 +103,7 @@ export const batchImportUsers = (data: { users: Array<{
   schoolId: string;
   name?: string;
   role: UserRole;
+  collegeId?: string;
   classId?: string;
 }> }) => api.post<{ success: number; failed: number; errors: Array<{ row: number; message: string }> }>("/users/batch-import", data);
 
