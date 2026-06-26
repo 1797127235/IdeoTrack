@@ -1,4 +1,4 @@
-import { createCheckIn } from '../../services/checkinApi';
+import { createCheckIn, type CreateCheckInData } from '../../services/checkinApi';
 import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
 import { formatDeadline } from '../../utils/format';
 
@@ -16,16 +16,17 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 Page({
   data: {
     taskId: '',
-    taskTitle: '定位签到',
+    taskTitle: '任务打卡',
     task: null as TaskDetail | null,
     deadlineText: '',
     taskLoading: true,
     taskError: '',
+    requireLocation: false,
     latitude: 0,
     longitude: 0,
     address: '',
-    locationLoading: true,
-    locationReady: false,
+    locationLoading: false,
+    locationReady: true,
     locationError: '',
     submitting: false,
     geofenceHint: '',
@@ -43,7 +44,6 @@ Page({
 
     this.setData({ taskId });
     this.loadTaskDetail(taskId);
-    this.loadLocation();
   },
 
   async loadTaskDetail(taskId: string) {
@@ -53,10 +53,21 @@ Page({
       if (res.success && res.data) {
         const task = res.data;
         wx.setNavigationBarTitle({ title: task.title });
-        const geofenceHint = task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null
+        const requireLocation = task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null;
+        const geofenceHint = requireLocation
           ? `该任务需在「${task.geo_address || '指定位置'}」${task.geo_radius_meters} 米范围内签到`
-          : '';
-        this.setData({ task, taskTitle: task.title, deadlineText: formatDeadline(task.deadline_at), taskLoading: false, geofenceHint });
+          : '该任务无需定位，直接确认打卡即可';
+        this.setData({
+          task,
+          taskTitle: task.title,
+          deadlineText: formatDeadline(task.deadline_at),
+          taskLoading: false,
+          requireLocation,
+          geofenceHint,
+        });
+        if (requireLocation) {
+          this.loadLocation();
+        }
       } else {
         this.setData({
           taskError: res.error?.message || '获取任务详情失败',
@@ -138,21 +149,27 @@ Page({
   },
 
   async onSubmitCheckIn() {
-    const { taskId, latitude, longitude, address, locationReady, submitting, outOfRange } = this.data;
+    const { taskId, latitude, longitude, address, locationReady, submitting, outOfRange, requireLocation } = this.data;
 
     if (submitting) return;
-    if (!locationReady) {
+    if (requireLocation && !locationReady) {
       wx.showToast({ title: '请等待定位完成', icon: 'none' });
       return;
     }
-    if (outOfRange) {
+    if (requireLocation && outOfRange) {
       wx.showToast({ title: '当前不在签到范围内', icon: 'none' });
       return;
     }
 
     this.setData({ submitting: true });
     try {
-      const res = await createCheckIn({ task_id: taskId, latitude, longitude, address });
+      const payload: CreateCheckInData = { task_id: taskId };
+      if (requireLocation) {
+        payload.latitude = latitude;
+        payload.longitude = longitude;
+        payload.address = address;
+      }
+      const res = await createCheckIn(payload);
       if (res.success && res.data) {
         wx.showToast({ title: '签到成功', icon: 'success' });
         const checkInId = res.data.id;
