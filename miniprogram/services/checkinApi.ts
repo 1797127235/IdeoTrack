@@ -1,4 +1,5 @@
-import { post, get, API_BASE_URL, type ApiResponse } from './api';
+import { post, get, API_BASE_URL } from './api';
+import { ApiResponse } from './api';
 import { getToken, clearToken } from '../utils/token';
 
 export interface CreateCheckInData {

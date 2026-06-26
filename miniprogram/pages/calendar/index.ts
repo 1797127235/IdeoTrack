@@ -1,5 +1,6 @@
 import { get } from '../../services/api';
-import { getStudyRecords, type StudyRecordItem } from '../../services/studyApi';
+import { getStudyRecords } from '../../services/studyApi';
+import { StudyRecordItem } from '../../services/studyApi';
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 

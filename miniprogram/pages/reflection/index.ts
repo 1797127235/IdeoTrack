@@ -1,5 +1,6 @@
 import { submitReflection } from '../../services/checkinApi';
-import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
+import { getMyTaskDetail } from '../../services/taskApi';
+import { TaskDetail } from '../../services/taskApi';
 import { isUuid } from '../../utils/validators';
 
 function getReviewReasonText(reasonCode: string | undefined, reason: string | undefined): string {

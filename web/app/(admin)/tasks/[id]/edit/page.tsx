@@ -33,6 +33,7 @@ export default function EditTaskPage() {
   const [publishedAt, setPublishedAt] = useState("");
   const [deadlineAt, setDeadlineAt] = useState("");
   const [geofence, setGeofence] = useState<GeofenceValue | null>(null);
+  const [requireLocation, setRequireLocation] = useState(false);
   const [requireFace, setRequireFace] = useState(false);
   const [colleges, setColleges] = useState<College[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -57,6 +58,7 @@ export default function EditTaskPage() {
         setPublishedAt(formatDateTimeLocal(task.published_at));
         setDeadlineAt(formatDateTimeLocal(task.deadline_at));
         if (task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null) {
+          setRequireLocation(true);
           setGeofence({
             lat: task.geo_lat,
             lng: task.geo_lng,
@@ -64,6 +66,7 @@ export default function EditTaskPage() {
             address: task.geo_address || "",
           });
         } else {
+          setRequireLocation(false);
           setGeofence(null);
         }
         setRequireFace(task.require_face ?? false);
@@ -92,6 +95,10 @@ export default function EditTaskPage() {
         .map((q) => q.trim())
         .filter((q) => q.length > 0);
 
+      if (requireLocation && !geofence) {
+        throw new Error("开启定位签到后，请先选择签到范围");
+      }
+
       await updateTask(taskId, {
         title: title.trim(),
         content: content.trim(),
@@ -102,10 +109,10 @@ export default function EditTaskPage() {
         scope_id: scopeType === "school" || scopeType === "pool" ? null : scopeId,
         published_at: new Date(publishedAt).toISOString(),
         deadline_at: new Date(deadlineAt).toISOString(),
-        geo_lat: geofence?.lat ?? null,
-        geo_lng: geofence?.lng ?? null,
-        geo_radius_meters: geofence?.radius ?? null,
-        geo_address: geofence?.address ?? null,
+        geo_lat: requireLocation && geofence ? geofence.lat : null,
+        geo_lng: requireLocation && geofence ? geofence.lng : null,
+        geo_radius_meters: requireLocation && geofence ? geofence.radius : null,
+        geo_address: requireLocation && geofence ? geofence.address : null,
         require_face: requireFace,
       });
       router.push("/tasks");
@@ -279,9 +286,31 @@ export default function EditTaskPage() {
             </FormField>
           </div>
 
-          <FormField label="签到范围（可选）">
-            <GeofencePicker value={geofence} onChange={setGeofence} />
+          <FormField
+            label="需定位签到"
+            htmlFor="requireLocation"
+            hint="开启后，学生打卡时必须获取当前位置，并在指定范围内才能完成签到"
+          >
+            <div className="flex items-center gap-3 pt-1">
+              <Switch
+                id="requireLocation"
+                checked={requireLocation}
+                onCheckedChange={(checked) => {
+                  setRequireLocation(checked);
+                  if (!checked) setGeofence(null);
+                }}
+              />
+              <span className="text-sm text-[var(--color-ink-secondary)]">
+                {requireLocation ? "已开启" : "未开启"}
+              </span>
+            </div>
           </FormField>
+
+          {requireLocation && (
+            <FormField label="签到范围" required={requireLocation}>
+              <GeofencePicker value={geofence} onChange={setGeofence} />
+            </FormField>
+          )}
 
           <FormField
             label="需人脸打卡"

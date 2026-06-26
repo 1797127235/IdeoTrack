@@ -1,5 +1,6 @@
 import { logout, getUserRole } from '../../../utils/auth';
-import { getMe, getMeStats, type MeResponse, type MeStatsResponse } from '../../../services/authApi';
+import { getMe, getMeStats } from '../../../services/authApi';
+import { MeResponse, MeStatsResponse } from '../../../services/authApi';
 import { updateTabBarSelected } from '../../../utils/tabBar';
 
 const defaultStats: MeStatsResponse = {

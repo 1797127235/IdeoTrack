@@ -1,4 +1,5 @@
-import { getMeStats, type MeStatsResponse } from '../../../services/authApi';
+import { getMeStats } from '../../../services/authApi';
+import { MeStatsResponse } from '../../../services/authApi';
 import {
   getClassLeaderboard,
   getCollegeLeaderboard,

@@ -1,5 +1,7 @@
-import { getCheckInResult, type CheckInResultSummary } from '../../../services/checkinApi';
-import { getMyTaskDetail, type TaskDetail } from '../../../services/taskApi';
+import { getCheckInResult } from '../../../services/checkinApi';
+import { CheckInResultSummary } from '../../../services/checkinApi';
+import { getMyTaskDetail } from '../../../services/taskApi';
+import { TaskDetail } from '../../../services/taskApi';
 import { isUuid } from '../../../utils/validators';
 
 const VALID_STATUSES: string[] = [

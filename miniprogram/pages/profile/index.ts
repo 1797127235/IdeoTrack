@@ -1,5 +1,6 @@
 import { logout, getUserRole } from '../../utils/auth';
-import { getMe, type MeResponse } from '../../services/authApi';
+import { getMe } from '../../services/authApi';
+import { MeResponse } from '../../services/authApi';
 import { updateTabBarSelected } from '../../utils/tabBar';
 
 Page({

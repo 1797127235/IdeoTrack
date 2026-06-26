@@ -1,5 +1,7 @@
-import { createCheckIn, createCheckInWithPhoto, reverseGeocode, type CreateCheckInData } from '../../services/checkinApi';
-import { getMyTaskDetail, type TaskDetail } from '../../services/taskApi';
+import { createCheckIn, createCheckInWithPhoto, reverseGeocode } from '../../services/checkinApi';
+import { CreateCheckInData } from '../../services/checkinApi';
+import { getMyTaskDetail } from '../../services/taskApi';
+import { TaskDetail } from '../../services/taskApi';
 import { formatDeadline } from '../../utils/format';
 
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {

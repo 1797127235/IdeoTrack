@@ -28,6 +28,7 @@ export default function CreateTaskPage() {
   const [publishedAt, setPublishedAt] = useState("");
   const [deadlineAt, setDeadlineAt] = useState("");
   const [geofence, setGeofence] = useState<GeofenceValue | null>(null);
+  const [requireLocation, setRequireLocation] = useState(false);
   const [requireFace, setRequireFace] = useState(false);
   const [colleges, setColleges] = useState<College[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -55,6 +56,10 @@ export default function CreateTaskPage() {
         .map((q) => q.trim())
         .filter((q) => q.length > 0);
 
+      if (requireLocation && !geofence) {
+        throw new Error("开启定位签到后，请先选择签到范围");
+      }
+
       await createTask({
         title: title.trim(),
         content: content.trim(),
@@ -66,7 +71,7 @@ export default function CreateTaskPage() {
         published_at: new Date(publishedAt).toISOString(),
         deadline_at: new Date(deadlineAt).toISOString(),
         require_face: requireFace,
-        ...(geofence
+        ...(requireLocation && geofence
           ? {
               geo_lat: geofence.lat,
               geo_lng: geofence.lng,
@@ -224,9 +229,31 @@ export default function CreateTaskPage() {
             </FormField>
           </div>
 
-          <FormField label="签到范围（可选）">
-            <GeofencePicker value={geofence} onChange={setGeofence} />
+          <FormField
+            label="需定位签到"
+            htmlFor="requireLocation"
+            hint="开启后，学生打卡时必须获取当前位置，并在指定范围内才能完成签到"
+          >
+            <div className="flex items-center gap-3 pt-1">
+              <Switch
+                id="requireLocation"
+                checked={requireLocation}
+                onCheckedChange={(checked) => {
+                  setRequireLocation(checked);
+                  if (!checked) setGeofence(null);
+                }}
+              />
+              <span className="text-sm text-[var(--color-ink-secondary)]">
+                {requireLocation ? "已开启" : "未开启"}
+              </span>
+            </div>
           </FormField>
+
+          {requireLocation && (
+            <FormField label="签到范围" required={requireLocation}>
+              <GeofencePicker value={geofence} onChange={setGeofence} />
+            </FormField>
+          )}
 
           <FormField
             label="需人脸打卡"

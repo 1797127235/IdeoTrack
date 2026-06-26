@@ -1,4 +1,5 @@
-import { getPendingReviews, type PendingReviewItem } from '../../services/reviewApi';
+import { getPendingReviews } from '../../services/reviewApi';
+import { PendingReviewItem } from '../../services/reviewApi';
 import { updateTabBarSelected } from '../../utils/tabBar';
 
 const PAGE_SIZE = 20;
