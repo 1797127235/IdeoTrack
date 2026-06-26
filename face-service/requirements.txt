@@ -1,15 +1,15 @@
 # IdeoTrack 人脸识别微服务依赖
 # onnxruntime 不发布 alpine wheel，必须用 Debian-based 镜像（python:3.11-slim）
 #
-# stringzilla 是 insightface 的依赖。新版默认从源码编译，单文件 -O2 编译极慢
-# （实测 >17 分钟仍卡在 cc1）。这里钉一个发布预编译 manylinux wheel 的版本，
-# 配合 Dockerfile 的 --only-binary 强制走 wheel，避免编译。
+# 全部钉在有预编译 wheel 的版本上，配合 Dockerfile 的 --only-binary :all: 零编译：
+#   - insightface 1.0.1：PyPI 上首个发 cp311 manylinux wheel 的稳定版（0.7.x 只有源码包，
+#     单文件源码编译 >17 分钟）。1.x 高层 FaceAnalysis/normed_embedding API 与 0.7.x 兼容。
+#   - stringzilla 3.10.6：cp311 manylinux_x86_64 全量 wheel，秒装。
+#   - onnxruntime 1.20.1：manylinux wheel，秒装。
 
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
-insightface==0.7.3
-# 钉死 stringzilla：3.x 系列对 cp311 manylinux_x86_64 全量发布 wheel，秒装。
-# 与 insightface 0.7.3 接口兼容（stringzilla 仅被其用于字符串加速，API 稳定）。
+insightface==1.0.1
 stringzilla==3.10.6
 onnxruntime==1.20.1
 numpy==1.26.4

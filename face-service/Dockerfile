@@ -18,8 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # 先拷 requirements 单独装，利用 docker 层缓存
-# --only-binary :all: 强制所有包走预编译 wheel，没 wheel 立即报错（而非闷头编译）。
-# 这避免 stringzilla/insightface 因缺 wheel 触发源码编译（单文件 -O2 可编十几分钟）。
+# --only-binary :all: 全部走预编译 wheel：insightface 1.0.1 / stringzilla 3.10.6 /
+# onnxruntime 1.20.1 均有 cp311 manylinux wheel，零编译，秒级装完。
+# 任何包缺 wheel 立即报错退出，而非闷头源码编译十几分钟。
 COPY requirements.txt .
 RUN pip install --no-cache-dir --only-binary :all: --user -r requirements.txt
 
