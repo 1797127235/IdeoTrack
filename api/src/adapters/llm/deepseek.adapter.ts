@@ -29,7 +29,7 @@ export class DeepSeekAdapter implements LLMProvider {
         temperature: 0.3,
         max_tokens: 128,
       }),
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!response.ok) {

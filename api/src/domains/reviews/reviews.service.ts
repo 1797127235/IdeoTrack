@@ -250,11 +250,12 @@ export async function aiReviewReflection(input: AIReviewInput): Promise<AIReview
   const llm = createLLMProvider();
   if (llm) {
     try {
-      // NFR-2：LLM 语义审核必须在 3 秒内返回，否则降级到人工复核
+      // LLM 语义审核超时兜底：适配器内部已设 8s，此处 race 给出统一的降级边界。
+      // 超时/异常时降级到人工复核，不阻塞用户流程。
       const llmResult = await Promise.race([
         llm.reviewReflection(input),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('LLM review timeout')), 3000)
+          setTimeout(() => reject(new Error('LLM review timeout')), 8000)
         ),
       ]);
       if (llmResult.status === 'pending_manual_review') {
