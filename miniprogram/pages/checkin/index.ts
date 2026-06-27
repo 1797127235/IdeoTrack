@@ -38,6 +38,8 @@ Page({
     requireFace: false,
     photoPath: '',
     photoPreview: '',
+    faceStatusText: '',
+    faceStatusType: '',
   },
 
   onLoad(options: { taskId?: string }) {
@@ -124,9 +126,7 @@ Page({
         this.setData({
           locationLoading: false,
           locationReady: false,
-          locationError: isAuthDenied
-            ? '请开启定位权限以完成签到'
-            : '获取位置失败，请重试',
+          locationError: isAuthDenied ? '请开启定位权限以完成签到' : '获取位置失败，请重试',
         });
       },
     });
@@ -139,15 +139,11 @@ Page({
         if (res.success && res.data) {
           this.setData({ address: res.data.formattedAddress || res.data.address });
         } else {
-          this.setData({
-            address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}`,
-          });
+          this.setData({ address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}` });
         }
       })
       .catch(() => {
-        this.setData({
-          address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}`,
-        });
+        this.setData({ address: `纬度 ${latitude.toFixed(6)}, 经度 ${longitude.toFixed(6)}` });
       })
       .finally(() => {
         this.setData({ locationLoading: false });
@@ -186,7 +182,13 @@ Page({
         this.setData({
           photoPath: file.tempFilePath,
           photoPreview: file.tempFilePath,
+          faceStatusText: '照片已拍摄，正在准备上传验证',
+          faceStatusType: 'pending',
         });
+
+        if (!this.data.requireLocation || this.data.locationReady) {
+          this.onSubmitCheckIn();
+        }
       },
       fail: (err) => {
         if (!err.errMsg?.includes('cancel')) {
@@ -197,7 +199,12 @@ Page({
   },
 
   onRetakePhoto() {
-    this.setData({ photoPath: '', photoPreview: '' });
+    this.setData({
+      photoPath: '',
+      photoPreview: '',
+      faceStatusText: '',
+      faceStatusType: '',
+    });
     this.onTakePhoto();
   },
 
@@ -230,6 +237,12 @@ Page({
     }
 
     this.setData({ submitting: true });
+    if (requireFace) {
+      this.setData({
+        faceStatusText: '正在上传照片并进行人脸验证...',
+        faceStatusType: 'verifying',
+      });
+    }
     wx.showLoading({
       title: requireFace ? '上传验证中...' : '提交中...',
       mask: true,
@@ -250,25 +263,43 @@ Page({
       wx.hideLoading();
 
       if (res.success && res.data) {
-        wx.showToast({ title: '签到成功', icon: 'success' });
+        if (requireFace) {
+          this.setData({
+            faceStatusText: '人脸验证通过，签到成功',
+            faceStatusType: 'success',
+          });
+        }
+        wx.showToast({ title: requireFace ? '验证通过' : '签到成功', icon: 'success' });
         const checkInId = res.data.id;
-        wx.redirectTo({
-          url: `/pages/reflection/index?checkInId=${checkInId}&taskId=${taskId}&mode=create`,
-          fail: () => {
-            wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
-            this.setData({ submitting: false });
-          },
-        });
+        setTimeout(() => {
+          wx.redirectTo({
+            url: `/pages/reflection/index?checkInId=${checkInId}&taskId=${taskId}&mode=create`,
+            fail: () => {
+              wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+              this.setData({ submitting: false });
+            },
+          });
+        }, requireFace ? 1200 : 0);
       } else {
-        wx.showToast({
-          title: res.error?.message || '签到失败',
-          icon: 'none',
-        });
+        const message = res.error?.message || '签到失败';
+        if (requireFace) {
+          this.setData({
+            faceStatusText: message,
+            faceStatusType: 'error',
+          });
+        }
+        wx.showToast({ title: message, icon: 'none' });
         this.setData({ submitting: false });
       }
     } catch (err) {
       wx.hideLoading();
       const message = err instanceof Error ? err.message : '签到失败';
+      if (requireFace) {
+        this.setData({
+          faceStatusText: message,
+          faceStatusType: 'error',
+        });
+      }
       wx.showToast({ title: message, icon: 'none' });
       this.setData({ submitting: false });
     }

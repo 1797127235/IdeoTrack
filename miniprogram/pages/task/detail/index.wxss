@@ -344,6 +344,48 @@ page {
   opacity: 0.85;
 }
 
+.face-status {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.4;
+  text-align: center;
+  background-color: #F8FAFC;
+  color: #475569;
+}
+
+.face-status.pending,
+.face-status.verifying {
+  background-color: #F0FDFF;
+  color: #0891B2;
+}
+
+.face-status.success {
+  background-color: #F0FDF4;
+  color: #15803D;
+}
+
+.face-status.error {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+.face-status-spinner {
+  width: 24rpx;
+  height: 24rpx;
+  border: 3rpx solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
 .reflection-label-row {
   display: flex;
   justify-content: space-between;

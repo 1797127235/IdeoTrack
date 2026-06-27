@@ -94,6 +94,10 @@
           <view class="face-hint">该任务需人脸验证，请拍摄本人面部完成签到</view>
           <view wx:if="{{photoPreview}}" class="face-preview-wrap">
             <image class="face-preview" src="{{photoPreview}}" mode="aspectFill" />
+            <view wx:if="{{faceStatusText}}" class="face-status {{faceStatusType}}">
+              <view wx:if="{{faceStatusType === 'verifying'}}" class="face-status-spinner"></view>
+              <text>{{faceStatusText}}</text>
+            </view>
             <text class="face-retake" bindtap="onRetakePhoto">重新拍摄</text>
           </view>
           <button wx:else class="face-btn" bindtap="onTakePhoto">点击拍照</button>

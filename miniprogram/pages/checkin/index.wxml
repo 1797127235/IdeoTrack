@@ -60,16 +60,20 @@
       <text class="card-title">人脸打卡</text>
       <view class="geofence-hint">
         <text class="hint-icon">📷</text>
-        <text class="hint-text">该任务需人脸验证，请拍摄本人面部完成签到</text>
+        <text class="hint-text">该任务需人脸验证，拍照后将自动上传并验证本人身份</text>
       </view>
       <block wx:if="{{photoPreview}}">
         <view class="photo-preview-wrap">
           <image class="photo-preview" src="{{photoPreview}}" mode="aspectFill" />
+          <view wx:if="{{faceStatusText}}" class="face-status {{faceStatusType}}">
+            <view wx:if="{{faceStatusType === 'verifying'}}" class="face-status-spinner"></view>
+            <text>{{faceStatusText}}</text>
+          </view>
           <button class="action-btn secondary" bindtap="onRetakePhoto" disabled="{{submitting}}">重新拍摄</button>
         </view>
       </block>
       <block wx:else>
-        <button class="action-btn photo-btn" bindtap="onTakePhoto" disabled="{{submitting}}">点击拍照</button>
+        <button class="action-btn photo-btn" bindtap="onTakePhoto" disabled="{{submitting}}">拍照并验证</button>
       </block>
     </view>
 
@@ -77,7 +81,8 @@
       <text class="tips-title">签到说明</text>
       <text class="tips-item" wx:if="{{requireLocation}}">1. 请确保在真实位置完成签到</text>
       <text class="tips-item" wx:else>1. 该任务无需定位，直接确认打卡即可</text>
-      <text class="tips-item">2. 签到后请继续提交学习心得</text>
+      <text class="tips-item" wx:if="{{requireFace}}">2. 拍照后会自动上传照片并进行人脸验证</text>
+      <text class="tips-item" wx:else>2. 点击确认签到后完成打卡</text>
       <text class="tips-item">3. 同一任务多次签到以最后一次为准</text>
     </view>
 
@@ -87,7 +92,7 @@
         disabled="{{submitting || (requireLocation && (locationLoading || locationError || outOfRange)) || (requireFace && !photoPath) || taskLoading}}"
         bindtap="onSubmitCheckIn"
       >
-        {{submitting ? '签到中...' : '确认签到'}}
+        {{submitting ? '验证中...' : (requireFace ? '重新提交验证' : '确认签到')}}
       </button>
     </view>
   </block>

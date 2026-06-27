@@ -107,6 +107,8 @@ Page({
     requireFace: false,
     photoPath: '',
     photoPreview: '',
+    faceStatusText: '',
+    faceStatusType: '',
     reviewMeta: null as { label: string; color: string; icon: string } | null,
     reviewReasonText: '',
   },
@@ -259,6 +261,8 @@ Page({
         this.setData({
           photoPath: file.tempFilePath,
           photoPreview: file.tempFilePath,
+          faceStatusText: '照片已拍摄，填写心得后提交开始人脸验证',
+          faceStatusType: 'pending',
         });
         this.updateCanSubmit();
       },
@@ -272,7 +276,12 @@ Page({
 
   /** 重新拍照 */
   onRetakePhoto() {
-    this.setData({ photoPath: '', photoPreview: '' });
+    this.setData({
+      photoPath: '',
+      photoPreview: '',
+      faceStatusText: '',
+      faceStatusType: '',
+    });
     this.onTakePhoto();
   },
 
@@ -289,6 +298,12 @@ Page({
     if (!canSubmit || submitting) return;
 
     this.setData({ submitting: true });
+    if (requireFace) {
+      this.setData({
+        faceStatusText: '正在上传照片并进行人脸验证...',
+        faceStatusType: 'verifying',
+      });
+    }
     wx.showLoading({
       title: requireFace ? '上传验证中...' : '提交中...',
       mask: true,
@@ -308,19 +323,38 @@ Page({
         : await createCheckIn(payload);
       wx.hideLoading();
       if (res.success && res.data) {
-        wx.showToast({ title: '打卡成功', icon: 'success' });
+        if (requireFace) {
+          this.setData({
+            faceStatusText: '人脸验证通过，打卡成功',
+            faceStatusType: 'success',
+          });
+        }
+        wx.showToast({ title: requireFace ? '验证通过' : '打卡成功', icon: 'success' });
         setTimeout(() => {
           wx.redirectTo({
             url: `/pages/checkin/result/index?checkInId=${res.data!.id}&taskId=${taskId}`,
           });
-        }, 800);
+        }, requireFace ? 1200 : 800);
       } else {
-        wx.showToast({ title: res.error?.message || '打卡失败', icon: 'none' });
+        const message = res.error?.message || '打卡失败';
+        if (requireFace) {
+          this.setData({
+            faceStatusText: message,
+            faceStatusType: 'error',
+          });
+        }
+        wx.showToast({ title: message, icon: 'none' });
         this.setData({ submitting: false });
       }
     } catch (err) {
       wx.hideLoading();
       const message = err instanceof Error ? err.message : '打卡失败';
+      if (requireFace) {
+        this.setData({
+          faceStatusText: message,
+          faceStatusType: 'error',
+        });
+      }
       wx.showToast({ title: message, icon: 'none' });
       this.setData({ submitting: false });
     }
