@@ -13,7 +13,6 @@ const titleMap: Record<string, string> = {
   "/quotes": "名言管理",
   "/organizations": "组织架构",
   "/users": "用户管理",
-  "/reports": "报表统计",
   "/operations": "系统运维",
 };
 

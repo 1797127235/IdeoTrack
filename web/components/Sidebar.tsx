@@ -9,7 +9,6 @@ import {
   Quote,
   Building2,
   Users,
-  BarChart3,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +19,6 @@ const navItems = [
   { href: "/quotes", label: "名言管理", icon: Quote },
   { href: "/organizations", label: "组织架构", icon: Building2 },
   { href: "/users", label: "用户管理", icon: Users },
-  { href: "/reports", label: "报表统计", icon: BarChart3 },
   { href: "/operations", label: "系统运维", icon: Settings },
 ];
 

@@ -28,12 +28,6 @@ export const users = [
   { id: 4, name: "赵六", role: "管理员", college: "校党委", status: "正常", lastLogin: "2026-06-24 10:01" },
 ];
 
-export const reports = [
-  { id: 1, name: "每日打卡汇总报表", type: "日报", generatedAt: "2026-06-24 00:00", size: "128 KB" },
-  { id: 2, name: "学院打卡率排名", type: "月报", generatedAt: "2026-06-23 23:00", size: "256 KB" },
-  { id: 3, name: "未打卡学生清单", type: "即时", generatedAt: "2026-06-24 09:30", size: "64 KB" },
-];
-
 export const operations = [
   { id: 1, time: "2026-06-24 10:23", user: "赵六", action: "创建任务", target: "党史知识竞赛" },
   { id: 2, time: "2026-06-24 09:45", user: "赵六", action: "导出报表", target: "每日打卡汇总报表" },

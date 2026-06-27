@@ -87,11 +87,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
               活跃任务下的学院排名
             </p>
           </div>
-          <Link href="/reports">
-            <Button variant="ghost" size="sm">
-              查看全部
-            </Button>
-          </Link>
+
         </div>
         <div className="overflow-x-auto -mx-5 px-5">
           <table className="w-full min-w-[40rem]">
