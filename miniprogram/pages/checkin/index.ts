@@ -99,17 +99,7 @@ Page({
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
-        const { task } = this.data;
-        let outOfRange = false;
-        if (task?.geo_lat != null && task?.geo_lng != null && task?.geo_radius_meters != null) {
-          const distance = haversineDistance(
-            res.latitude,
-            res.longitude,
-            task.geo_lat,
-            task.geo_lng
-          );
-          outOfRange = distance > task.geo_radius_meters;
-        }
+        // 演示环境：放开位置签到范围前端预判（与后端一致），不再计算/显示 outOfRange。
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
@@ -117,7 +107,6 @@ Page({
           longitudeText: res.longitude.toFixed(6),
           locationLoading: true,
           locationReady: true,
-          outOfRange,
         });
         this.reverseGeocode(res.latitude, res.longitude);
       },

@@ -83,9 +83,6 @@
             <text>点击按钮获取当前位置</text>
             <text class="location-retry" bindtap="loadLocation">获取位置</text>
           </view>
-          <view wx:if="{{outOfRange}}" class="location-warning">
-            当前位置不在签到范围内，请到指定地点打卡
-          </view>
         </view>
 
         <!-- 人脸打卡 -->

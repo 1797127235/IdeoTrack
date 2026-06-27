@@ -22,11 +22,10 @@
       <text class="card-title">{{requireLocation ? '当前位置' : '签到方式'}}</text>
 
       <block wx:if="{{geofenceHint}}">
-        <view class="geofence-hint {{requireLocation && outOfRange ? 'danger' : ''}}">
+        <view class="geofence-hint">
           <text class="hint-icon">{{requireLocation ? '📍' : '✓'}}</text>
           <text class="hint-text">{{geofenceHint}}</text>
-          <text wx:if="{{requireLocation && outOfRange}}" class="hint-status">（当前不在范围内）</text>
-          <text wx:elif="{{requireLocation && locationReady}}" class="hint-status success">（已在范围内）</text>
+          <text wx:if="{{requireLocation && locationReady}}" class="hint-status success">（已定位）</text>
         </view>
       </block>
 
@@ -88,8 +87,8 @@
 
     <view class="footer">
       <button
-        class="submit-btn {{submitting || (requireLocation && (locationLoading || locationError || outOfRange)) || (requireFace && !photoPath) || taskLoading ? 'disabled' : ''}}"
-        disabled="{{submitting || (requireLocation && (locationLoading || locationError || outOfRange)) || (requireFace && !photoPath) || taskLoading}}"
+        class="submit-btn {{submitting || (requireLocation && (locationLoading || locationError)) || (requireFace && !photoPath) || taskLoading ? 'disabled' : ''}}"
+        disabled="{{submitting || (requireLocation && (locationLoading || locationError)) || (requireFace && !photoPath) || taskLoading}}"
         bindtap="onSubmitCheckIn"
       >
         {{submitting ? '验证中...' : (requireFace ? '重新提交验证' : '确认签到')}}
