@@ -1,17 +1,13 @@
 import { getToken } from './utils/token';
 import { getUserRole } from './utils/auth';
 
-type UserRole = 'student' | 'counselor' | 'admin' | null;
-
-interface AppData {
-  /** 是否已登录 */
-  loggedIn: boolean;
-  /** 当前用户角色 */
-  role: UserRole;
-}
-
 App<{
-  globalData: AppData;
+  globalData: {
+    /** 是否已登录 */
+    loggedIn: boolean;
+    /** 当前用户角色 */
+    role: 'student' | 'counselor' | 'admin' | null;
+  };
 }>({
   globalData: {
     loggedIn: false,
