@@ -3,6 +3,7 @@
     "pages/auth/login/index",
     "pages/auth/bind/index",
     "pages/tab/0/index",
+    "pages/tab/1/index",
     "pages/tab/2/index",
     "pages/tab/4/index",
     "pages/home/index",
@@ -43,6 +44,10 @@
       {
         "pagePath": "pages/tab/0/index",
         "text": "首页"
+      },
+      {
+        "pagePath": "pages/tab/1/index",
+        "text": "学习"
       },
       {
         "pagePath": "pages/tab/2/index",

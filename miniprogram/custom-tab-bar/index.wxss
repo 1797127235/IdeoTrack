@@ -32,6 +32,8 @@
   --icon-stats-active: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDg5MUIyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIxLjIxIDE1Ljg5QTEwIDEwIDAgMSAxIDggMi44MyIvPjxwYXRoIGQ9Ik0yMiAxMkExMCAxMCAwIDAgMCAxMiAydjEweiIvPjwvc3ZnPg==');
   --icon-review-default: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4eiI+PC9wYXRoPjxwb2x5bGluZSBwb2ludHM9IjE0IDIgMTQgOCAyMCA4Ij48L3BvbHlsaW5lPjxwYXRoIGQ9Ik05IDE1bDIgMiA0LTQiPjwvcGF0aD48L3N2Zz4=');
   --icon-review-active: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDg5MUIyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4eiI+PC9wYXRoPjxwb2x5bGluZSBwb2ludHM9IjE0IDIgMTQgOCAyMCA4Ij48L3BvbHlsaW5lPjxwYXRoIGQ9Ik05IDE1bDIgMiA0LTQiPjwvcGF0aD48L3N2Zz4=');
+  --icon-learn-default: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTQgMTkuNXYtMTVBMi41IDIuNSAwIDAgMSA2LjUgMkgyMHYyMGgtMi41di02YTIuNSAyLjUgMCAwIDAtMi41LTIuNUg0WiIvPjxwYXRoIGQ9Ik02LjUgMmgxM1YxOWgtMS41di02YTIuNSAyLjUgMCAwIDAtMi41LTIuNUg2LjVWMloiLz48L3N2Zz4=');
+  --icon-learn-active: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDg5MUIyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTQgMTkuNXYtMTVBMi41IDIuNSAwIDAgMSA2LjUgMkgyMHYyMGgtMi41di02YTIuNSAyLjUgMCAwIDAtMi41LTIuNUg0WiIvPjxwYXRoIGQ9Ik02LjUgMmgxM1YxOWgtMS41di02YTIuNSAyLjUgMCAwIDAtMi41LTIuNUg2LjVWMloiLz48L3N2Zz4=');
 }
 
 .tab-item {
@@ -73,9 +75,11 @@
 .icon-tasks { background-image: var(--icon-tasks-default); }
 .icon-stats { background-image: var(--icon-stats-default); }
 .icon-review { background-image: var(--icon-review-default); }
+.icon-learn { background-image: var(--icon-learn-default); }
 
 /* Active icon states */
 .tab-item.active .icon-home { background-image: var(--icon-home-active); }
+.tab-item.active .icon-learn { background-image: var(--icon-learn-active); }
 .tab-item.active .icon-leaderboard { background-image: var(--icon-leaderboard-active); }
 .tab-item.active .icon-calendar { background-image: var(--icon-calendar-active); }
 .tab-item.active .icon-profile { background-image: var(--icon-profile-active); }

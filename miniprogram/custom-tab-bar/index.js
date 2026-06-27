@@ -2,6 +2,7 @@ const { getUserRole } = require('../utils/auth');
 
 const STUDENT_TABS = [
   { pagePath: 'pages/tab/0/index', text: '首页', iconKey: 'home' },
+  { pagePath: 'pages/tab/1/index', text: '学习', iconKey: 'learn' },
   { pagePath: 'pages/tab/2/index', text: '成长', iconKey: 'stats' },
   { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
 ];

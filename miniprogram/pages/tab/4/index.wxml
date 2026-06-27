@@ -90,15 +90,6 @@
     </block>
 
     <view class="menu-list">
-      <view class="menu-card" bindtap="goToLearningResources">
-        <text class="menu-icon-text menu-icon-learning">学</text>
-        <view class="menu-content">
-          <view class="menu-title">学习资料</view>
-          <view class="menu-desc">查看思政学习资料</view>
-        </view>
-        <view class="menu-arrow">›</view>
-      </view>
-
       <view class="menu-card" bindtap="goToHelp">
         <view class="menu-icon-text menu-icon-help"></view>
         <view class="menu-content">
