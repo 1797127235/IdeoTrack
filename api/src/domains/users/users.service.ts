@@ -23,6 +23,9 @@ import type {
   UpdateUserInput,
   BatchImportUserInput,
   BatchImportResult,
+  BatchImportOrgRow,
+  BatchImportOrgResult,
+  BatchImportOrgResultItem,
   UserRole,
   UserFilters,
   ListUsersResult,
@@ -32,7 +35,7 @@ const BCRYPT_SALT_ROUNDS = 10;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function generateDefaultPassword(schoolId: string): string {
-  return schoolId.slice(-6).padStart(6, '0');
+  return schoolId.slice(-6);
 }
 
 // ===== Colleges =====
@@ -429,6 +432,82 @@ export async function batchImportUsers(input: BatchImportUserInput): Promise<Bat
         row: i + 1,
         message: err instanceof Error ? err.message : '创建失败',
       });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 批量导入组织（学院 + 班级）。幂等：
+ * - 学院重名 -> 跳过（ON CONFLICT DO NOTHING）
+ * - 同学院下班级重名 -> 跳过
+ * 逐行执行，单行失败不影响后续行，最终返回每行结果明细。
+ */
+export async function batchImportOrganizations(rows: BatchImportOrgRow[]): Promise<BatchImportOrgResult> {
+  const result: BatchImportOrgResult = { created: 0, skipped: 0, failed: 0, items: [] };
+  // 学院名称 -> id 缓存，避免同一学院反复查询
+  const collegeCache = new Map<string, string>();
+
+  for (let i = 0; i < rows.length; i++) {
+    const { collegeName, className } = rows[i];
+    const rowNo = i + 2; // 表头占第 1 行
+    const item: BatchImportOrgResultItem = {
+      row: rowNo,
+      collegeName,
+      className,
+      status: 'failed',
+    };
+
+    try {
+      // 1. 幂等 upsert 学院
+      let collegeId = collegeCache.get(collegeName);
+      if (!collegeId) {
+        const college = await queryOne<{ id: string }>(
+          `INSERT INTO colleges (name) VALUES ($1)
+           ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+           RETURNING id`,
+          [collegeName]
+        );
+        collegeId = college!.id;
+        collegeCache.set(collegeName, collegeId);
+      }
+
+      // 2. 无班级名 -> 仅建学院，视为 created
+      if (!className || !className.trim()) {
+        item.status = 'created';
+        result.created++;
+        result.items.push(item);
+        continue;
+      }
+
+      // 3. 幂等 upsert 班级（同学院下重名跳过）
+      const before = await queryOne<{ id: string }>(
+        'SELECT id FROM classes WHERE college_id = $1 AND name = $2 LIMIT 1',
+        [collegeId, className]
+      );
+
+      await queryOne<{ id: string }>(
+        `INSERT INTO classes (college_id, name) VALUES ($1, $2)
+         ON CONFLICT (college_id, name) DO NOTHING
+         RETURNING id`,
+        [collegeId, className]
+      );
+
+      if (before) {
+        item.status = 'skipped';
+        item.message = `${collegeName}/${className} 已存在，跳过`;
+        result.skipped++;
+      } else {
+        item.status = 'created';
+        result.created++;
+      }
+      result.items.push(item);
+    } catch (err) {
+      item.status = 'failed';
+      item.message = err instanceof Error ? err.message : '创建失败';
+      result.failed++;
+      result.items.push(item);
     }
   }
 

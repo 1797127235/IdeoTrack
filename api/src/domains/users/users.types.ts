@@ -100,6 +100,30 @@ export interface BatchImportResult {
   errors: Array<{ row: number; message: string }>;
 }
 
+// ===== Batch Import Organizations =====
+
+export interface BatchImportOrgRow {
+  collegeName: string;
+  className?: string;
+}
+
+export interface BatchImportOrgResultItem {
+  /** CSV 行号（从 2 开始，1 为表头）。 */
+  row: number;
+  collegeName: string;
+  className?: string;
+  status: 'created' | 'skipped' | 'failed';
+  message?: string;
+}
+
+export interface BatchImportOrgResult {
+  created: number;
+  skipped: number;
+  failed: number;
+  /** 学院名称 -> 已知 id 缓存（幂等去重用）。 */
+  items: BatchImportOrgResultItem[];
+}
+
 export interface Counselor {
   id: string;
   schoolId: string;

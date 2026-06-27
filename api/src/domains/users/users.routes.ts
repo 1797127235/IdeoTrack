@@ -15,6 +15,7 @@ import {
   updateUserController,
   deleteUserController,
   batchImportUsersController,
+  batchImportOrganizationsController,
   listCounselorsController,
   getManagedClassesController,
   setManagedClassesController,
@@ -50,6 +51,7 @@ router.post('/', createUserController);
 router.post('/batch-face-import', batchImportFacesController);
 router.get('/batch-face-import/:jobId', getFaceImportJobController);
 router.post('/batch-import', batchImportUsersController);
+router.post('/batch-import-organizations', batchImportOrganizationsController);
 router.put('/:id', updateUserController);
 router.delete('/:id', deleteUserController);
 

@@ -13,10 +13,12 @@ import {
   listCounselors,
   getManagedClasses,
   setManagedClasses as saveManagedClasses,
+  batchImportOrganizations,
   type College,
   type Class,
   type Counselor,
   type ManagedClass,
+  type BatchImportOrgResult,
 } from "@/lib/users";
 import {
   Button,
@@ -34,7 +36,31 @@ import {
   Pencil,
   Trash2,
   Check,
+  Download,
+  Upload,
+  X,
 } from "lucide-react";
+
+/** 解析组织导入 CSV，返回 {学院, 班级} 行（班级可为空）。表头中英文均支持。 */
+function parseOrgImportCsv(text: string): Array<{ collegeName: string; className: string }> {
+  const lines = text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim().replace(/^\uFEFF/, ""));
+  const collegeIdx = headers.findIndex((h) => h === "学院" || h === "college" || h === "学院名称");
+  const classIdx = headers.findIndex((h) => h === "班级" || h === "class" || h === "班级名称");
+
+  return lines.slice(1).map((line) => {
+    const values = line.split(",").map((v) => v.trim());
+    return {
+      collegeName: (collegeIdx >= 0 ? values[collegeIdx] : values[0]) ?? "",
+      className: (classIdx >= 0 ? values[classIdx] : values[1]) ?? "",
+    };
+  });
+}
 
 export default function OrganizationsPage() {
   const [colleges, setColleges] = useState<College[]>([]);
@@ -59,6 +85,9 @@ export default function OrganizationsPage() {
 
   const [assignmentCollegeId, setAssignmentCollegeId] = useState<string>("");
 
+  const [batchImporting, setBatchImporting] = useState(false);
+  const [batchImportResult, setBatchImportResult] = useState<BatchImportOrgResult | null>(null);
+
   const loadData = () => {
     Promise.all([listColleges(), listClasses(), listCounselors()])
       .then(([c, cl, counselorsData]) => {
@@ -78,6 +107,46 @@ export default function OrganizationsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleBatchImportOrganizations = async (file: File) => {
+    setBatchImporting(true);
+    setBatchImportResult(null);
+    setError("");
+    try {
+      const text = await file.text();
+      const rows = parseOrgImportCsv(text);
+      const valid = rows.filter((r) => r.collegeName.trim());
+      if (valid.length === 0) {
+        throw new Error("CSV 中没有可导入的数据（缺少学院名称）");
+      }
+      const result = await batchImportOrganizations(
+        valid.map((r) => ({ collegeName: r.collegeName.trim(), className: r.className.trim() || undefined }))
+      );
+      setBatchImportResult(result);
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "导入失败");
+    } finally {
+      setBatchImporting(false);
+    }
+  };
+
+  const downloadOrgImportTemplate = () => {
+    const headers = ["学院", "班级"];
+    const samples = [
+      ["计算机学院", "计算机科学与技术1班"],
+      ["计算机学院", "计算机科学与技术2班"],
+      ["土木工程学院", ""],
+    ];
+    const csv = [headers.join(","), ...samples.map((r) => r.join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "组织导入模板.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleCounselorChange = async (counselorId: string) => {
     setSelectedCounselorId(counselorId);
@@ -250,6 +319,76 @@ export default function OrganizationsPage() {
           {error}
         </div>
       ) : null}
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold text-[var(--color-ink)]">组织架构</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" size="sm" onClick={downloadOrgImportTemplate}>
+            <Download className="w-4 h-4" />
+            下载组织导入模板
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            asChild
+            className={batchImporting ? "opacity-60 pointer-events-none" : ""}
+          >
+            <label>
+              {batchImporting ? "导入中…" : "批量导入组织"}
+              <Input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleBatchImportOrganizations(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </Button>
+        </div>
+      </div>
+
+      {batchImportResult && (
+        <Card className="relative p-4 text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-3 top-2"
+            aria-label="关闭"
+            onClick={() => setBatchImportResult(null)}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+          <p className="text-[var(--color-ink)] mb-2 pr-6">
+            导入完成：新增 {batchImportResult.created}，已存在跳过 {batchImportResult.skipped}
+            {batchImportResult.failed > 0 ? `，失败 ${batchImportResult.failed}` : ""}
+          </p>
+          {batchImportResult.items.some((i) => i.status !== "created") && (
+            <div className="mt-2 max-h-40 overflow-auto text-xs space-y-0.5">
+              {batchImportResult.items
+                .filter((i) => i.status !== "created")
+                .map((i, idx) => (
+                  <div key={`${i.row}-${idx}`} className="text-[var(--color-ink-secondary)]">
+                    <span
+                      className={
+                        i.status === "failed"
+                          ? "text-[var(--color-danger)]"
+                          : "text-[var(--color-warning)]"
+                      }
+                    >
+                      第 {i.row} 行
+                      {i.className ? ` ${i.collegeName} / ${i.className}` : ` ${i.collegeName}`}
+                    </span>
+                    ：{i.message || (i.status === "skipped" ? "已存在，跳过" : "失败")}
+                  </div>
+                ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Colleges */}

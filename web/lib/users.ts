@@ -107,6 +107,26 @@ export const batchImportUsers = (data: { users: Array<{
   classId?: string;
 }> }) => api.post<{ success: number; failed: number; errors: Array<{ row: number; message: string }> }>("/users/batch-import", data);
 
+// 批量导入组织（学院 + 班级）
+export interface BatchImportOrgResultItem {
+  /** CSV 行号（从 2 开始，1 为表头）。 */
+  row: number;
+  collegeName: string;
+  className?: string;
+  status: "created" | "skipped" | "failed";
+  message?: string;
+}
+
+export interface BatchImportOrgResult {
+  created: number;
+  skipped: number;
+  failed: number;
+  items: BatchImportOrgResultItem[];
+}
+
+export const batchImportOrganizations = (rows: Array<{ collegeName: string; className?: string }>) =>
+  api.post<BatchImportOrgResult>("/users/batch-import-organizations", { rows });
+
 // Counselor class assignments
 export const listCounselors = () => api.get<Counselor[]>("/users/counselors");
 export const getManagedClasses = (counselorId: string) =>

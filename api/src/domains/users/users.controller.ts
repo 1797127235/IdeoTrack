@@ -5,7 +5,7 @@ import { createFaceImportJob, getFaceImportJob } from './face-import-job.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { isFaceServiceConfigured } from '../../lib/face-client.js';
 import { auditLog } from '../../lib/audit.js';
-import type { UserRole } from './users.types.js';
+import type { BatchImportOrgRow, UserRole } from './users.types.js';
 
 function getAuditContext(req: Request) {
   const ip = req.ip || req.socket.remoteAddress;
@@ -286,6 +286,50 @@ export async function batchImportUsersController(req: Request, res: Response, ne
       ...getAuditContext(req),
       targetType: 'user',
       details: { success: data.success, failed: data.failed },
+    });
+    res.status(201).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 批量导入组织（学院 + 班级）。请求体形如：
+ * { rows: [{ collegeName, className? }, ...] }
+ */
+export async function batchImportOrganizationsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const raw = req.body?.rows;
+    if (!Array.isArray(raw) || raw.length === 0) {
+      throw new AppError('VALIDATION_ERROR', 'rows 必须是非空数组', 400);
+    }
+
+    const rows: BatchImportOrgRow[] = [];
+    for (const r of raw) {
+      const collegeName = typeof r?.collegeName === 'string' ? r.collegeName.trim() : '';
+      const className = typeof r?.className === 'string' ? r.className.trim() : '';
+      if (!collegeName) {
+        // 学院名为空的行直接丢弃（前端已校验，这里兜底）
+        continue;
+      }
+      rows.push({ collegeName, className: className || undefined });
+    }
+
+    if (rows.length === 0) {
+      throw new AppError('VALIDATION_ERROR', '没有有效的导入行（缺少学院名称）', 400);
+    }
+
+    const data = await usersService.batchImportOrganizations(rows);
+    void auditLog({
+      action: 'batch_import',
+      category: 'organization',
+      ...getAuditContext(req),
+      targetType: 'organization',
+      details: { created: data.created, skipped: data.skipped, failed: data.failed },
     });
     res.status(201).json({ success: true, data });
   } catch (err) {
