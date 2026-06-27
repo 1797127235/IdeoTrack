@@ -5,6 +5,8 @@ import { TaskDetail } from '../../../services/taskApi';
 import { isUuid } from '../../../utils/validators';
 
 const VALID_STATUSES: string[] = [
+  'submitted',
+  'ai_reviewing',
   'ai_approved',
   'pending_manual_review',
   'requires_modification',

@@ -332,7 +332,7 @@ Page({
         wx.showToast({ title: requireFace ? '验证通过' : '打卡成功', icon: 'success' });
         setTimeout(() => {
           wx.redirectTo({
-            url: `/pages/checkin/result/index?checkInId=${res.data!.id}&taskId=${taskId}`,
+            url: `/pages/checkin/result/index?checkInId=${res.data!.id}&taskId=${taskId}&status=${res.data!.status}`,
           });
         }, requireFace ? 1200 : 800);
       } else {
