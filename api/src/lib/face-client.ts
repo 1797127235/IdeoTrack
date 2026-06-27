@@ -78,6 +78,14 @@ export interface ExtractResult {
   embedding: number[]; // 检测到人脸时为 512 维，否则为空数组
 }
 
+interface FaceVerifyResponse {
+  detected?: boolean;
+  similarity?: number;
+  isMatch?: boolean;
+  is_match?: boolean;
+  threshold?: number;
+}
+
 /**
  * 提取单张图片的特征向量。
  * @param imageBytes 图片二进制（jpg/png）
@@ -118,11 +126,11 @@ export async function verifyFaces(
   form.append('file1', new Blob([image1Bytes]), 'reference.jpg');
   form.append('file2', new Blob([image2Bytes]), 'capture.jpg');
   form.append('threshold', String(threshold));
-  const data = (await fetchFace('/verify', form)) as VerifyResult;
+  const data = (await fetchFace('/verify', form)) as FaceVerifyResponse;
   return {
     detected: !!data.detected,
     similarity: typeof data.similarity === 'number' ? data.similarity : 0,
-    isMatch: !!data.isMatch,
+    isMatch: typeof data.isMatch === 'boolean' ? data.isMatch : !!data.is_match,
     threshold: typeof data.threshold === 'number' ? data.threshold : threshold,
   };
 }

@@ -211,6 +211,15 @@ export async function createOrUpdateCheckIn(
       throw new AppError('FACE_NOT_DETECTED', '未检测到人脸，请在光线充足处正对镜头重拍', 400);
     }
     if (!result.isMatch) {
+      logger.warn(
+        {
+          userId,
+          taskId: task_id,
+          similarity: result.similarity,
+          threshold: result.threshold,
+        },
+        '人脸比对未通过'
+      );
       throw new AppError('FACE_MISMATCH', '人脸比对不通过，请使用本人面部', 403);
     }
 
