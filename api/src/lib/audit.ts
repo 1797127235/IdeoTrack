@@ -2,7 +2,7 @@ import { query } from './db.js';
 
 export interface AuditLogInput {
   action: string;
-  category: 'auth' | 'user' | 'task' | 'organization' | 'system' | 'report';
+  category: 'auth' | 'user' | 'task' | 'organization' | 'system' | 'report' | 'learning_resource';
   actorId?: string;
   actorName?: string | null;
   actorRole?: string;

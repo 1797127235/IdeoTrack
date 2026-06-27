@@ -42,10 +42,12 @@ services:
       EXPORT_LINK_TTL_SECONDS: ${EXPORT_LINK_TTL_SECONDS:-86400}
       FACE_SERVICE_URL: ${FACE_SERVICE_URL:-http://face:8000}
       FACE_PHOTO_DIR: ${FACE_PHOTO_DIR:-/app/faces}
+      LEARNING_RESOURCE_UPLOAD_DIR: ${LEARNING_RESOURCE_UPLOAD_DIR:-/app/uploads}
     volumes:
       - ./logs:/app/logs
       - ./exports:/app/exports
       - ./faces:/app/faces
+      - ./uploads:/app/uploads
     logging:
       driver: "json-file"
       options:

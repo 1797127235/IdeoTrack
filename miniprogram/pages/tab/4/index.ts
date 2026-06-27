@@ -82,6 +82,10 @@ Page({
     wx.navigateTo({ url: '/pages/review/index' });
   },
 
+  goToLearningResources() {
+    wx.navigateTo({ url: '/pages/learning-resources/list/index' });
+  },
+
   goToExport() {
     wx.navigateTo({ url: '/pages/counselor/export/index' });
   },

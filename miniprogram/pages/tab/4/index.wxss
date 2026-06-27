@@ -323,6 +323,10 @@
   background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%);
 }
 
+.menu-icon-learning {
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+}
+
 .menu-icon-export {
   background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
 }

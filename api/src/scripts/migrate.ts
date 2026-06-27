@@ -349,6 +349,38 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id ON audit_logs(actor_id);
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_photo_path TEXT;       -- 现场照存储路径
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_verified BOOLEAN;      -- 是否通过人脸验证（null=未要求/降级）
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS face_similarity FLOAT8;     -- 比对相似度（未要求时为 null）
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 学习资料库（Epic: 学习内容）
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS learning_resources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  type TEXT NOT NULL CHECK (type IN ('article', 'video', 'document', 'link')),
+  content TEXT,                          -- 图文内容（article/document 类型使用）
+  url TEXT,                              -- 外部链接或视频链接（article/video/link 类型使用）
+  cover_url TEXT,                        -- 封面图本地相对路径
+  category TEXT,                         -- 分类，如「党史」「理论」「时事」
+  tags TEXT[],                           -- 标签数组
+  status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published')),
+  view_count INTEGER NOT NULL DEFAULT 0,
+  created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS update_learning_resources_updated_at ON learning_resources;
+CREATE TRIGGER update_learning_resources_updated_at
+  BEFORE UPDATE ON learning_resources
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE INDEX IF NOT EXISTS idx_learning_resources_status ON learning_resources(status);
+CREATE INDEX IF NOT EXISTS idx_learning_resources_type ON learning_resources(type);
+CREATE INDEX IF NOT EXISTS idx_learning_resources_category ON learning_resources(category);
+CREATE INDEX IF NOT EXISTS idx_learning_resources_created_by ON learning_resources(created_by);
 `;
 
 async function migrate() {

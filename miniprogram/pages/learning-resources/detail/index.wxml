@@ -1,0 +1,65 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="skeleton-wrap">
+    <view class="skeleton-cover"></view>
+    <view class="skeleton-title"></view>
+    <view class="skeleton-line"></view>
+    <view class="skeleton-line"></view>
+    <view class="skeleton-line short"></view>
+  </view>
+
+  <view wx:elif="{{error}}" class="error-wrap">
+    <view class="error-title">加载失败</view>
+    <view class="error-desc">{{error}}</view>
+    <view class="retry-btn" bindtap="loadResource" data-id="{{id}}">重试</view>
+  </view>
+
+  <block wx:elif="{{resource}}">
+    <view class="cover-wrap" bindtap="previewCover">
+      <image
+        wx:if="{{resource.cover_url}}"
+        class="cover-image"
+        src="{{getCoverUrl(resource.id)}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="cover-placeholder">
+        <text class="placeholder-text">{{typeLabel(resource.type)}}</text>
+      </view>
+    </view>
+
+    <view class="content-wrap">
+      <view class="resource-header">
+        <view class="resource-title">{{resource.title}}</view>
+        <view class="resource-meta">
+          <text class="meta-tag type-tag">{{typeLabel(resource.type)}}</text>
+          <text wx:if="{{resource.category}}" class="meta-tag category-tag">{{resource.category}}</text>
+          <text class="view-count">{{resource.view_count}} 次浏览</text>
+        </view>
+      </view>
+
+      <view wx:if="{{resource.description}}" class="desc-section">
+        <view class="section-title">简介</view>
+        <view class="desc-text">{{resource.description}}</view>
+      </view>
+
+      <view wx:if="{{resource.content}}" class="content-section">
+        <view class="section-title">内容</view>
+        <view class="content-text">{{resource.content}}</view>
+      </view>
+
+      <view wx:if="{{resource.url}}" class="url-section">
+        <view class="section-title">相关链接</view>
+        <view class="url-card" bindtap="copyUrl">
+          <view class="url-text">{{resource.url}}</view>
+          <view class="url-action">复制链接</view>
+        </view>
+      </view>
+
+      <view wx:if="{{resource.tags && resource.tags.length > 0}}" class="tags-section">
+        <view class="section-title">标签</view>
+        <view class="tags-list">
+          <text wx:for="{{resource.tags}}" wx:key="*this" class="tag-item">{{item}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

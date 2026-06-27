@@ -1,0 +1,77 @@
+<view class="page">
+  <view class="filter-bar">
+    <view
+      class="filter-item {{selectedType === '' ? 'active' : ''}}"
+      data-type=""
+      bindtap="onTypeChange"
+    >全部</view>
+    <view
+      class="filter-item {{selectedType === 'article' ? 'active' : ''}}"
+      data-type="article"
+      bindtap="onTypeChange"
+    >文章</view>
+    <view
+      class="filter-item {{selectedType === 'video' ? 'active' : ''}}"
+      data-type="video"
+      bindtap="onTypeChange"
+    >视频</view>
+    <view
+      class="filter-item {{selectedType === 'document' ? 'active' : ''}}"
+      data-type="document"
+      bindtap="onTypeChange"
+    >文档</view>
+    <view
+      class="filter-item {{selectedType === 'link' ? 'active' : ''}}"
+      data-type="link"
+      bindtap="onTypeChange"
+    >链接</view>
+  </view>
+
+  <view class="resource-list" wx:if="{{resources.length > 0}}">
+    <view
+      wx:for="{{resources}}"
+      wx:key="id"
+      class="resource-card"
+      data-id="{{item.id}}"
+      bindtap="goToDetail"
+    >
+      <view class="cover-wrap">
+        <image
+          wx:if="{{item.cover_url}}"
+          class="cover-image"
+          src="{{getCoverUrl(item.id)}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view wx:else class="cover-placeholder">
+          <text class="placeholder-text">{{typeLabel(item.type)}}</text>
+        </view>
+      </view>
+      <view class="resource-info">
+        <view class="resource-title">{{item.title}}</view>
+        <view class="resource-desc">{{item.description || '暂无简介'}}</view>
+        <view class="resource-meta">
+          <text class="meta-tag type-tag">{{typeLabel(item.type)}}</text>
+          <text wx:if="{{item.category}}" class="meta-tag category-tag">{{item.category}}</text>
+          <text class="view-count">{{item.view_count}} 次浏览</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:if="{{!loading && resources.length === 0}}">
+    <view class="empty-icon">📚</view>
+    <view class="empty-title">暂无学习资料</view>
+    <view class="empty-desc">管理员添加后，这里会显示学习内容</view>
+  </view>
+
+  <view class="loading-more" wx:if="{{loading && resources.length > 0}}">
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+  </view>
+
+  <view class="no-more" wx:if="{{!loading && !hasMore && resources.length > 0}}">
+    没有更多了
+  </view>
+</view>
