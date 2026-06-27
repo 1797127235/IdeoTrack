@@ -100,7 +100,7 @@
       </view>
 
       <view class="menu-card" bindtap="goToHelp">
-        <text class="menu-icon-text menu-icon-help">帮</text>
+        <view class="menu-icon-text menu-icon-help"></view>
         <view class="menu-content">
           <view class="menu-title">帮助与反馈</view>
         </view>
@@ -108,7 +108,7 @@
       </view>
 
       <view class="menu-card" bindtap="goToAbout">
-        <text class="menu-icon-text menu-icon-about">关</text>
+        <view class="menu-icon-text menu-icon-about"></view>
         <view class="menu-content">
           <view class="menu-title">关于我们</view>
         </view>
@@ -116,7 +116,7 @@
       </view>
 
       <view class="menu-card" bindtap="goToSettings">
-        <text class="menu-icon-text menu-icon-setting">设</text>
+        <view class="menu-icon-text menu-icon-setting"></view>
         <view class="menu-content">
           <view class="menu-title">设置</view>
         </view>
