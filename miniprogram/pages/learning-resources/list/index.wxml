@@ -1,30 +1,12 @@
 <view class="page">
   <view class="filter-bar">
     <view
-      class="filter-item {{selectedType === '' ? 'active' : ''}}"
-      data-type=""
-      bindtap="onTypeChange"
-    >全部</view>
-    <view
-      class="filter-item {{selectedType === 'article' ? 'active' : ''}}"
-      data-type="article"
-      bindtap="onTypeChange"
-    >文章</view>
-    <view
-      class="filter-item {{selectedType === 'video' ? 'active' : ''}}"
-      data-type="video"
-      bindtap="onTypeChange"
-    >视频</view>
-    <view
-      class="filter-item {{selectedType === 'document' ? 'active' : ''}}"
-      data-type="document"
-      bindtap="onTypeChange"
-    >文档</view>
-    <view
-      class="filter-item {{selectedType === 'link' ? 'active' : ''}}"
-      data-type="link"
-      bindtap="onTypeChange"
-    >链接</view>
+      wx:for="{{categories}}"
+      wx:key="value"
+      class="filter-item {{selectedCategory === item.value ? 'active' : ''}}"
+      data-category="{{item.value}}"
+      bindtap="onCategoryChange"
+    >{{item.label}}</view>
   </view>
 
   <view class="resource-list" wx:if="{{resources.length > 0}}">

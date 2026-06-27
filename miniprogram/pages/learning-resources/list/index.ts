@@ -1,10 +1,17 @@
 import {
   listLearningResources,
   type LearningResource,
-  type LearningResourceType,
   getCoverUrl,
   typeLabel,
 } from '../../../services/learningResourceApi';
+
+const CATEGORIES = [
+  { value: '', label: '全部' },
+  { value: '思政理论', label: '思政理论' },
+  { value: '专题视频', label: '专题视频' },
+  { value: '红色教育', label: '红色教育' },
+  { value: '阅读材料', label: '阅读材料' },
+];
 
 Page({
   data: {
@@ -15,7 +22,8 @@ Page({
     limit: 10,
     total: 0,
     hasMore: false,
-    selectedType: '' as LearningResourceType | '',
+    selectedCategory: '' as string,
+    categories: CATEGORIES,
   },
 
   onLoad() {
@@ -44,8 +52,8 @@ Page({
         page: this.data.page,
         limit: this.data.limit,
       };
-      if (this.data.selectedType) {
-        filters.type = this.data.selectedType;
+      if (this.data.selectedCategory) {
+        filters.category = this.data.selectedCategory;
       }
 
       const result = await listLearningResources(filters);
@@ -66,9 +74,9 @@ Page({
     }
   },
 
-  onTypeChange(e: { currentTarget: { dataset: { type?: LearningResourceType | '' } } }) {
-    const type = e.currentTarget.dataset.type as LearningResourceType | '';
-    this.setData({ selectedType: type, page: 1 });
+  onCategoryChange(e: { currentTarget: { dataset: { category?: string } } }) {
+    const category = e.currentTarget.dataset.category || '';
+    this.setData({ selectedCategory: category, page: 1 });
     this.loadResources();
   },
 

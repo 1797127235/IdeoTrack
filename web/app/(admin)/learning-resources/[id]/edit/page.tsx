@@ -20,6 +20,8 @@ const RESOURCE_TYPES: { value: LearningResourceType; label: string }[] = [
   { value: "link", label: "链接" },
 ];
 
+const RESOURCE_CATEGORIES = ["思政理论", "专题视频", "红色教育", "阅读材料"];
+
 export default function EditLearningResourcePage() {
   const router = useRouter();
   const params = useParams();
@@ -191,12 +193,18 @@ export default function EditLearningResourcePage() {
             </FormField>
 
             <FormField label="分类" htmlFor="category">
-              <Input
+              <Select
                 id="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="如：党史、理论、时事"
-              />
+              >
+                <option value="">未分类</option>
+                {RESOURCE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
             </FormField>
           </div>
 
