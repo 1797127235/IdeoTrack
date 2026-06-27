@@ -16,8 +16,10 @@ const router = Router();
 
 // 公开读取（已登录用户）
 router.get('/', authenticate, listLearningResourcesController);
-router.get('/:id/cover', authenticate, serveCoverController);
 router.get('/:id', authenticate, getLearningResourceByIdController);
+
+// 封面图公开访问：小程序 <image> 组件请求不带 JWT
+router.get('/:id/cover', serveCoverController);
 
 // 管理员维护
 router.post('/', authenticate, requireRoles('admin'), uploadCoverMiddleware, createLearningResourceController);
