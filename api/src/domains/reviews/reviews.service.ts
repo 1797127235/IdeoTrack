@@ -291,7 +291,9 @@ const MAX_LIMIT = 100;
 
 /**
  * 获取辅导员所带班级的待复核打卡列表。
- * 仅返回状态为 `pending_manual_review` 且 task.target_class_id 在辅导员管辖范围内的记录。
+ * 仅返回状态为 `pending_manual_review` 且打卡学生所属班级在辅导员管辖范围内的记录。
+ * 复核范围以「学生所属班级」为准（而非任务目标班级），这样全校/学院/任务池类型
+ * 任务的打卡也能正确归属到对应辅导员。
  * 支持按班级筛选与分页。
  */
 export async function listPendingReviewsForCounselor(
@@ -308,12 +310,14 @@ export async function listPendingReviewsForCounselor(
     : '';
   if (filters.classId) params.push(filters.classId);
 
+  // 注意：复核范围以「打卡学生所属班级」为准，而非任务目标班级。
+  // 这样全校/学院/任务池类型任务的打卡也能正确归属到对应辅导员的待复核列表。
   const countRows = await query<{ total: number }>(
     `SELECT COUNT(*)::int AS total
      FROM check_ins ci
      JOIN tasks t ON ci.task_id = t.id
      JOIN users u ON ci.user_id = u.id
-     JOIN classes c ON t.target_class_id = c.id
+     JOIN classes c ON u.class_id = c.id
      JOIN counselor_classes cc ON cc.class_id = c.id AND cc.counselor_id = $1
      WHERE ci.status = 'pending_manual_review'
      ${classFilter}`,
@@ -339,7 +343,7 @@ export async function listPendingReviewsForCounselor(
      FROM check_ins ci
      JOIN tasks t ON ci.task_id = t.id
      JOIN users u ON ci.user_id = u.id
-     JOIN classes c ON t.target_class_id = c.id
+     JOIN classes c ON u.class_id = c.id
      JOIN counselor_classes cc ON cc.class_id = c.id AND cc.counselor_id = $1
      WHERE ci.status = 'pending_manual_review'
      ${classFilter}
@@ -382,7 +386,7 @@ export async function getPendingReviewDetail(
      FROM check_ins ci
      JOIN tasks t ON ci.task_id = t.id
      JOIN users u ON ci.user_id = u.id
-     JOIN classes c ON t.target_class_id = c.id
+     JOIN classes c ON u.class_id = c.id
      JOIN counselor_classes cc ON cc.class_id = c.id AND cc.counselor_id = $1
      WHERE ci.id = $2
        AND ci.status = 'pending_manual_review'
@@ -422,8 +426,8 @@ export async function makeReviewDecision(input: ReviewDecisionInput): Promise<Ch
     const checkInResult = await client.query<CheckIn>(
       `SELECT ci.*
        FROM check_ins ci
-       JOIN tasks t ON ci.task_id = t.id
-       JOIN counselor_classes cc ON cc.class_id = t.target_class_id AND cc.counselor_id = $1
+       JOIN users u ON ci.user_id = u.id
+       JOIN counselor_classes cc ON cc.class_id = u.class_id AND cc.counselor_id = $1
        WHERE ci.id = $2
          AND ci.status = 'pending_manual_review'
        LIMIT 1
