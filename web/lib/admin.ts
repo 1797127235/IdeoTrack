@@ -91,6 +91,39 @@ export async function fetchServerLogs(): Promise<string[]> {
   return api.get<string[]>("/admin/logs");
 }
 
+// 下载完整服务器日志（JSONL），流式返回 app.log 全文，无截断
+export async function downloadServerLogs(): Promise<void> {
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+  const res = await fetch(`${API_BASE_URL}/admin/logs/download`, {
+    method: "GET",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    let message = `下载失败: ${res.status}`;
+    try {
+      const json = (await res.json()) as { error?: { message?: string } };
+      if (json.error?.message) message = json.error.message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  // 优先用后端给出的文件名，否则用默认名
+  const disposition = res.headers.get("content-disposition") || "";
+  const match = /filename="?([^";]+)"?/.exec(disposition);
+  const fileName = match ? match[1] : `app-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.log`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchAdminStatus(): Promise<AdminStatus> {
   return api.get<AdminStatus>("/admin/status");
 }

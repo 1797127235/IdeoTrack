@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { authenticate } from '../../middleware/auth.js';
 import { requireRoles } from '../../middleware/rbac.js';
+import { AppError } from '../../middleware/error-handler.js';
 import { config } from '../../config/index.js';
 import { query } from '../../lib/db.js';
 import { auditLog } from '../../lib/audit.js';
@@ -52,6 +53,42 @@ router.get('/logs', (_req, res, next) => {
       .reverse();
 
     res.json({ success: true, data: lines });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 下载完整服务器应用日志（仅管理员）。
+ * 流式返回 LOG_FILE_DIR/app.log 的全部内容（JSONL），无 256KB/200 行截断。
+ * 文件不存在时返回 404。
+ */
+router.get('/logs/download', (req, res, next) => {
+  try {
+    const logDir = config.logFileDir || path.resolve(process.cwd(), 'logs');
+    const logPath = path.join(logDir, 'app.log');
+
+    if (!fs.existsSync(logPath)) {
+      next(new AppError('LOG_NOT_FOUND', '日志文件不存在', 404));
+      return;
+    }
+
+    void auditLog({
+      action: 'export_logs',
+      category: 'system',
+      actorId: req.user?.userId,
+      actorRole: req.user?.role,
+      targetType: 'system',
+      details: { file: 'app.log' },
+      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
+
+    // 文件名带导出时间戳，便于多次导出归档
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    res.download(logPath, `app-${stamp}.log`, (err) => {
+      if (err) next(err);
+    });
   } catch (err) {
     next(err);
   }

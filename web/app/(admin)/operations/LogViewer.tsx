@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, Input, Select, EmptyState, Badge } from "@/components/ui";
-import { ChevronDown, ChevronRight, FileJson } from "lucide-react";
+import { Card, Input, Select, EmptyState, Badge, Button } from "@/components/ui";
+import { ChevronDown, ChevronRight, FileJson, Download } from "lucide-react";
+import { downloadServerLogs } from "@/lib/admin";
 
 interface LogEntry {
   raw: string;
@@ -100,8 +101,22 @@ export default function LogViewer({ logs }: LogViewerProps) {
   const [filter, setFilter] = useState("");
   const [level, setLevel] = useState("all");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const parsed = useMemo(() => logs.map(parseLogLine), [logs]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError("");
+    try {
+      await downloadServerLogs();
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "导出失败");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -148,11 +163,30 @@ export default function LogViewer({ logs }: LogViewerProps) {
             <option value="warn">WARN</option>
             <option value="error">ERROR+</option>
           </Select>
-          <span className="text-base text-[var(--color-ink-muted)] ml-auto">
-            共 {filtered.length} 条 / {logs.length} 条原始日志
-          </span>
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="text-base text-[var(--color-ink-muted)]">
+              共 {filtered.length} 条 / {logs.length} 条原始日志
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleExport}
+              isLoading={exporting}
+              className="flex items-center gap-1.5"
+              title="下载完整服务器日志（JSONL，无截断）"
+            >
+              <Download className="w-4 h-4" />
+              导出日志
+            </Button>
+          </div>
         </div>
       </Card>
+
+      {exportError && (
+        <Card className="p-3">
+          <p className="text-sm text-[var(--color-danger)]">{exportError}</p>
+        </Card>
+      )}
 
       <Card className="p-0 overflow-hidden">
         {filtered.length === 0 ? (
