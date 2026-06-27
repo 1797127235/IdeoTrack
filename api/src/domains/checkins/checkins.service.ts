@@ -5,6 +5,7 @@ import { verifyFaces, isFaceServiceConfigured } from '../../lib/face-client.js';
 import { saveCapturedPhoto, readRegisteredPhoto } from '../../lib/face-storage.js';
 import { aiReviewReflection, getReviewReasonCode, saveAIReviewRecord } from '../reviews/reviews.service.js';
 import { assertTaskVisibleToStudent, fetchTaskById } from '../tasks/task.service.js';
+import { awardPoints } from '../points/points.service.js';
 import { haversineDistance } from '../tasks/task.utils.js';
 import type {
   CheckIn,
@@ -268,7 +269,21 @@ export async function createOrUpdateCheckIn(
     throw new AppError('CHECKIN_SERVICE_ERROR', '签到失败', 500);
   }
 
-  return toCheckInResponse(rows[0]);
+  // 带心得一次性提交（task/detail 一站式流程）：落库后立即跑 AI 审核，
+  // 这样 status 直接是终态（ai_approved / pending_manual_review），不再停留在 submitted。
+  const checkIn = rows[0];
+  const trimmedReflection = reflection_content?.trim();
+  if (trimmedReflection) {
+    const reviewed = await applyReflectionReview(
+      checkIn.id,
+      userId,
+      trimmedReflection,
+      { id: task.id, content: task.content }
+    );
+    return toCheckInResponse(reviewed);
+  }
+
+  return toCheckInResponse(checkIn);
 }
 
 function isReflectionEditableStatus(status: string): boolean {
@@ -334,6 +349,83 @@ export async function getStudentCalendar(
     month,
     days: rows.map(toCalendarDay),
   };
+}
+
+/**
+ * 对一条打卡心得执行 AI 审核：跑审核规则 → 存初审记录 → 落库终态。
+ * 审核通过（ai_approved）即发放积分；转人工复核不发积分，留待辅导员通过后再发。
+ * 打卡接口（带心得一次性提交）与心得提交接口共用此逻辑，保证行为一致。
+ */
+async function applyReflectionReview(
+  checkInId: string,
+  userId: string,
+  content: string,
+  task: { id: string; content: string }
+): Promise<CheckIn> {
+  // AI 审核（事务外执行，aiReviewReflection 内部已实现 3 秒超时）
+  let reviewResult: AIReviewResult;
+  try {
+    reviewResult = await aiReviewReflection({
+      reflectionContent: content,
+      taskContent: task.content,
+    });
+  } catch (error) {
+    logger.warn(
+      { err: error instanceof Error ? { message: error.message } : { message: String(error) } },
+      'AI review failed, falling back to manual review'
+    );
+    reviewResult = {
+      status: 'pending_manual_review',
+      reason: 'AI 审核异常，转人工复核',
+      reason_code: 'ai_review_error',
+    };
+  }
+
+  // 保存 AI 初审记录，支持审计与调优（Story 5.1 / NFR-8）
+  try {
+    await saveAIReviewRecord({
+      checkInId,
+      taskId: task.id,
+      userId,
+      reflectionContent: content,
+      taskContent: task.content,
+      status: reviewResult.status,
+      reason: reviewResult.reason,
+      reasonCode: reviewResult.reason_code,
+    });
+  } catch (recordError) {
+    logger.warn(
+      { err: recordError instanceof Error ? { message: recordError.message } : { message: String(recordError) } },
+      'Failed to save AI review record'
+    );
+  }
+
+  const finalRows = await query<CheckIn>(
+    `UPDATE check_ins
+     SET status = $1,
+         ai_review_reason = $2,
+         updated_at = NOW()
+     WHERE id = $3
+     RETURNING *`,
+    [reviewResult.status, reviewResult.reason ?? null, checkInId]
+  );
+
+  if (finalRows.length === 0) {
+    throw new AppError('CHECKIN_SERVICE_ERROR', '心得状态更新失败', 500);
+  }
+
+  // AI 审核通过即发放积分（幂等：ON CONFLICT (check_in_id) DO NOTHING）；
+  // 转人工复核的留待辅导员通过后由 makeReviewDecision 发放。
+  if (reviewResult.status === 'ai_approved') {
+    await awardPoints({
+      userId,
+      checkInId,
+      points: 10,
+      reason: '打卡通过，获得积分',
+    });
+  }
+
+  return finalRows[0];
 }
 
 export async function submitReflection(
@@ -407,60 +499,10 @@ export async function submitReflection(
     return { checkIn: updateResult.rows[0], task };
   });
 
-  // AI 审核在事务外执行，避免长时间占用连接；aiReviewReflection 内部已实现 3 秒超时
-  let reviewResult: AIReviewResult;
-  try {
-    reviewResult = await aiReviewReflection({
-      reflectionContent: content,
-      taskContent: task.content,
-    });
-  } catch (error) {
-    // AI 审核异常/超时时降级到 pending_manual_review，不阻塞用户流程
-    logger.warn(
-      { err: error instanceof Error ? { message: error.message } : { message: String(error) } },
-      'AI review failed, falling back to manual review'
-    );
-    reviewResult = {
-      status: 'pending_manual_review',
-      reason: 'AI 审核异常，转人工复核',
-      reason_code: 'ai_review_error',
-    };
-  }
+  // 复用统一审核逻辑：AI 审核 → 存记录 → 落库终态 → 通过发积分
+  const finalCheckIn = await applyReflectionReview(checkIn.id, userId, content, { id: task.id, content: task.content });
 
-  // 保存 AI 初审记录，支持审计与调优（Story 5.1 / NFR-8）
-  try {
-    await saveAIReviewRecord({
-      checkInId: checkIn.id,
-      taskId: task.id,
-      userId,
-      reflectionContent: content,
-      taskContent: task.content,
-      status: reviewResult.status,
-      reason: reviewResult.reason,
-      reasonCode: reviewResult.reason_code,
-    });
-  } catch (recordError) {
-    logger.warn(
-      { err: recordError instanceof Error ? { message: recordError.message } : { message: String(recordError) } },
-      'Failed to save AI review record'
-    );
-  }
-
-  const finalRows = await query<CheckIn>(
-    `UPDATE check_ins
-     SET status = $1,
-         ai_review_reason = $2,
-         updated_at = NOW()
-     WHERE id = $3
-     RETURNING *`,
-    [reviewResult.status, reviewResult.reason ?? null, checkIn.id]
-  );
-
-  if (finalRows.length === 0) {
-    throw new AppError('CHECKIN_SERVICE_ERROR', '心得状态更新失败', 500);
-  }
-
-  return toCheckInResponse(finalRows[0]);
+  return toCheckInResponse(finalCheckIn);
 }
 
 export async function getStudyRecords(
