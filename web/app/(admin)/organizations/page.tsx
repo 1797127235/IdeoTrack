@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   listColleges,
   listClasses,
@@ -89,11 +89,46 @@ export default function OrganizationsPage() {
 
   const [batchImporting, setBatchImporting] = useState(false);
   const [batchImportResult, setBatchImportResult] = useState<BatchImportOrgResult | null>(null);
+  const [collegeSearch, setCollegeSearch] = useState("");
+  const [classSearch, setClassSearch] = useState("");
+  const [counselorSearch, setCounselorSearch] = useState("");
+  const [assignmentClassSearch, setAssignmentClassSearch] = useState("");
   const organizationTabs: Array<{ id: OrganizationTab; label: string; count: number }> = [
     { id: "colleges", label: "学院管理", count: colleges.length },
     { id: "classes", label: "班级管理", count: classes.length },
     { id: "counselors", label: "辅导员设置", count: counselors.length },
   ];
+
+  const filteredColleges = useMemo(() => {
+    const keyword = collegeSearch.trim().toLowerCase();
+    if (!keyword) return colleges;
+    return colleges.filter((college) => college.name.toLowerCase().includes(keyword));
+  }, [collegeSearch, colleges]);
+  const filteredClasses = useMemo(() => {
+    const keyword = classSearch.trim().toLowerCase();
+    if (!keyword) return classes;
+    return classes.filter((cls) =>
+      [cls.name, cls.collegeName || ""].some((value) => value.toLowerCase().includes(keyword))
+    );
+  }, [classSearch, classes]);
+  const filteredCounselors = useMemo(() => {
+    const keyword = counselorSearch.trim().toLowerCase();
+    if (!keyword) return counselors;
+    return counselors.filter((counselor) =>
+      [counselor.name || "", counselor.schoolId, counselor.collegeName || ""].some((value) =>
+        value.toLowerCase().includes(keyword)
+      )
+    );
+  }, [counselorSearch, counselors]);
+  const assignableClasses = useMemo(() => {
+    const keyword = assignmentClassSearch.trim().toLowerCase();
+    return classes.filter((cls) => {
+      const collegeMatched = !assignmentCollegeId || cls.collegeId === assignmentCollegeId;
+      if (!collegeMatched) return false;
+      if (!keyword) return true;
+      return [cls.name, cls.collegeName || ""].some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [assignmentClassSearch, assignmentCollegeId, classes]);
 
   const loadData = () => {
     Promise.all([listColleges(), listClasses(), listCounselors()])
@@ -476,10 +511,26 @@ export default function OrganizationsPage() {
             )}
           </form>
 
+          <div className="mb-4">
+            <Input
+              type="search"
+              value={collegeSearch}
+              onChange={(e) => setCollegeSearch(e.target.value)}
+              placeholder="搜索学院名称"
+              aria-label="搜索学院"
+            />
+          </div>
+
           {colleges.length === 0 ? (
             <EmptyState
               title="暂无学院"
               description="添加学院后即可创建班级"
+              icon={<Building2 className="w-6 h-6 text-[var(--color-ink-muted)]" />}
+            />
+          ) : filteredColleges.length === 0 ? (
+            <EmptyState
+              title="未找到学院"
+              description="换个关键词再试"
               icon={<Building2 className="w-6 h-6 text-[var(--color-ink-muted)]" />}
             />
           ) : (
@@ -496,7 +547,7 @@ export default function OrganizationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {colleges.map((college) => (
+                  {filteredColleges.map((college) => (
                     <tr
                       key={college.id}
                       className="border-b border-[var(--color-border)] last:border-0"
@@ -599,10 +650,26 @@ export default function OrganizationsPage() {
             )}
           </form>
 
+          <div className="mb-4">
+            <Input
+              type="search"
+              value={classSearch}
+              onChange={(e) => setClassSearch(e.target.value)}
+              placeholder="搜索班级名称或所属学院"
+              aria-label="搜索班级"
+            />
+          </div>
+
           {classes.length === 0 ? (
             <EmptyState
               title="暂无班级"
               description="添加班级并关联到学院"
+              icon={<Users className="w-6 h-6 text-[var(--color-ink-muted)]" />}
+            />
+          ) : filteredClasses.length === 0 ? (
+            <EmptyState
+              title="未找到班级"
+              description="可按班级名称或所属学院搜索"
               icon={<Users className="w-6 h-6 text-[var(--color-ink-muted)]" />}
             />
           ) : (
@@ -622,7 +689,7 @@ export default function OrganizationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {classes.map((cls) => (
+                  {filteredClasses.map((cls) => (
                     <tr
                       key={cls.id}
                       className="border-b border-[var(--color-border)] last:border-0"
@@ -688,6 +755,19 @@ export default function OrganizationsPage() {
 
         <div className="flex flex-col gap-4">
           <FormField
+            label="搜索辅导员"
+            htmlFor="counselorSearch"
+            className="w-full sm:min-w-[240px] sm:w-80"
+          >
+            <Input
+              id="counselorSearch"
+              type="search"
+              value={counselorSearch}
+              onChange={(e) => setCounselorSearch(e.target.value)}
+              placeholder="姓名、工号或学院"
+            />
+          </FormField>
+          <FormField
             label="选择辅导员"
             htmlFor="counselorId"
             className="w-full sm:min-w-[240px] sm:w-60"
@@ -698,7 +778,7 @@ export default function OrganizationsPage() {
               onChange={(e) => handleCounselorChange(e.target.value)}
             >
               <option value="">请选择</option>
-              {counselors.map((c) => (
+              {filteredCounselors.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name || c.schoolId}（{c.schoolId}）{c.collegeName ? `· ${c.collegeName}` : ""}
                 </option>
@@ -732,6 +812,14 @@ export default function OrganizationsPage() {
                 <label className="block text-sm font-medium text-[var(--color-ink-secondary)] mb-2">
                   所带班级
                 </label>
+                <Input
+                  type="search"
+                  value={assignmentClassSearch}
+                  onChange={(e) => setAssignmentClassSearch(e.target.value)}
+                  placeholder="搜索可分配班级或学院"
+                  aria-label="搜索可分配班级"
+                  className="mb-3"
+                />
                 {classes.length === 0 ? (
                   <EmptyState
                     title="暂无班级"
@@ -739,15 +827,16 @@ export default function OrganizationsPage() {
                     icon={<GraduationCap className="w-6 h-6 text-[var(--color-ink-muted)]" />}
                     className="py-8"
                   />
+                ) : assignableClasses.length === 0 ? (
+                  <EmptyState
+                    title="未找到班级"
+                    description="可按班级名称或学院搜索"
+                    icon={<GraduationCap className="w-6 h-6 text-[var(--color-ink-muted)]" />}
+                    className="py-8"
+                  />
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {classes
-                      .filter(
-                        (cls) =>
-                          !assignmentCollegeId ||
-                          cls.collegeId === assignmentCollegeId
-                      )
-                      .map((cls) => {
+                    {assignableClasses.map((cls) => {
                         const selected = selectedClassIds.has(cls.id);
                         return (
                           <label
