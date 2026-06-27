@@ -1,18 +1,12 @@
-import { getUserRole } from '../utils/auth';
+const { getUserRole } = require('../utils/auth');
 
-interface TabItem {
-  pagePath: string;
-  text: string;
-  iconKey: string;
-}
-
-const STUDENT_TABS: TabItem[] = [
+const STUDENT_TABS = [
   { pagePath: 'pages/tab/0/index', text: '首页', iconKey: 'home' },
   { pagePath: 'pages/tab/2/index', text: '成长', iconKey: 'stats' },
   { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
 ];
 
-const COUNSELOR_TABS: TabItem[] = [
+const COUNSELOR_TABS = [
   { pagePath: 'pages/tab/0/index', text: '看板', iconKey: 'dashboard' },
   { pagePath: 'pages/tab/2/index', text: '任务', iconKey: 'tasks' },
   { pagePath: 'pages/tab/4/index', text: '我的', iconKey: 'profile' },
@@ -20,7 +14,7 @@ const COUNSELOR_TABS: TabItem[] = [
 
 Component({
   data: {
-    list: [] as TabItem[],
+    list: [],
     selected: 0,
   },
 
@@ -37,7 +31,7 @@ Component({
       this.setData({ list });
     },
 
-    setSelectedByPath(path: string) {
+    setSelectedByPath(path) {
       this.refreshTabs();
       const idx = this.data.list.findIndex(
         (item) => path === item.pagePath || path.endsWith(item.pagePath)
@@ -47,10 +41,13 @@ Component({
       }
     },
 
-    switchTab(e: WechatMiniprogram.TouchEvent) {
-      const index = e.currentTarget.dataset.index as number;
-      const url = this.data.list[index].pagePath;
-      wx.switchTab({ url: `/${url}` });
+    switchTab(e) {
+      const index = Number(e.currentTarget.dataset.index);
+      const item = this.data.list[index];
+      if (!item) {
+        return;
+      }
+      wx.switchTab({ url: `/${item.pagePath}` });
       this.setData({ selected: index });
     },
   },

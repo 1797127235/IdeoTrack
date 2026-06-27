@@ -1,0 +1,47 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-icon"></view>
+    <view>
+      <view class="hero-title">需要帮助？</view>
+      <view class="hero-desc">查看常见问题，或提交使用反馈。</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">常见问题</view>
+
+    <view class="qa-item">
+      <view class="qa-question">无法完成打卡怎么办？</view>
+      <view class="qa-answer">请确认任务要求的定位、拍照、人脸验证或心得内容是否已按要求完成，再重新提交。</view>
+    </view>
+
+    <view class="qa-item">
+      <view class="qa-question">人脸验证失败怎么办？</view>
+      <view class="qa-answer">请在光线充足环境下正对镜头拍摄，避免遮挡面部；仍失败时联系辅导员核对人脸底库信息。</view>
+    </view>
+
+    <view class="qa-item">
+      <view class="qa-question">心得被要求修改怎么办？</view>
+      <view class="qa-answer">进入任务详情查看辅导员反馈，按要求补充或修改后重新提交。</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">提交反馈</view>
+    <textarea
+      class="feedback-input"
+      value="{{feedback}}"
+      maxlength="300"
+      placeholder="请描述你遇到的问题或建议"
+      bindinput="onFeedbackInput"
+    />
+    <input
+      class="contact-input"
+      value="{{contact}}"
+      maxlength="50"
+      placeholder="联系方式（选填）"
+      bindinput="onContactInput"
+    />
+    <button class="submit-btn" bindtap="submitFeedback">提交反馈</button>
+  </view>
+</view>

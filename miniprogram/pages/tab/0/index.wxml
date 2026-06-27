@@ -109,12 +109,12 @@
 
       <view class="high-risk-card" bindtap="goToHighRiskStudents">
         <view class="high-risk-main">
-          <view class="high-risk-title"></view>
-          <view class="high-risk-count" wx:if="{{!highRiskLoading}}">{{highRisk.students.length}} </view>
+          <view class="high-risk-title">重点关注学生</view>
+          <view class="high-risk-count" wx:if="{{!highRiskLoading}}">{{highRisk.students.length}}</view>
           <view class="high-risk-loading" wx:else>...</view>
         </view>
-        <view class="high-risk-desc">
-           {{highRisk.window_size}}  ≥{{highRisk.absent_threshold}} 
+        <view class="high-risk-desc" wx:if="{{!highRiskLoading}}">
+          近 {{highRisk.window_size}} 个任务中，缺卡 ≥ {{highRisk.absent_threshold}} 次
         </view>
         <view class="high-risk-arrow">></view>
       </view>

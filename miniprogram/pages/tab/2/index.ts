@@ -6,6 +6,8 @@ import {
   getSchoolLeaderboard,
   type LeaderboardResult,
 } from '../../../services/leaderboardApi';
+import { fetchTaskPool, Task } from '../../../services/taskApi';
+import { get } from '../../../services/api';
 import { getUserRole } from '../../../utils/auth';
 import { updateTabBarSelected } from '../../../utils/tabBar';
 
@@ -41,11 +43,16 @@ const defaultLeaderboard: LeaderboardResult = {
 Page({
   data: {
     role: '' as string,
+    // 学生成长
     stats: defaultStats as MeStatsResponse,
     leaderboard: defaultLeaderboard as LeaderboardResult,
     loading: true,
+    monthlyCompletionRate: 0,
     levelProgress: 0,
     maxWeekly: 1,
+    // 辅导员任务
+    poolTasks: [] as Task[],
+    dispatchedTasks: [] as Task[],
   },
 
   onShow() {
@@ -56,14 +63,26 @@ Page({
       stats: defaultStats,
       leaderboard: defaultLeaderboard,
       loading: true,
+      monthlyCompletionRate: 0,
       levelProgress: 0,
       maxWeekly: 1,
+      poolTasks: [],
+      dispatchedTasks: [],
     });
-    this.loadGrowth();
+
+    if (role === 'counselor') {
+      wx.setNavigationBarTitle({ title: '任务管理' });
+      this.loadCounselorTasks();
+    } else {
+      wx.setNavigationBarTitle({ title: '成长' });
+      this.loadGrowth();
+    }
   },
 
   onPullDownRefresh() {
-    this.loadGrowth().finally(() => wx.stopPullDownRefresh());
+    const { role } = this.data;
+    const promise = role === 'counselor' ? this.loadCounselorTasks() : this.loadGrowth();
+    promise.finally(() => wx.stopPullDownRefresh());
   },
 
   async loadGrowth() {
@@ -77,8 +96,9 @@ Page({
         }),
       ]);
       const maxWeekly = Math.max(1, ...stats.weekly.map((w) => w.completed));
+      const monthlyCompletionRate = Math.min(100, Math.max(0, stats.monthly.completionRate));
       const levelProgress = this.computeLevelProgress(stats);
-      this.setData({ stats, leaderboard, maxWeekly, levelProgress, loading: false });
+      this.setData({ stats, leaderboard, maxWeekly, monthlyCompletionRate, levelProgress, loading: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : '获取成长数据失败';
       console.error('获取成长数据失败:', err);
@@ -87,10 +107,36 @@ Page({
         stats: defaultStats,
         leaderboard: defaultLeaderboard,
         maxWeekly: 1,
+        monthlyCompletionRate: 0,
         levelProgress: 0,
         loading: false,
       });
     }
+  },
+
+  async loadCounselorTasks() {
+    this.setData({ loading: true });
+    try {
+      const [poolRes, listRes] = await Promise.all([
+        fetchTaskPool(),
+        get<{ items: Task[] }>('/api/tasks'),
+      ]);
+      this.setData({
+        poolTasks: poolRes.data?.items ?? [],
+        dispatchedTasks: (listRes.data?.items ?? []).filter(
+          (t) => t.scope_type !== 'pool'
+        ),
+        loading: false,
+      });
+    } catch (err) {
+      this.setData({ loading: false });
+      wx.showToast({ title: err instanceof Error ? err.message : '加载失败', icon: 'none' });
+    }
+  },
+
+  dispatchTask(event: WechatMiniprogram.BaseEvent) {
+    const taskId = event.currentTarget.dataset.id as string;
+    wx.navigateTo({ url: `/pages/counselor/task-dispatch/index?taskId=${taskId}` });
   },
 
   computeLevelProgress(stats: MeStatsResponse): number {

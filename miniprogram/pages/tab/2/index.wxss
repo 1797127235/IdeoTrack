@@ -460,6 +460,7 @@
   display: flex;
   align-items: center;
   box-shadow: 0 8rpx 32rpx rgba(8, 145, 178, 0.12);
+  margin-bottom: 24rpx;
 }
 
 .menu-icon-text {
@@ -501,4 +502,144 @@
   font-size: 40rpx;
   color: #CBD5E1;
   margin-left: 16rpx;
+}
+
+/* Counselor task management */
+.counselor-container {
+  min-height: 100vh;
+  background: var(--color-background, #ECFEFF);
+  padding: 24rpx 24rpx calc(112rpx + env(safe-area-inset-bottom));
+}
+
+.counselor-container .section {
+  margin-bottom: 32rpx;
+}
+
+.counselor-container .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.counselor-container .section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--color-text-primary, #164E63);
+  margin-bottom: 0;
+}
+
+.counselor-container .section-count {
+  font-size: 22rpx;
+  color: var(--color-text-secondary, #64748B);
+}
+
+.counselor-container .task-list {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(8, 145, 178, 0.06);
+}
+
+.counselor-container .task-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 16rpx;
+  border-bottom: 1rpx solid var(--color-divider, #F1F5F9);
+}
+
+.counselor-container .task-card:last-child {
+  border-bottom: none;
+}
+
+.counselor-container .task-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--color-text-primary, #164E63);
+}
+
+.counselor-container .task-meta {
+  font-size: 22rpx;
+  color: var(--color-text-secondary, #64748B);
+  margin-top: 6rpx;
+}
+
+.counselor-container .dispatch-btn {
+  background: var(--color-cta, #22C55E);
+  color: #ffffff;
+  font-size: 24rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 28rpx;
+  font-weight: 500;
+}
+
+.counselor-container .task-status {
+  font-size: 22rpx;
+  padding: 8rpx 18rpx;
+  border-radius: 20rpx;
+}
+
+.counselor-container .task-status.published {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--color-cta, #22C55E);
+}
+
+.counselor-container .task-status.delisted {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--color-text-disabled, #94A3B8);
+}
+
+.counselor-container .empty-state {
+  text-align: center;
+  padding: 60rpx 40rpx;
+  color: var(--color-text-secondary, #64748B);
+}
+
+.counselor-container .empty-icon {
+  font-size: 64rpx;
+  margin-bottom: 12rpx;
+}
+
+.counselor-container .empty-text {
+  font-size: 26rpx;
+}
+
+.counselor-container .empty-icon-pool,
+.counselor-container .empty-icon-dispatched {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 64rpx;
+  height: 64rpx;
+  margin: 0 auto 12rpx;
+}
+
+.counselor-container .empty-icon-pool {
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTQgMTkuNXYtMTVBMi41IDIuNSAwIDAgMSA2LjUgMkgyMHYyMEg2LjVhMi41IDIuNSAwIDAgMSAwLTVIMjAiLz48L3N2Zz4=");
+}
+
+.counselor-container .empty-icon-dispatched {
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iOSIgeT0iMiIgd2lkdGg9IjYiIGhlaWdodD0iNCIgcng9IjEiLz48cGF0aCBkPSJNMTYgNGgyYTIgMiAwIDAgMSAyIDJ2MTRhMiAyIDAgMCAxLTIgMkg2YTIgMiAwIDAgMS0yLTJWNmEyIDIgMCAwIDEgMi0yaDIiLz48cGF0aCBkPSJNOSAxNGg2Ii8+PHBhdGggZD0iTTkgMTBoNiIvPjwvc3ZnPg==");
+}
+
+.skeleton-list {
+  padding: 24rpx;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  border-radius: 16rpx;
+  animation: shimmer 1.5s infinite;
+}
+
+.section-skeleton {
+  height: 240rpx;
+  margin-bottom: 24rpx;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
