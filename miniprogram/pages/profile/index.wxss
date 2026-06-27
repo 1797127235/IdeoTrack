@@ -1,5 +1,6 @@
 .page-placeholder {
   padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + 112rpx + env(safe-area-inset-bottom));
 }
 
 .title {

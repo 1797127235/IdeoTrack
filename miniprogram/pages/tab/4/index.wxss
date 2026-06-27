@@ -5,6 +5,7 @@
 
 .content {
   padding: 32rpx 32rpx 48rpx;
+  padding-bottom: calc(48rpx + 112rpx + env(safe-area-inset-bottom));
 }
 
 /*  */
