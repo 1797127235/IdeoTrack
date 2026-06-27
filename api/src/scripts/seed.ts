@@ -70,17 +70,25 @@ async function seed() {
                role = $2,
                is_initial_password = true,
                class_id = $3,
-               name = $4,
+               college_id = $4,
+               name = $5,
                failed_login_attempts = 0,
                locked_until = NULL
-           WHERE id = $5`,
-          [passwordHash, user.role, user.classId, user.name, existingUser.rows[0].id]
+           WHERE id = $6`,
+          [
+            passwordHash,
+            user.role,
+            user.classId,
+            user.role === 'admin' ? null : collegeId,
+            user.name,
+            existingUser.rows[0].id,
+          ]
         );
       } else {
         await client.query(
-          `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id, name)
-           VALUES ($1, $2, $3, true, $4, $5)`,
-          [user.schoolId, passwordHash, user.role, user.classId, user.name]
+          `INSERT INTO users (school_id, password_hash, role, is_initial_password, class_id, college_id, name)
+           VALUES ($1, $2, $3, true, $4, $5, $6)`,
+          [user.schoolId, passwordHash, user.role, user.classId, user.role === 'admin' ? null : collegeId, user.name]
         );
       }
 

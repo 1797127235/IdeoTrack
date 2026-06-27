@@ -231,6 +231,14 @@ export default function UsersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.schoolId.trim()) return;
+    if ((form.role === "student" || form.role === "counselor") && !form.collegeId) {
+      setError(form.role === "student" ? "学生必须选择学院" : "辅导员必须选择学院");
+      return;
+    }
+    if (form.role === "student" && !form.classId) {
+      setError("学生必须选择班级");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -911,40 +919,40 @@ export default function UsersPage() {
               </Select>
             </FormField>
 
+            {(form.role === "student" || form.role === "counselor") && (
+              <FormField label="所属学院" htmlFor="user-form-college" required>
+                <Select
+                  id="user-form-college"
+                  value={form.collegeId}
+                  onChange={(e) => setForm((f) => ({ ...f, collegeId: e.target.value, classId: "" }))}
+                >
+                  <option value="">请选择学院</option>
+                  {colleges.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            )}
+
             {form.role === "student" && (
-              <>
-                <FormField label="学院" htmlFor="user-form-college">
-                  <Select
-                    id="user-form-college"
-                    value={form.collegeId}
-                    onChange={(e) => setForm((f) => ({ ...f, collegeId: e.target.value, classId: "" }))}
-                  >
-                    <option value="">请选择学院</option>
-                    {colleges.map((c) => (
+              <FormField label="班级" htmlFor="user-form-class" required>
+                <Select
+                  id="user-form-class"
+                  value={form.classId}
+                  onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))}
+                >
+                  <option value="">请选择班级</option>
+                  {classes
+                    .filter((c) => !form.collegeId || c.collegeId === form.collegeId)
+                    .map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
-                  </Select>
-                </FormField>
-
-                <FormField label="班级" htmlFor="user-form-class">
-                  <Select
-                    id="user-form-class"
-                    value={form.classId}
-                    onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))}
-                  >
-                    <option value="">请选择班级</option>
-                    {classes
-                      .filter((c) => !form.collegeId || c.collegeId === form.collegeId)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                  </Select>
-                </FormField>
-              </>
+                </Select>
+              </FormField>
             )}
 
             <div className="flex gap-3 pt-2">

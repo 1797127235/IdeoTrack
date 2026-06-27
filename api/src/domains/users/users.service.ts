@@ -317,6 +317,10 @@ export async function createUser(input: CreateUserInput): Promise<User> {
   if (input.role === 'student' && !input.classId) {
     throw new AppError('STUDENT_REQUIRES_CLASS', '学生必须分配班级', 400);
   }
+  // 辅导员直属单一学院，所带班级必须属于该学院
+  if (input.role === 'counselor' && !input.collegeId) {
+    throw new AppError('COUNSELOR_REQUIRES_COLLEGE', '辅导员必须分配学院', 400);
+  }
 
   const passwordHash = await bcrypt.hash(generateDefaultPassword(input.schoolId), BCRYPT_SALT_ROUNDS);
 
@@ -325,6 +329,10 @@ export async function createUser(input: CreateUserInput): Promise<User> {
   if (input.classId) {
     const cls = await queryOne<{ college_id: string }>('SELECT college_id FROM classes WHERE id = $1 LIMIT 1', [input.classId]);
     if (cls) collegeId = cls.college_id;
+    // 辅导员/学生的班级必须与归属学院一致
+    if (input.collegeId && cls && cls.college_id !== input.collegeId) {
+      throw new AppError('CLASS_COLLEGE_MISMATCH', '班级不属于所选学院', 400);
+    }
   }
 
   const user = await queryOne<User>(
@@ -358,6 +366,24 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
 
   if (input.role === 'student' && input.classId === null) {
     throw new AppError('STUDENT_REQUIRES_CLASS', '学生必须分配班级', 400);
+  }
+
+  // 角色变成辅导员、或已是辅导员且未提供学院 -> 必须有学院
+  const newRole = input.role ?? existing.role;
+  const newCollegeId = input.collegeId !== undefined ? input.collegeId : existing.collegeId;
+  if (newRole === 'counselor' && !newCollegeId) {
+    throw new AppError('COUNSELOR_REQUIRES_COLLEGE', '辅导员必须分配学院', 400);
+  }
+
+  // 班级与学院一致性：若同时提供了班级和学院，必须同属
+  if (input.classId && input.collegeId !== undefined && input.collegeId) {
+    const cls = await queryOne<{ college_id: string }>(
+      'SELECT college_id FROM classes WHERE id = $1 LIMIT 1',
+      [input.classId]
+    );
+    if (cls && cls.college_id !== input.collegeId) {
+      throw new AppError('CLASS_COLLEGE_MISMATCH', '班级不属于所选学院', 400);
+    }
   }
 
   const updates: string[] = [];
@@ -413,6 +439,15 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
         [id, newClassId]
       );
     }
+  }
+
+  // 辅导员切换学院：清空旧的所带班级（所带班级必须同属其学院）
+  if (
+    (newRole === 'counselor' || existing.role === 'counselor') &&
+    input.collegeId !== undefined &&
+    input.collegeId !== existing.collegeId
+  ) {
+    await query('DELETE FROM counselor_classes WHERE counselor_id = $1', [id]);
   }
 
   return getUserById(id);
@@ -526,10 +561,12 @@ export async function deleteUser(id: string): Promise<boolean> {
 
 export async function listCounselors(): Promise<Counselor[]> {
   const rows = await query<Counselor>(
-    `SELECT id, school_id AS "schoolId", name
-     FROM users
-     WHERE role = 'counselor' AND is_enabled = true
-     ORDER BY name, school_id`
+    `SELECT u.id, u.school_id AS "schoolId", u.name,
+            u.college_id AS "collegeId", co.name AS "collegeName"
+     FROM users u
+     LEFT JOIN colleges co ON u.college_id = co.id
+     WHERE u.role = 'counselor' AND u.is_enabled = true
+     ORDER BY u.name, u.school_id`
   );
   return rows;
 }
@@ -554,8 +591,8 @@ export async function setManagedClasses(
   counselorId: string,
   input: SetManagedClassesInput
 ): Promise<ManagedClass[]> {
-  const user = await queryOne<{ id: string; role: UserRole }>(
-    'SELECT id, role FROM users WHERE id = $1 LIMIT 1',
+  const user = await queryOne<{ id: string; role: UserRole; college_id: string | null }>(
+    'SELECT id, role, college_id FROM users WHERE id = $1 LIMIT 1',
     [counselorId]
   );
   if (!user) {
@@ -567,12 +604,22 @@ export async function setManagedClasses(
 
   const validClassIds: string[] = [];
   if (input.classIds.length > 0) {
+    // 校验班级存在，且必须属于该辅导员所在学院（一所一属）
     const placeholders = input.classIds.map((_, i) => `$${i + 2}`).join(', ');
-    const existing = await query<{ id: string }>(
-      `SELECT id FROM classes WHERE id IN (${placeholders})`,
+    const classes = await query<{ id: string; college_id: string }>(
+      `SELECT id, college_id FROM classes WHERE id IN (${placeholders})`,
       input.classIds
     );
-    const existingSet = new Set(existing.map((r) => r.id));
+    for (const cls of classes) {
+      if (user.college_id && cls.college_id !== user.college_id) {
+        throw new AppError(
+          'CLASS_COLLEGE_MISMATCH',
+          '辅导员只能管理所属学院的班级',
+          400
+        );
+      }
+    }
+    const existingSet = new Set(classes.map((r) => r.id));
     for (const classId of input.classIds) {
       if (existingSet.has(classId)) {
         validClassIds.push(classId);

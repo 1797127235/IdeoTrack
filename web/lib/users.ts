@@ -269,6 +269,8 @@ export interface Counselor {
   id: string;
   schoolId: string;
   name: string | null;
+  collegeId: string | null;
+  collegeName: string | null;
 }
 
 export interface ManagedClass {

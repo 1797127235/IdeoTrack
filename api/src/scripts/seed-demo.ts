@@ -93,9 +93,9 @@ async function seedDemo() {
     for (let c = 0; c < collegeIds.length; c++) {
       const schoolId = `D100${c + 1}`;
       const result = await client.query(
-        `INSERT INTO users (school_id, password_hash, name, role, is_initial_password, is_enabled)
-         VALUES ($1, $2, $3, 'counselor', true, true) RETURNING id`,
-        [schoolId, await hashPassword(schoolId), `辅导员${c + 1}`]
+        `INSERT INTO users (school_id, password_hash, name, role, college_id, is_initial_password, is_enabled)
+         VALUES ($1, $2, $3, 'counselor', $4, true, true) RETURNING id`,
+        [schoolId, await hashPassword(schoolId), `辅导员${c + 1}`, collegeIds[c]]
       );
       counselorIds.push(result.rows[0].id);
 

@@ -150,14 +150,17 @@ export default function OrganizationsPage() {
 
   const handleCounselorChange = async (counselorId: string) => {
     setSelectedCounselorId(counselorId);
-    setAssignmentCollegeId("");
     setAssignmentError("");
     setAssignmentSuccess(false);
     if (!counselorId) {
+      setAssignmentCollegeId("");
       setManagedClasses([]);
       setSelectedClassIds(new Set());
       return;
     }
+    // 选中辅导员后锁定为其所属学院（一所一属），只能勾选本院班级
+    const counselor = counselors.find((c) => c.id === counselorId);
+    setAssignmentCollegeId(counselor?.collegeId || "");
     try {
       const data = await getManagedClasses(counselorId);
       setManagedClasses(data);
@@ -652,7 +655,7 @@ export default function OrganizationsPage() {
               <option value="">请选择</option>
               {counselors.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name || c.schoolId}（{c.schoolId}）
+                  {c.name || c.schoolId}（{c.schoolId}）{c.collegeName ? `· ${c.collegeName}` : ""}
                 </option>
               ))}
             </Select>
@@ -661,16 +664,17 @@ export default function OrganizationsPage() {
           {selectedCounselorId && (
             <>
               <FormField
-                label="筛选学院"
+                label="所属学院"
                 htmlFor="filterCollegeId"
                 className="w-full sm:min-w-[240px] sm:w-60"
               >
                 <Select
                   id="filterCollegeId"
                   value={assignmentCollegeId}
-                  onChange={(e) => setAssignmentCollegeId(e.target.value)}
+                  disabled
+                  title="辅导员只能管理所属学院的班级，如需更改请修改辅导员归属学院"
                 >
-                  <option value="">全部学院</option>
+                  <option value="">未分配学院</option>
                   {colleges.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
