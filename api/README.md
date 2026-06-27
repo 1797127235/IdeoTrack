@@ -74,6 +74,16 @@ docker compose --profile with-caddy up -d
 
 创建/更新任务时传入这些字段，学生签到时后端会计算距离，超出范围返回 `CHECKIN_OUTSIDE_GEOFENCE`。
 
+## 组织架构与用户管理
+
+用户域 `/api/users`（仅管理员）管理学院、班级、用户和辅导员分配。完整数据关系见根目录 [数据模型说明](../docs/DATA-MODEL.md)。要点：
+
+- **辅导员直属单一学院**：`users.college_id` 必填，所带班级必须同属该学院（`CLASS_COLLEGE_MISMATCH` 校验）。
+- **批量导入端点**（均为 admin only）：
+  - `POST /api/users/batch-import-organizations` — 导入学院+班级，幂等去重。
+  - `POST /api/users/batch-import` — 导入用户（按名称匹配已有组织）。
+  - `POST /api/users/batch-face-import` — 上传 zip 批量导入注册照（异步 job，返回 jobId，轮询 `GET /api/users/batch-face-import/:jobId`）。
+
 ## API 接口
 
 ### POST /api/auth/login

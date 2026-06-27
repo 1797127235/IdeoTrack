@@ -108,7 +108,7 @@ export async function getMe(userId: string): Promise<{
     name: string | null;
     school_id: string;
     managed_classes_count: number;
-    college_names: string | null;
+    college_name: string | null;
   }>(
      `SELECT
         u.id,
@@ -116,13 +116,12 @@ export async function getMe(userId: string): Promise<{
         COALESCE(NULLIF(u.name, ''), u.school_id) AS name,
         u.school_id,
         COUNT(DISTINCT cc.class_id)::int AS managed_classes_count,
-        STRING_AGG(DISTINCT co.name, ', ') AS college_names
+        co.name AS college_name
       FROM users u
       LEFT JOIN counselor_classes cc ON cc.counselor_id = u.id
-      LEFT JOIN classes c ON c.id = cc.class_id
-      LEFT JOIN colleges co ON co.id = c.college_id
+      LEFT JOIN colleges co ON co.id = u.college_id
       WHERE u.id = $1
-      GROUP BY u.id, u.role, u.name, u.school_id`,
+      GROUP BY u.id, u.role, u.name, u.school_id, co.name`,
     [userId]
   );
   if (!row) {
@@ -134,7 +133,7 @@ export async function getMe(userId: string): Promise<{
     name: row.name,
     schoolId: row.school_id,
     managedClassesCount: row.managed_classes_count,
-    collegeName: row.college_names,
+    collegeName: row.college_name,
   };
 }
 
