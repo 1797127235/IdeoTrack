@@ -12,6 +12,22 @@ export class AppError extends Error {
   }
 }
 
+function normalizeUploadError(err: Error): AppError | null {
+  if (err.name === 'MulterError') {
+    const code = (err as Error & { code?: string }).code;
+    if (code === 'LIMIT_FILE_SIZE') {
+      return new AppError('UPLOAD_FILE_TOO_LARGE', '照片不能超过 5MB，请重新拍摄后上传', 413);
+    }
+    return new AppError('UPLOAD_INVALID_FILE', '照片上传失败，请重新拍摄后重试', 400);
+  }
+
+  if (err.message.includes('jpg/png/webp')) {
+    return new AppError('UPLOAD_INVALID_TYPE', '仅支持 jpg、png、webp 格式照片', 400);
+  }
+
+  return null;
+}
+
 export function errorHandler(
   err: Error,
   req: Request,
@@ -19,6 +35,10 @@ export function errorHandler(
   _next: NextFunction
 ): void {
   const requestId = (req as Request & { id?: string }).id;
+  const uploadError = normalizeUploadError(err);
+  if (uploadError) {
+    err = uploadError;
+  }
 
   if (err instanceof AppError) {
     // 业务错误（如 400/404/409）：记 warn 级别，便于发现高频错误

@@ -26,6 +26,8 @@ Page({
     requireLocation: false,
     latitude: 0,
     longitude: 0,
+    latitudeText: '',
+    longitudeText: '',
     address: '',
     locationLoading: false,
     locationReady: true,
@@ -38,7 +40,7 @@ Page({
     photoPreview: '',
   },
 
-  onLoad(options: { taskId?: string; title?: string }) {
+  onLoad(options: { taskId?: string }) {
     const taskId = options.taskId || '';
 
     if (!taskId) {
@@ -63,6 +65,7 @@ Page({
         const geofenceHint = requireLocation
           ? `该任务需在「${task.geo_address || '指定位置'}」${task.geo_radius_meters} 米范围内签到`
           : '该任务无需定位，直接确认打卡即可';
+
         this.setData({
           task,
           taskTitle: task.title,
@@ -72,6 +75,7 @@ Page({
           requireFace,
           geofenceHint,
         });
+
         if (requireLocation) {
           this.loadLocation();
         }
@@ -107,6 +111,8 @@ Page({
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
+          latitudeText: res.latitude.toFixed(6),
+          longitudeText: res.longitude.toFixed(6),
           locationLoading: true,
           locationReady: true,
           outOfRange,
@@ -169,7 +175,6 @@ Page({
     }
   },
 
-  /** 人脸打卡：唤起系统相机拍一张现场照 */
   onTakePhoto() {
     wx.chooseMedia({
       count: 1,
@@ -184,7 +189,6 @@ Page({
         });
       },
       fail: (err) => {
-        // 用户取消时不提示错误
         if (!err.errMsg?.includes('cancel')) {
           wx.showToast({ title: '拍照失败，请重试', icon: 'none' });
         }
@@ -192,7 +196,6 @@ Page({
     });
   },
 
-  /** 重新拍照 */
   onRetakePhoto() {
     this.setData({ photoPath: '', photoPreview: '' });
     this.onTakePhoto();
@@ -227,6 +230,11 @@ Page({
     }
 
     this.setData({ submitting: true });
+    wx.showLoading({
+      title: requireFace ? '上传验证中...' : '提交中...',
+      mask: true,
+    });
+
     try {
       const payload: CreateCheckInData = { task_id: taskId };
       if (requireLocation) {
@@ -234,9 +242,13 @@ Page({
         payload.longitude = longitude;
         payload.address = address;
       }
+
       const res = requireFace && photoPath
         ? await createCheckInWithPhoto(payload, photoPath)
         : await createCheckIn(payload);
+
+      wx.hideLoading();
+
       if (res.success && res.data) {
         wx.showToast({ title: '签到成功', icon: 'success' });
         const checkInId = res.data.id;
@@ -255,6 +267,7 @@ Page({
         this.setData({ submitting: false });
       }
     } catch (err) {
+      wx.hideLoading();
       const message = err instanceof Error ? err.message : '签到失败';
       wx.showToast({ title: message, icon: 'none' });
       this.setData({ submitting: false });

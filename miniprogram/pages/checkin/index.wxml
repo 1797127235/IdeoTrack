@@ -23,7 +23,7 @@
 
       <block wx:if="{{geofenceHint}}">
         <view class="geofence-hint {{requireLocation && outOfRange ? 'danger' : ''}}">
-          <text class="hint-icon">{{requireLocation ? '📍' : '✅'}}</text>
+          <text class="hint-icon">{{requireLocation ? '📍' : '✓'}}</text>
           <text class="hint-text">{{geofenceHint}}</text>
           <text wx:if="{{requireLocation && outOfRange}}" class="hint-status">（当前不在范围内）</text>
           <text wx:elif="{{requireLocation && locationReady}}" class="hint-status success">（已在范围内）</text>
@@ -51,7 +51,7 @@
       <block wx:elif="{{requireLocation}}">
         <view class="location-info">
           <text class="location-address">{{address}}</text>
-          <text class="location-coords">纬度 {{latitude.toFixed(6)}} · 经度 {{longitude.toFixed(6)}}</text>
+          <text class="location-coords">纬度 {{latitudeText}} · 经度 {{longitudeText}}</text>
         </view>
       </block>
     </view>
@@ -59,17 +59,17 @@
     <view class="location-card" wx:if="{{requireFace}}">
       <text class="card-title">人脸打卡</text>
       <view class="geofence-hint">
-        <text class="hint-icon">📸</text>
+        <text class="hint-icon">📷</text>
         <text class="hint-text">该任务需人脸验证，请拍摄本人面部完成签到</text>
       </view>
       <block wx:if="{{photoPreview}}">
         <view class="photo-preview-wrap">
           <image class="photo-preview" src="{{photoPreview}}" mode="aspectFill" />
-          <button class="action-btn secondary" bindtap="onRetakePhoto">重新拍摄</button>
+          <button class="action-btn secondary" bindtap="onRetakePhoto" disabled="{{submitting}}">重新拍摄</button>
         </view>
       </block>
       <block wx:else>
-        <button class="action-btn photo-btn" bindtap="onTakePhoto">点击拍照</button>
+        <button class="action-btn photo-btn" bindtap="onTakePhoto" disabled="{{submitting}}">点击拍照</button>
       </block>
     </view>
 

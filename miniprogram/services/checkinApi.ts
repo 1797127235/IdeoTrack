@@ -25,6 +25,9 @@ export interface CheckInResponse {
   reflection_content: string | null;
   ai_review_reason: string | null;
   reflection_modified: boolean;
+  face_photo_path?: string | null;
+  face_verified?: boolean | null;
+  face_similarity?: number | null;
 }
 
 export interface CheckInResultSummary {
@@ -73,12 +76,8 @@ export async function createCheckIn(data: CreateCheckInData) {
 }
 
 /**
- * 携带现场照的人脸打卡提交。
- * 用 wx.uploadFile 走 multipart/form-data：照片作为 file 字段，
- * 其余文本字段放进 formData。后端用 multer 接收并做人脸比对。
- *
- * @param data   文本字段（task_id/latitude/longitude/address/reflection_content）
- * @param photoPath  wx.chooseMedia 返回的临时文件路径
+ * 提交带现场照片的人脸打卡。
+ * 使用 wx.uploadFile 发送 multipart/form-data：照片字段名为 photo，其余字段放在 formData。
  */
 export function createCheckInWithPhoto(
   data: CreateCheckInData,
@@ -101,21 +100,36 @@ export function createCheckInWithPhoto(
       name: 'photo',
       formData,
       header,
-      timeout: 30000, // 人脸比对可能较慢，放宽到 30s
+      timeout: 30000,
       success: (res) => {
+        if (res.statusCode === 401) {
+          clearToken();
+        }
+
         try {
           const parsed = JSON.parse(res.data) as ApiResponse<CheckInResponse>;
-          // 401 时清除 token（与 request 封装行为一致）
-          if (res.statusCode === 401) {
-            clearToken();
+          if (parsed && typeof parsed === 'object' && 'success' in parsed) {
+            resolve(parsed);
+            return;
           }
-          resolve(parsed);
         } catch {
-          reject(new Error(`打卡失败 (${res.statusCode})`));
+          // Non-JSON responses are handled below with a user-facing message.
         }
+
+        if (res.statusCode >= 400) {
+          reject(new Error(`上传失败（${res.statusCode}），请稍后重试`));
+          return;
+        }
+
+        reject(new Error('上传响应异常，请重试'));
       },
       fail: (err) => {
-        reject(new Error(err.errMsg || '网络请求失败'));
+        const errMsg = err.errMsg || '';
+        if (errMsg.includes('timeout')) {
+          reject(new Error('人脸验证超时，请重试'));
+          return;
+        }
+        reject(new Error(errMsg || '网络请求失败'));
       },
     });
   });

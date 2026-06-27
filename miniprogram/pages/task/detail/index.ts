@@ -289,6 +289,10 @@ Page({
     if (!canSubmit || submitting) return;
 
     this.setData({ submitting: true });
+    wx.showLoading({
+      title: requireFace ? '上传验证中...' : '提交中...',
+      mask: true,
+    });
     try {
       const payload: CreateCheckInData = {
         task_id: taskId,
@@ -302,6 +306,7 @@ Page({
       const res = requireFace && photoPath
         ? await createCheckInWithPhoto(payload, photoPath)
         : await createCheckIn(payload);
+      wx.hideLoading();
       if (res.success && res.data) {
         wx.showToast({ title: '打卡成功', icon: 'success' });
         setTimeout(() => {
@@ -314,6 +319,7 @@ Page({
         this.setData({ submitting: false });
       }
     } catch (err) {
+      wx.hideLoading();
       const message = err instanceof Error ? err.message : '打卡失败';
       wx.showToast({ title: message, icon: 'none' });
       this.setData({ submitting: false });
