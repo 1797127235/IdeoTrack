@@ -286,9 +286,10 @@ Page({
   },
 
   updateCanSubmit() {
-    const { reflectionContent, requireLocation, locationLoading, locationError, outOfRange, requireFace, photoPath } = this.data;
+    const { reflectionContent, requireLocation, locationLoading, locationError, requireFace, photoPath } = this.data;
     const hasReflection = reflectionContent.trim().length >= 10;
-    const locationReady = !requireLocation || (!locationLoading && !locationError && !outOfRange && !!this.data.address);
+    // 演示环境：放开位置签到范围前端预判（与后端一致），不再用 outOfRange 拦截提交。
+    const locationReady = !requireLocation || (!locationLoading && !locationError && !!this.data.address);
     const photoReady = !requireFace || !!photoPath;
     this.setData({ canSubmit: hasReflection && locationReady && photoReady });
   },

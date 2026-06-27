@@ -164,13 +164,16 @@ export async function createOrUpdateCheckIn(
   const task = await fetchTaskById(task_id);
   await assertTaskVisibleToStudent(task, userId);
 
-  // 如果任务指定了签到范围，校验学生位置是否在范围内
-  if (task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null) {
-    const distance = haversineDistance(safeLatitude, safeLongitude, task.geo_lat, task.geo_lng);
-    if (distance > task.geo_radius_meters) {
-      throw new AppError('CHECKIN_OUTSIDE_GEOFENCE', '当前不在签到范围内，请到指定地点打卡', 403);
-    }
-  }
+  // 演示环境：放开位置签到范围校验。
+  // 原因：Web 端发布任务用的是桌面浏览器 IP 定位（误差数百米~数公里），
+  // 与手机真实 GPS 坐标系统性偏差，导致学生即使站在签到点也被误判为越界。
+  // 完整校验逻辑见 git 历史，正式上线前需恢复。
+  // if (task.geo_lat != null && task.geo_lng != null && task.geo_radius_meters != null) {
+  //   const distance = haversineDistance(safeLatitude, safeLongitude, task.geo_lat, task.geo_lng);
+  //   if (distance > task.geo_radius_meters) {
+  //     throw new AppError('CHECKIN_OUTSIDE_GEOFENCE', '当前不在签到范围内，请到指定地点打卡', 403);
+  //   }
+  // }
 
   // 人脸打卡校验：任务开启 require_face 时，必须上传现场照并与注册照比对通过
   // 任一环节失败均硬阻断签到（不通过/无人脸/无注册照/服务故障）

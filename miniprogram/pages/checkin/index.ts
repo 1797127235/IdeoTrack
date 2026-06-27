@@ -227,10 +227,7 @@ Page({
       wx.showToast({ title: '请等待定位完成', icon: 'none' });
       return;
     }
-    if (requireLocation && outOfRange) {
-      wx.showToast({ title: '当前不在签到范围内', icon: 'none' });
-      return;
-    }
+    // 演示环境：放开位置签到范围前端预判（与后端一致），避免误拦。
     if (requireFace && !photoPath) {
       wx.showToast({ title: '请先拍摄人脸照片', icon: 'none' });
       return;
