@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import {
   getLearningResource,
   updateLearningResource,
@@ -267,11 +266,10 @@ export default function EditLearningResourcePage() {
               </div>
               {coverPreview && (
                 <div className="relative w-full h-48 rounded-lg overflow-hidden border border-[var(--color-border)]">
-                  <Image
+                  <img
                     src={coverPreview}
                     alt="封面预览"
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               )}

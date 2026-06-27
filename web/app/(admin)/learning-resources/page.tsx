@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   listLearningResources,
   deleteLearningResource,
@@ -158,12 +157,10 @@ export default function LearningResourcesPage() {
               <Card key={resource.id} className="overflow-hidden flex flex-col">
                 <div className="relative h-36 bg-[var(--color-bg)]">
                   {resource.cover_url ? (
-                    <Image
+                    <img
                       src={getCoverUrl(resource.id)}
                       alt={resource.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-[var(--color-ink-muted)] text-sm">
