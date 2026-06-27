@@ -37,9 +37,10 @@ import {
   Trash2,
   Check,
   Download,
-  Upload,
   X,
 } from "lucide-react";
+
+type OrganizationTab = "colleges" | "classes" | "counselors";
 
 /** 解析组织导入 CSV，返回 {学院, 班级} 行（班级可为空）。表头中英文均支持。 */
 function parseOrgImportCsv(text: string): Array<{ collegeName: string; className: string }> {
@@ -63,6 +64,7 @@ function parseOrgImportCsv(text: string): Array<{ collegeName: string; className
 }
 
 export default function OrganizationsPage() {
+  const [activeTab, setActiveTab] = useState<OrganizationTab>("colleges");
   const [colleges, setColleges] = useState<College[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [counselors, setCounselors] = useState<Counselor[]>([]);
@@ -87,6 +89,11 @@ export default function OrganizationsPage() {
 
   const [batchImporting, setBatchImporting] = useState(false);
   const [batchImportResult, setBatchImportResult] = useState<BatchImportOrgResult | null>(null);
+  const organizationTabs: Array<{ id: OrganizationTab; label: string; count: number }> = [
+    { id: "colleges", label: "学院管理", count: colleges.length },
+    { id: "classes", label: "班级管理", count: classes.length },
+    { id: "counselors", label: "辅导员设置", count: counselors.length },
+  ];
 
   const loadData = () => {
     Promise.all([listColleges(), listClasses(), listCounselors()])
@@ -354,6 +361,41 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
+      <div
+        role="tablist"
+        aria-label="组织架构管理分类"
+        className="flex w-full flex-col gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 sm:inline-flex sm:w-auto sm:flex-row"
+      >
+        {organizationTabs.map((tab) => {
+          const selected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex h-10 items-center justify-between gap-3 rounded-md px-4 text-sm font-medium transition-colors sm:justify-center ${
+                selected
+                  ? "bg-[var(--color-accent)] text-white shadow-sm"
+                  : "text-[var(--color-ink-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-ink)]"
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs ${
+                  selected
+                    ? "bg-white/20 text-white"
+                    : "bg-[var(--color-bg)] text-[var(--color-ink-muted)]"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {batchImportResult && (
         <Card className="relative p-4 text-sm">
           <Button
@@ -393,8 +435,8 @@ export default function OrganizationsPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Colleges */}
+      <div className="space-y-6">
+        {activeTab === "colleges" ? (
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">
             学院管理
@@ -496,8 +538,9 @@ export default function OrganizationsPage() {
             </div>
           )}
         </Card>
+        ) : null}
 
-        {/* Classes */}
+        {activeTab === "classes" ? (
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">
             班级管理
@@ -623,8 +666,10 @@ export default function OrganizationsPage() {
             </div>
           )}
         </Card>
+        ) : null}
       </div>
 
+      {activeTab === "counselors" ? (
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-4">
           辅导员班级分配
@@ -748,6 +793,7 @@ export default function OrganizationsPage() {
           )}
         </div>
       </Card>
+      ) : null}
     </div>
   );
 }
