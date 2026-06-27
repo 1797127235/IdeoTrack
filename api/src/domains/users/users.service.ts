@@ -605,7 +605,7 @@ export async function setManagedClasses(
   const validClassIds: string[] = [];
   if (input.classIds.length > 0) {
     // 校验班级存在，且必须属于该辅导员所在学院（一所一属）
-    const placeholders = input.classIds.map((_, i) => `$${i + 2}`).join(', ');
+    const placeholders = input.classIds.map((_, i) => `$${i + 1}`).join(', ');
     const classes = await query<{ id: string; college_id: string }>(
       `SELECT id, college_id FROM classes WHERE id IN (${placeholders})`,
       input.classIds
