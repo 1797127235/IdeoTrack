@@ -4,19 +4,18 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getTask, updateTask, type TaskScopeType } from "@/lib/tasks";
+import { getTask, updateTask, type TaskScopeType, type TaskCategory, type CheckinType } from "@/lib/tasks";
 import { listColleges, listClasses, type College, type Class } from "@/lib/users";
 import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
-import {
-  Button,
-  Input,
-  Textarea,
-  Select,
-  Card,
-  Skeleton,
-  FormField,
-  Switch,
-} from "@/components/ui";
+import { Button, Input, Textarea, Select, Card, Skeleton, FormField, Switch } from "@/components/ui";
+
+const categories: TaskCategory[] = ["学习", "实践", "活动", "会议", "阅读"];
+const checkinTypes: { value: CheckinType; label: string }[] = [
+  { value: "text", label: "文字心得" },
+  { value: "image", label: "图片上传" },
+  { value: "video", label: "视频上传" },
+  { value: "mixed", label: "图文混合" },
+];
 
 export default function EditTaskPage() {
   const params = useParams();
@@ -24,10 +23,20 @@ export default function EditTaskPage() {
   const taskId = params.id as string;
 
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
+  const [coverImage, setCoverImage] = useState("");
+  const [category, setCategory] = useState<TaskCategory | "">("");
+  const [tags, setTags] = useState("");
   const [guidingQuestions, setGuidingQuestions] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [checkinType, setCheckinType] = useState<CheckinType>("text");
+  const [requireText, setRequireText] = useState(false);
+  const [requireImage, setRequireImage] = useState(false);
+  const [requireVideo, setRequireVideo] = useState(false);
+  const [minTextLength, setMinTextLength] = useState("");
+  const [maxImages, setMaxImages] = useState("");
   const [scopeType, setScopeType] = useState<TaskScopeType>("school");
   const [scopeId, setScopeId] = useState("");
   const [publishedAt, setPublishedAt] = useState("");
@@ -49,10 +58,20 @@ export default function EditTaskPage() {
         setColleges(collegesData);
         setClasses(classesData);
         setTitle(task.title);
+        setDescription(task.description ?? "");
         setContent(task.content);
+        setCoverImage(task.cover_image ?? "");
+        setCategory(task.category ?? "");
+        setTags((task.tags ?? []).join(", "));
         setGuidingQuestions(task.guiding_questions?.join("\n") || "");
         setSourceUrl(task.source_url || "");
         setVideoUrl(task.video_url || "");
+        setCheckinType(task.checkin_type);
+        setRequireText(task.require_text);
+        setRequireImage(task.require_image);
+        setRequireVideo(task.require_video);
+        setMinTextLength(task.min_text_length?.toString() ?? "");
+        setMaxImages(task.max_images?.toString() ?? "");
         setScopeType(task.scope_type);
         setScopeId(task.scope_id || task.target_college_id || task.target_class_id || "");
         setPublishedAt(formatDateTimeLocal(task.published_at));
@@ -94,6 +113,10 @@ export default function EditTaskPage() {
         .split("\n")
         .map((q) => q.trim())
         .filter((q) => q.length > 0);
+      const tagList = tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
 
       if (requireLocation && !geofence) {
         throw new Error("开启定位签到后，请先选择签到范围");
@@ -101,10 +124,21 @@ export default function EditTaskPage() {
 
       await updateTask(taskId, {
         title: title.trim(),
+        description: description.trim() || null,
         content: content.trim(),
+        cover_image: coverImage.trim() || null,
+        category: category || null,
+        tags: tagList.length > 0 ? tagList : null,
         guiding_questions: questions.length > 0 ? questions : null,
         source_url: sourceUrl.trim() || null,
         video_url: videoUrl.trim() || null,
+        checkin_type: checkinType,
+        require_text: requireText,
+        require_image: requireImage,
+        require_video: requireVideo,
+        min_text_length: minTextLength ? parseInt(minTextLength, 10) : null,
+        max_images: maxImages ? parseInt(maxImages, 10) : null,
+        require_location: requireLocation,
         scope_type: scopeType,
         scope_id: scopeType === "school" ? null : scopeId,
         published_at: new Date(publishedAt).toISOString(),
@@ -164,50 +198,66 @@ export default function EditTaskPage() {
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <FormField label="任务名称" htmlFor="title" required>
-            <Input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
+            <Input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </FormField>
+
+          <FormField label="任务说明" htmlFor="description" hint="可选">
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              placeholder="输入简短说明"
             />
           </FormField>
 
           <FormField label="任务内容" htmlFor="content" required>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={5}
-              required
-            />
+            <Textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} rows={5} required />
           </FormField>
 
-          <FormField label="思考题（每行一个，可选）" htmlFor="guidingQuestions">
-            <Textarea
-              id="guidingQuestions"
-              value={guidingQuestions}
-              onChange={(e) => setGuidingQuestions(e.target.value)}
-              rows={3}
+          <FormField label="封面图 URL" htmlFor="coverImage" hint="可选">
+            <Input
+              id="coverImage"
+              type="url"
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              placeholder="https://"
             />
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="外部链接（可选）" htmlFor="sourceUrl">
+            <FormField label="任务类型" htmlFor="category">
+              <Select id="category" value={category} onChange={(e) => setCategory(e.target.value as TaskCategory | "")}>
+                <option value="">未分类</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="标签" htmlFor="tags" hint="用英文逗号分隔">
               <Input
-                id="sourceUrl"
-                type="url"
-                value={sourceUrl}
-                onChange={(e) => setSourceUrl(e.target.value)}
+                id="tags"
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="红色教育, 党史学习"
               />
             </FormField>
+          </div>
+
+          <FormField label="思考题（每行一个，可选）" htmlFor="guidingQuestions">
+            <Textarea id="guidingQuestions" value={guidingQuestions} onChange={(e) => setGuidingQuestions(e.target.value)} rows={3} />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="外部链接（可选）" htmlFor="sourceUrl">
+              <Input id="sourceUrl" type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
+            </FormField>
             <FormField label="视频 URL（可选）" htmlFor="videoUrl">
-              <Input
-                id="videoUrl"
-                type="url"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-              />
+              <Input id="videoUrl" type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
             </FormField>
           </div>
 
@@ -229,12 +279,7 @@ export default function EditTaskPage() {
 
             {scopeType === "college" && (
               <FormField label="选择学院" htmlFor="scopeId" required>
-                <Select
-                  id="scopeId"
-                  value={scopeId}
-                  onChange={(e) => setScopeId(e.target.value)}
-                  required
-                >
+                <Select id="scopeId" value={scopeId} onChange={(e) => setScopeId(e.target.value)} required>
                   <option value="">请选择</option>
                   {colleges.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -247,12 +292,7 @@ export default function EditTaskPage() {
 
             {scopeType === "class" && (
               <FormField label="选择班级" htmlFor="scopeId" required>
-                <Select
-                  id="scopeId"
-                  value={scopeId}
-                  onChange={(e) => setScopeId(e.target.value)}
-                  required
-                >
+                <Select id="scopeId" value={scopeId} onChange={(e) => setScopeId(e.target.value)} required>
                   <option value="">请选择</option>
                   {classes.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -283,6 +323,80 @@ export default function EditTaskPage() {
                 required
               />
             </FormField>
+          </div>
+
+          <FormField label="打卡类型" htmlFor="checkinType">
+            <Select
+              id="checkinType"
+              value={checkinType}
+              onChange={(e) => {
+                const value = e.target.value as CheckinType;
+                setCheckinType(value);
+                if (value === "text") {
+                  setRequireImage(false);
+                  setRequireVideo(false);
+                } else if (value === "image") {
+                  setRequireText(false);
+                  setRequireVideo(false);
+                } else if (value === "video") {
+                  setRequireText(false);
+                  setRequireImage(false);
+                }
+              }}
+            >
+              {checkinTypes.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="最少字数" htmlFor="minTextLength" hint="可选">
+              <Input
+                id="minTextLength"
+                type="number"
+                min={0}
+                value={minTextLength}
+                onChange={(e) => setMinTextLength(e.target.value)}
+              />
+            </FormField>
+            <FormField label="最多图片数" htmlFor="maxImages" hint="可选，1-9">
+              <Input
+                id="maxImages"
+                type="number"
+                min={1}
+                max={9}
+                value={maxImages}
+                onChange={(e) => setMaxImages(e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <div className="space-y-4">
+            <FormField label="必填内容" htmlFor="requireText">
+              <div className="flex items-center gap-3 pt-1">
+                <Switch id="requireText" checked={requireText} onCheckedChange={setRequireText} />
+                <span className="text-sm text-[var(--color-ink-secondary)]">必须写心得</span>
+              </div>
+            </FormField>
+            {checkinType === "mixed" && (
+              <>
+                <FormField label="" htmlFor="requireImage">
+                  <div className="flex items-center gap-3 pt-1">
+                    <Switch id="requireImage" checked={requireImage} onCheckedChange={setRequireImage} />
+                    <span className="text-sm text-[var(--color-ink-secondary)]">必须上传图片</span>
+                  </div>
+                </FormField>
+                <FormField label="" htmlFor="requireVideo">
+                  <div className="flex items-center gap-3 pt-1">
+                    <Switch id="requireVideo" checked={requireVideo} onCheckedChange={setRequireVideo} />
+                    <span className="text-sm text-[var(--color-ink-secondary)]">必须上传视频</span>
+                  </div>
+                </FormField>
+              </>
+            )}
           </div>
 
           <FormField
@@ -317,11 +431,7 @@ export default function EditTaskPage() {
             hint="开启后，学生签到时必须用相机拍现场照，与注册照比对通过才能打卡"
           >
             <div className="flex items-center gap-3 pt-1">
-              <Switch
-                id="requireFace"
-                checked={requireFace}
-                onCheckedChange={setRequireFace}
-              />
+              <Switch id="requireFace" checked={requireFace} onCheckedChange={setRequireFace} />
               <span className="text-sm text-[var(--color-ink-secondary)]">
                 {requireFace ? "已开启" : "未开启"}
               </span>

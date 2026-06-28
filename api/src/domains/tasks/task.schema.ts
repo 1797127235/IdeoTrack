@@ -17,10 +17,21 @@ const contentSchema = z
 
 export const createTaskSchema = z.object({
   title: titleSchema,
+  description: z.string().trim().max(500, '任务说明不能超过 500 字').nullable().optional(),
   content: contentSchema,
+  cover_image: z.string().url('封面图 URL 格式无效').nullable().optional(),
+  category: z.enum(['学习', '实践', '活动', '会议', '阅读']).nullable().optional(),
+  tags: z.array(z.string().trim().min(1, '标签不能为空').max(20, '单个标签不能超过 20 字')).nullable().optional(),
   guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),
   source_url: z.string().url('外部链接格式无效').nullable().optional(),
   video_url: z.string().url('视频 URL 格式无效').nullable().optional(),
+  checkin_type: z.enum(['text', 'image', 'video', 'mixed']).optional(),
+  require_text: z.boolean().optional(),
+  require_image: z.boolean().optional(),
+  require_video: z.boolean().optional(),
+  min_text_length: z.number().int().min(0).nullable().optional(),
+  max_images: z.number().int().min(1).max(9).nullable().optional(),
+  require_location: z.boolean().optional(),
   scope_type: z.enum(['school', 'college', 'class'], {
     message: '发布范围必须是 school、college 或 class',
   }),
@@ -57,16 +68,38 @@ export const createTaskSchema = z.object({
   }
 ).refine(
   (data) => {
-    const hasLat = data.geo_lat !== undefined && data.geo_lat !== null;
-    const hasLng = data.geo_lng !== undefined && data.geo_lng !== null;
-    const hasRadius = data.geo_radius_meters !== undefined && data.geo_radius_meters !== null;
-    const any = hasLat || hasLng || hasRadius || (data.geo_address && data.geo_address.trim().length > 0);
-    if (!any) return true;
-    return hasLat && hasLng && hasRadius;
+    if (data.require_location) {
+      return (
+        data.geo_lat !== undefined &&
+        data.geo_lat !== null &&
+        data.geo_lng !== undefined &&
+        data.geo_lng !== null &&
+        data.geo_radius_meters !== undefined &&
+        data.geo_radius_meters !== null
+      );
+    }
+    return true;
   },
   {
-    message: '位置范围的纬度、经度和半径必须同时提供',
+    message: '开启定位签到后，必须提供纬度、经度和半径',
     path: ['geo_radius_meters'],
+  }
+).refine(
+  (data) => {
+    if (data.checkin_type === 'text' && (data.require_image || data.require_video)) {
+      return false;
+    }
+    if (data.checkin_type === 'image' && (data.require_text || data.require_video)) {
+      return false;
+    }
+    if (data.checkin_type === 'video' && (data.require_text || data.require_image)) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: '打卡类型与必填内容不匹配',
+    path: ['checkin_type'],
   }
 );
 
@@ -112,10 +145,21 @@ export type CreateTaskFromTemplateInput = z.infer<typeof createTaskFromTemplateS
 
 export const updateTaskSchema = z.object({
   title: titleSchema.optional(),
+  description: z.string().trim().max(500, '任务说明不能超过 500 字').nullable().optional(),
   content: contentSchema.optional(),
+  cover_image: z.string().url('封面图 URL 格式无效').nullable().optional(),
+  category: z.enum(['学习', '实践', '活动', '会议', '阅读']).nullable().optional(),
+  tags: z.array(z.string().trim().min(1, '标签不能为空').max(20, '单个标签不能超过 20 字')).nullable().optional(),
   guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),
   source_url: z.string().url('外部链接格式无效').nullable().optional(),
   video_url: z.string().url('视频 URL 格式无效').nullable().optional(),
+  checkin_type: z.enum(['text', 'image', 'video', 'mixed']).optional(),
+  require_text: z.boolean().optional(),
+  require_image: z.boolean().optional(),
+  require_video: z.boolean().optional(),
+  min_text_length: z.number().int().min(0).nullable().optional(),
+  max_images: z.number().int().min(1).max(9).nullable().optional(),
+  require_location: z.boolean().optional(),
   scope_type: z.enum(['school', 'college', 'class']).optional(),
   scope_id: z.string().uuid('范围 ID 格式无效').nullable().optional(),
   published_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage).optional(),
@@ -154,16 +198,38 @@ export const updateTaskSchema = z.object({
   }
 ).refine(
   (data) => {
-    const hasLat = data.geo_lat !== undefined && data.geo_lat !== null;
-    const hasLng = data.geo_lng !== undefined && data.geo_lng !== null;
-    const hasRadius = data.geo_radius_meters !== undefined && data.geo_radius_meters !== null;
-    const any = hasLat || hasLng || hasRadius || (data.geo_address && data.geo_address.trim().length > 0);
-    if (!any) return true;
-    return hasLat && hasLng && hasRadius;
+    if (data.require_location) {
+      return (
+        data.geo_lat !== undefined &&
+        data.geo_lat !== null &&
+        data.geo_lng !== undefined &&
+        data.geo_lng !== null &&
+        data.geo_radius_meters !== undefined &&
+        data.geo_radius_meters !== null
+      );
+    }
+    return true;
   },
   {
-    message: '位置范围的纬度、经度和半径必须同时提供',
+    message: '开启定位签到后，必须提供纬度、经度和半径',
     path: ['geo_radius_meters'],
+  }
+).refine(
+  (data) => {
+    if (data.checkin_type === 'text' && (data.require_image || data.require_video)) {
+      return false;
+    }
+    if (data.checkin_type === 'image' && (data.require_text || data.require_video)) {
+      return false;
+    }
+    if (data.checkin_type === 'video' && (data.require_text || data.require_image)) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: '打卡类型与必填内容不匹配',
+    path: ['checkin_type'],
   }
 );
 

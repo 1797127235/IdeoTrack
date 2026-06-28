@@ -35,8 +35,12 @@ export default function PublishTaskFromTemplatePage() {
 
         const now = new Date();
         const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        setPublishedAt(formatDateTimeLocal(now));
-        setDeadlineAt(formatDateTimeLocal(tomorrow));
+        setPublishedAt(
+          template.start_time ? formatDateTimeLocal(new Date(template.start_time)) : formatDateTimeLocal(now)
+        );
+        setDeadlineAt(
+          template.end_time ? formatDateTimeLocal(new Date(template.end_time)) : formatDateTimeLocal(tomorrow)
+        );
       })
       .catch((err) => setError(err instanceof Error ? err.message : "加载失败"))
       .finally(() => setLoading(false));

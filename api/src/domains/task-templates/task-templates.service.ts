@@ -18,6 +18,11 @@ function toResponse(template: TaskTemplate): TaskTemplateResponse {
   return { ...template };
 }
 
+function stringifyJson<T>(value: T | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  return JSON.stringify(value);
+}
+
 export async function listTaskTemplates(
   filters: TaskTemplateFilters = {},
   page = 1,
@@ -97,24 +102,40 @@ export async function createTaskTemplate(
 ): Promise<TaskTemplateResponse> {
   const rows = await query<TaskTemplate>(
     `INSERT INTO task_templates (
-      title, content, guiding_questions, source_url, video_url,
+      title, description, content, cover_image, category, tags,
+      guiding_questions, source_url, video_url,
+      checkin_type, require_text, require_image, require_video,
+      min_text_length, max_images, require_location,
       geo_lat, geo_lng, geo_radius_meters, geo_address, require_face,
-      created_by, status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      created_by, status, start_time, end_time
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
     RETURNING *`,
     [
       input.title,
+      input.description ?? null,
       input.content,
-      input.guiding_questions ? JSON.stringify(input.guiding_questions) : null,
+      input.cover_image ?? null,
+      input.category ?? null,
+      stringifyJson(input.tags),
+      stringifyJson(input.guiding_questions),
       input.source_url ?? null,
       input.video_url ?? null,
+      input.checkin_type ?? 'text',
+      input.require_text ?? false,
+      input.require_image ?? false,
+      input.require_video ?? false,
+      input.min_text_length ?? null,
+      input.max_images ?? null,
+      input.require_location ?? false,
       input.geo_lat ?? null,
       input.geo_lng ?? null,
       input.geo_radius_meters ?? null,
       input.geo_address ?? null,
       input.require_face ?? false,
       userId,
-      'published',
+      input.status ?? 'draft',
+      input.start_time ?? null,
+      input.end_time ?? null,
     ]
   );
 
@@ -154,18 +175,31 @@ export async function updateTaskTemplate(
   }
 
   if (input.title !== undefined) addSet('title', input.title);
+  if (input.description !== undefined) addSet('description', input.description ?? null);
   if (input.content !== undefined) addSet('content', input.content);
+  if (input.cover_image !== undefined) addSet('cover_image', input.cover_image ?? null);
+  if (input.category !== undefined) addSet('category', input.category ?? null);
+  if (input.tags !== undefined) addSet('tags', stringifyJson(input.tags));
   if (input.guiding_questions !== undefined) {
-    addSet('guiding_questions', input.guiding_questions ? JSON.stringify(input.guiding_questions) : null);
+    addSet('guiding_questions', stringifyJson(input.guiding_questions));
   }
   if (input.source_url !== undefined) addSet('source_url', input.source_url ?? null);
   if (input.video_url !== undefined) addSet('video_url', input.video_url ?? null);
+  if (input.checkin_type !== undefined) addSet('checkin_type', input.checkin_type);
+  if (input.require_text !== undefined) addSet('require_text', input.require_text);
+  if (input.require_image !== undefined) addSet('require_image', input.require_image);
+  if (input.require_video !== undefined) addSet('require_video', input.require_video);
+  if (input.min_text_length !== undefined) addSet('min_text_length', input.min_text_length ?? null);
+  if (input.max_images !== undefined) addSet('max_images', input.max_images ?? null);
+  if (input.require_location !== undefined) addSet('require_location', input.require_location);
   if (input.geo_lat !== undefined) addSet('geo_lat', input.geo_lat ?? null);
   if (input.geo_lng !== undefined) addSet('geo_lng', input.geo_lng ?? null);
   if (input.geo_radius_meters !== undefined) addSet('geo_radius_meters', input.geo_radius_meters ?? null);
   if (input.geo_address !== undefined) addSet('geo_address', input.geo_address ?? null);
   if (input.require_face !== undefined) addSet('require_face', input.require_face);
   if (input.status !== undefined) addSet('status', input.status);
+  if (input.start_time !== undefined) addSet('start_time', input.start_time ?? null);
+  if (input.end_time !== undefined) addSet('end_time', input.end_time ?? null);
 
   if (updates.length === 0) {
     return toResponse(existing);

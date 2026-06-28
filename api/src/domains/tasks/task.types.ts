@@ -1,3 +1,5 @@
+import type { TaskTemplateCategory, CheckinType } from '../task-templates/task-templates.types.js';
+
 export type TaskScopeType = 'school' | 'college' | 'class';
 export type TaskStatus = 'published' | 'delisted';
 export type CheckInStatus =
@@ -14,10 +16,21 @@ export type StudentTaskStatus = 'in_progress' | 'overdue' | 'completed' | 'revie
 export interface Task {
   id: string;
   title: string;
+  description: string | null;
   content: string;
+  cover_image: string | null;
+  category: TaskTemplateCategory | null;
+  tags: string[] | null;
   guiding_questions: string[] | null;
   source_url: string | null;
   video_url: string | null;
+  checkin_type: CheckinType;
+  require_text: boolean;
+  require_image: boolean;
+  require_video: boolean;
+  min_text_length: number | null;
+  max_images: number | null;
+  require_location: boolean;
   scope_type: TaskScopeType;
   scope_id: string | null;
   target_college_id: string | null;
@@ -58,6 +71,17 @@ export interface TaskDetail extends StudentTask {
   ai_review_reason_code?: string;
   reflection_modified?: boolean;
   review_feedback?: string;
+  description?: string | null;
+  cover_image?: string | null;
+  category?: TaskTemplateCategory | null;
+  tags?: string[] | null;
+  checkin_type?: CheckinType;
+  require_text?: boolean;
+  require_image?: boolean;
+  require_video?: boolean;
+  min_text_length?: number | null;
+  max_images?: number | null;
+  require_location?: boolean;
   geo_lat?: number | null;
   geo_lng?: number | null;
   geo_radius_meters?: number | null;
@@ -73,10 +97,21 @@ export interface TaskWithStats extends TaskResponse {
 
 export interface CreateTaskInput {
   title: string;
+  description?: string | null;
   content: string;
+  cover_image?: string | null;
+  category?: TaskTemplateCategory | null;
+  tags?: string[] | null;
   guiding_questions?: string[] | null;
   source_url?: string | null;
   video_url?: string | null;
+  checkin_type?: CheckinType;
+  require_text?: boolean;
+  require_image?: boolean;
+  require_video?: boolean;
+  min_text_length?: number | null;
+  max_images?: number | null;
+  require_location?: boolean;
   scope_type: TaskScopeType;
   scope_id?: string | null;
   target_college_id?: string | null;
@@ -101,10 +136,21 @@ export interface CreateTaskFromTemplateInput {
 
 export interface UpdateTaskInput {
   title?: string;
+  description?: string | null;
   content?: string;
+  cover_image?: string | null;
+  category?: TaskTemplateCategory | null;
+  tags?: string[] | null;
   guiding_questions?: string[] | null;
   source_url?: string | null;
   video_url?: string | null;
+  checkin_type?: CheckinType;
+  require_text?: boolean;
+  require_image?: boolean;
+  require_video?: boolean;
+  min_text_length?: number | null;
+  max_images?: number | null;
+  require_location?: boolean;
   scope_type?: TaskScopeType;
   scope_id?: string | null;
   target_college_id?: string | null;

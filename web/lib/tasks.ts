@@ -2,14 +2,27 @@ import { api } from "./api";
 
 export type TaskScopeType = "school" | "college" | "class";
 export type TaskStatus = "published" | "delisted";
+export type TaskCategory = "学习" | "实践" | "活动" | "会议" | "阅读";
+export type CheckinType = "text" | "image" | "video" | "mixed";
 
 export interface Task {
   id: string;
   title: string;
+  description: string | null;
   content: string;
+  cover_image: string | null;
+  category: TaskCategory | null;
+  tags: string[] | null;
   guiding_questions: string[] | null;
   source_url: string | null;
   video_url: string | null;
+  checkin_type: CheckinType;
+  require_text: boolean;
+  require_image: boolean;
+  require_video: boolean;
+  min_text_length: number | null;
+  max_images: number | null;
+  require_location: boolean;
   scope_type: TaskScopeType;
   scope_id: string | null;
   target_college_id: string | null;
@@ -57,14 +70,26 @@ export const listTasks = (filters: TaskFilters = {}) => {
 };
 
 export const getTask = (id: string) => api.get<Task>(`/tasks/${id}`);
-export const createTask = (data: {
+
+export interface CreateTaskData {
   title: string;
+  description?: string | null;
   content: string;
-  guiding_questions?: string[];
-  source_url?: string;
-  video_url?: string;
+  cover_image?: string | null;
+  category?: TaskCategory | null;
+  tags?: string[] | null;
+  guiding_questions?: string[] | null;
+  source_url?: string | null;
+  video_url?: string | null;
+  checkin_type?: CheckinType;
+  require_text?: boolean;
+  require_image?: boolean;
+  require_video?: boolean;
+  min_text_length?: number | null;
+  max_images?: number | null;
+  require_location?: boolean;
   scope_type: TaskScopeType;
-  scope_id?: string;
+  scope_id?: string | null;
   target_college_id?: string;
   target_class_id?: string;
   geo_lat?: number | null;
@@ -74,7 +99,9 @@ export const createTask = (data: {
   require_face?: boolean;
   published_at: string;
   deadline_at: string;
-}) => api.post<Task>("/tasks", data);
+}
+
+export const createTask = (data: CreateTaskData) => api.post<Task>("/tasks", data);
 
 export const createTaskFromTemplate = (data: {
   template_id: string;
@@ -85,28 +112,8 @@ export const createTaskFromTemplate = (data: {
   deadline_at: string;
 }) => api.post<Task[]>("/tasks/from-template", data);
 
-export const updateTask = (
-  id: string,
-  data: Partial<{
-    title: string;
-    content: string;
-    guiding_questions: string[] | null;
-    source_url: string | null;
-    video_url: string | null;
-    scope_type: TaskScopeType;
-    scope_id: string | null;
-    target_college_id: string | null;
-    target_class_id: string | null;
-    geo_lat: number | null;
-    geo_lng: number | null;
-    geo_radius_meters: number | null;
-    geo_address: string | null;
-    require_face?: boolean;
-    published_at: string;
-    deadline_at: string;
-    status: TaskStatus;
-  }>
-) => api.put<Task>(`/tasks/${id}`, data);
+export const updateTask = (id: string, data: Partial<CreateTaskData>) =>
+  api.put<Task>(`/tasks/${id}`, data);
 
 export const delistTask = (id: string) =>
   api.patch<Task>(`/tasks/${id}/delist`, {});
@@ -123,4 +130,18 @@ export function scopeLabel(task: Task): string {
 
 export function statusLabel(status: TaskStatus): string {
   return status === "published" ? "进行中" : "已下架";
+}
+
+export function checkinTypeLabel(type: CheckinType): string {
+  const map: Record<CheckinType, string> = {
+    text: "文字心得",
+    image: "图片上传",
+    video: "视频上传",
+    mixed: "图文混合",
+  };
+  return map[type];
+}
+
+export function categoryLabel(category: TaskCategory | null): string {
+  return category || "未分类";
 }

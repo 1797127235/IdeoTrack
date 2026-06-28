@@ -10,6 +10,7 @@ import {
   type TaskScopeType,
   scopeLabel,
   statusLabel,
+  categoryLabel,
 } from "@/lib/tasks";
 import {
   Button,
@@ -191,6 +192,7 @@ export default function TasksPage() {
                 <thead>
                   <tr className="border-b border-[var(--color-border)]">
                     <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">任务名称</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">类型</th>
                     <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">范围</th>
                     <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">发布时间</th>
                     <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">截止时间</th>
@@ -207,7 +209,7 @@ export default function TasksPage() {
                 <tbody>
                   {filteredTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <EmptyState
                           title="暂无任务"
                           icon={<Inbox className="w-6 h-6 text-[var(--color-ink-muted)]" />}

@@ -1,17 +1,36 @@
 import { get, post } from './api';
 
 export type TaskScopeType = 'school' | 'college' | 'class';
+export type TaskTemplateStatus = 'draft' | 'published' | 'delisted';
+export type TaskTemplateCategory = '学习' | '实践' | '活动' | '会议' | '阅读';
+export type CheckinType = 'text' | 'image' | 'video' | 'mixed';
 
 export interface Task {
   id: string;
   title: string;
+  description: string | null;
   content: string;
+  cover_image: string | null;
+  category: TaskTemplateCategory | null;
+  tags: string[] | null;
   guiding_questions: string[] | null;
   source_url: string | null;
   video_url: string | null;
+  checkin_type: CheckinType;
+  require_text: boolean;
+  require_image: boolean;
+  require_video: boolean;
+  min_text_length: number | null;
+  max_images: number | null;
+  require_location: boolean;
   scope_type: TaskScopeType;
   scope_id: string | null;
   template_id: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  geo_radius_meters: number | null;
+  geo_address: string | null;
+  require_face: boolean;
   published_at: string;
   deadline_at: string;
   status: 'published' | 'delisted';
@@ -23,16 +42,29 @@ export interface Task {
 export interface TaskTemplate {
   id: string;
   title: string;
+  description: string | null;
   content: string;
+  cover_image: string | null;
+  category: TaskTemplateCategory | null;
+  tags: string[] | null;
   guiding_questions: string[] | null;
   source_url: string | null;
   video_url: string | null;
+  checkin_type: CheckinType;
+  require_text: boolean;
+  require_image: boolean;
+  require_video: boolean;
+  min_text_length: number | null;
+  max_images: number | null;
+  require_location: boolean;
   geo_lat: number | null;
   geo_lng: number | null;
   geo_radius_meters: number | null;
   geo_address: string | null;
   require_face: boolean;
-  status: 'published' | 'delisted';
+  status: TaskTemplateStatus;
+  start_time: string | null;
+  end_time: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -49,9 +81,20 @@ export interface StudentTask {
 
 export interface TaskDetail extends StudentTask {
   content: string;
+  description?: string | null;
+  cover_image?: string | null;
+  category?: TaskTemplateCategory | null;
+  tags?: string[] | null;
   guiding_questions?: string[] | null;
   source_url?: string | null;
   video_url?: string | null;
+  checkin_type?: CheckinType;
+  require_text?: boolean;
+  require_image?: boolean;
+  require_video?: boolean;
+  min_text_length?: number | null;
+  max_images?: number | null;
+  require_location?: boolean;
   check_in_id?: string;
   check_in_status?: string;
   reflection_content?: string;

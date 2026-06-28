@@ -56,9 +56,10 @@ Page({
   async loadTemplates() {
     this.setData({ loading: true });
     try {
-      const res = await fetchTaskTemplates();
+      const res = await fetchTaskTemplates(1, 100); // 小程序端默认拉取已发布模板，由页面筛选
       if (res.success && res.data) {
-        const templates = res.data.items.map<TemplateView>((t) => ({
+        const publishedTemplates = res.data.items.filter((t) => t.status === 'published');
+        const templates = publishedTemplates.map<TemplateView>((t) => ({
           ...t,
           deadlineText: formatDeadline(t.updated_at),
         }));
@@ -99,6 +100,18 @@ Page({
     const templateId = e.currentTarget.dataset.id as string;
     const template = this.data.templates.find((t) => t.id === templateId) || null;
     this.setData({ selectedTemplate: template });
+    if (template) {
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      this.setData({
+        publishedAt: template.start_time
+          ? this.formatDateTimeLocal(new Date(template.start_time))
+          : this.formatDateTimeLocal(now),
+        deadlineAt: template.end_time
+          ? this.formatDateTimeLocal(new Date(template.end_time))
+          : this.formatDateTimeLocal(tomorrow),
+      });
+    }
   },
 
   toggleClass(e: WechatMiniprogram.TouchEvent) {

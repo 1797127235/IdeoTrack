@@ -253,18 +253,32 @@ export async function createTask(
 
   const rows = await query<Task>(
     `INSERT INTO tasks (
-      title, content, guiding_questions, source_url, video_url,
+      title, description, content, cover_image, category, tags,
+      guiding_questions, source_url, video_url,
+      checkin_type, require_text, require_image, require_video,
+      min_text_length, max_images, require_location,
       scope_type, scope_id, target_college_id, target_class_id, template_id,
       created_by, published_at, deadline_at,
       geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
     RETURNING *`,
     [
       input.title,
+      input.description ?? null,
       input.content,
+      input.cover_image ?? null,
+      input.category ?? null,
+      input.tags ? JSON.stringify(input.tags) : null,
       input.guiding_questions ? JSON.stringify(input.guiding_questions) : null,
       input.source_url ?? null,
       input.video_url ?? null,
+      input.checkin_type ?? 'text',
+      input.require_text ?? false,
+      input.require_image ?? false,
+      input.require_video ?? false,
+      input.min_text_length ?? null,
+      input.max_images ?? null,
+      input.require_location ?? false,
       input.scope_type,
       input.scope_id ?? null,
       targetCollegeId,
@@ -310,10 +324,21 @@ export async function createTaskFromTemplate(
 
   const baseValues = {
     title: template.title,
+    description: template.description ?? null,
     content: template.content,
+    coverImage: template.cover_image ?? null,
+    category: template.category ?? null,
+    tags: template.tags ? JSON.stringify(template.tags) : null,
     guidingQuestions: template.guiding_questions ? JSON.stringify(template.guiding_questions) : null,
     sourceUrl: template.source_url,
     videoUrl: template.video_url,
+    checkinType: template.checkin_type ?? 'text',
+    requireText: template.require_text ?? false,
+    requireImage: template.require_image ?? false,
+    requireVideo: template.require_video ?? false,
+    minTextLength: template.min_text_length ?? null,
+    maxImages: template.max_images ?? null,
+    requireLocation: template.require_location ?? false,
     geoLat: template.geo_lat ?? null,
     geoLng: template.geo_lng ?? null,
     geoRadius: template.geo_radius_meters ?? null,
@@ -330,18 +355,32 @@ export async function createTaskFromTemplate(
 
     const rows = await query<Task>(
       `INSERT INTO tasks (
-        title, content, guiding_questions, source_url, video_url,
+        title, description, content, cover_image, category, tags,
+        guiding_questions, source_url, video_url,
+        checkin_type, require_text, require_image, require_video,
+        min_text_length, max_images, require_location,
         scope_type, scope_id, target_college_id, target_class_id, template_id,
         created_by, published_at, deadline_at,
         geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-      ) VALUES ($1, $2, $3, $4, $5, 'school', NULL, NULL, NULL, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'school', NULL, NULL, NULL, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING *`,
       [
         baseValues.title,
+        baseValues.description,
         baseValues.content,
+        baseValues.coverImage,
+        baseValues.category,
+        baseValues.tags,
         baseValues.guidingQuestions,
         baseValues.sourceUrl,
         baseValues.videoUrl,
+        baseValues.checkinType,
+        baseValues.requireText,
+        baseValues.requireImage,
+        baseValues.requireVideo,
+        baseValues.minTextLength,
+        baseValues.maxImages,
+        baseValues.requireLocation,
         template.id,
         userId,
         input.published_at,
@@ -367,18 +406,32 @@ export async function createTaskFromTemplate(
 
     const rows = await query<Task>(
       `INSERT INTO tasks (
-        title, content, guiding_questions, source_url, video_url,
+        title, description, content, cover_image, category, tags,
+        guiding_questions, source_url, video_url,
+        checkin_type, require_text, require_image, require_video,
+        min_text_length, max_images, require_location,
         scope_type, scope_id, target_college_id, target_class_id, template_id,
         created_by, published_at, deadline_at,
         geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-      ) VALUES ($1, $2, $3, $4, $5, 'college', $6, $6, NULL, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'college', $17, $17, NULL, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING *`,
       [
         baseValues.title,
+        baseValues.description,
         baseValues.content,
+        baseValues.coverImage,
+        baseValues.category,
+        baseValues.tags,
         baseValues.guidingQuestions,
         baseValues.sourceUrl,
         baseValues.videoUrl,
+        baseValues.checkinType,
+        baseValues.requireText,
+        baseValues.requireImage,
+        baseValues.requireVideo,
+        baseValues.minTextLength,
+        baseValues.maxImages,
+        baseValues.requireLocation,
         input.scope_id,
         template.id,
         userId,
@@ -424,18 +477,32 @@ export async function createTaskFromTemplate(
   for (const classId of classIds) {
     const rows = await query<Task>(
       `INSERT INTO tasks (
-        title, content, guiding_questions, source_url, video_url,
+        title, description, content, cover_image, category, tags,
+        guiding_questions, source_url, video_url,
+        checkin_type, require_text, require_image, require_video,
+        min_text_length, max_images, require_location,
         scope_type, scope_id, target_college_id, target_class_id, template_id,
         created_by, published_at, deadline_at,
         geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-      ) VALUES ($1, $2, $3, $4, $5, 'class', $6, NULL, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'class', $17, NULL, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING *`,
       [
         baseValues.title,
+        baseValues.description,
         baseValues.content,
+        baseValues.coverImage,
+        baseValues.category,
+        baseValues.tags,
         baseValues.guidingQuestions,
         baseValues.sourceUrl,
         baseValues.videoUrl,
+        baseValues.checkinType,
+        baseValues.requireText,
+        baseValues.requireImage,
+        baseValues.requireVideo,
+        baseValues.minTextLength,
+        baseValues.maxImages,
+        baseValues.requireLocation,
         classId,
         template.id,
         userId,
@@ -674,13 +741,24 @@ export async function updateTask(
   }
 
   if (input.title !== undefined) addSet('title', input.title);
+  if (input.description !== undefined) addSet('description', input.description ?? null);
   if (input.content !== undefined) addSet('content', input.content);
+  if (input.cover_image !== undefined) addSet('cover_image', input.cover_image ?? null);
+  if (input.category !== undefined) addSet('category', input.category ?? null);
+  if (input.tags !== undefined) addSet('tags', input.tags ? JSON.stringify(input.tags) : null);
   // AD-22: 添加新字段支持
   if (input.guiding_questions !== undefined) {
     addSet('guiding_questions', input.guiding_questions ? JSON.stringify(input.guiding_questions) : null);
   }
   if (input.source_url !== undefined) addSet('source_url', input.source_url ?? null);
   if (input.video_url !== undefined) addSet('video_url', input.video_url ?? null);
+  if (input.checkin_type !== undefined) addSet('checkin_type', input.checkin_type);
+  if (input.require_text !== undefined) addSet('require_text', input.require_text);
+  if (input.require_image !== undefined) addSet('require_image', input.require_image);
+  if (input.require_video !== undefined) addSet('require_video', input.require_video);
+  if (input.min_text_length !== undefined) addSet('min_text_length', input.min_text_length ?? null);
+  if (input.max_images !== undefined) addSet('max_images', input.max_images ?? null);
+  if (input.require_location !== undefined) addSet('require_location', input.require_location);
   if (input.scope_type !== undefined || input.scope_id !== undefined) {
     if (input.scope_type !== undefined) addSet('scope_type', input.scope_type);
     if (input.scope_id !== undefined) addSet('scope_id', scopeId);
@@ -908,6 +986,17 @@ export async function getMyTaskDetail(userId: string, taskId: string): Promise<T
     reflection_modified: checkIn?.reflection_modified,
     review_feedback: checkIn?.review_feedback ?? undefined,
     completed_at: status === 'completed' ? checkIn?.created_at : undefined,
+    description: task.description,
+    cover_image: task.cover_image,
+    category: task.category,
+    tags: task.tags,
+    checkin_type: task.checkin_type,
+    require_text: task.require_text,
+    require_image: task.require_image,
+    require_video: task.require_video,
+    min_text_length: task.min_text_length,
+    max_images: task.max_images,
+    require_location: task.require_location,
     geo_lat: task.geo_lat,
     geo_lng: task.geo_lng,
     geo_radius_meters: task.geo_radius_meters,

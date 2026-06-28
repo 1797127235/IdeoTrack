@@ -117,17 +117,30 @@ CREATE INDEX IF NOT EXISTS idx_daily_quotes_date ON daily_quotes(date);
 CREATE TABLE IF NOT EXISTS task_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
+  description TEXT,
   content TEXT NOT NULL,
+  cover_image TEXT,
+  category TEXT CHECK (category IS NULL OR category IN ('学习', '实践', '活动', '会议', '阅读')),
+  tags JSONB,
   guiding_questions JSONB,
   source_url TEXT,
   video_url TEXT,
+  checkin_type TEXT NOT NULL DEFAULT 'text' CHECK (checkin_type IN ('text', 'image', 'video', 'mixed')),
+  require_text BOOLEAN NOT NULL DEFAULT false,
+  require_image BOOLEAN NOT NULL DEFAULT false,
+  require_video BOOLEAN NOT NULL DEFAULT false,
+  min_text_length INTEGER CHECK (min_text_length IS NULL OR min_text_length >= 0),
+  max_images INTEGER CHECK (max_images IS NULL OR max_images BETWEEN 1 AND 9),
+  require_location BOOLEAN NOT NULL DEFAULT false,
   geo_lat DECIMAL(10, 8),
   geo_lng DECIMAL(11, 8),
   geo_radius_meters INTEGER CHECK (geo_radius_meters IS NULL OR geo_radius_meters BETWEEN 50 AND 1000),
   geo_address TEXT,
   require_face BOOLEAN NOT NULL DEFAULT false,
   created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'delisted')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'delisted')),
+  start_time TIMESTAMPTZ,
+  end_time TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -144,19 +157,31 @@ CREATE TRIGGER update_task_templates_updated_at
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
+  description TEXT,
   content TEXT NOT NULL,
+  cover_image TEXT,
+  category TEXT CHECK (category IS NULL OR category IN ('学习', '实践', '活动', '会议', '阅读')),
+  tags JSONB,
   guiding_questions JSONB,  -- AD-22: 思考题数组，可选
   source_url TEXT,  -- AD-22: 外部链接，可选
   video_url TEXT,  -- AD-22: 视频 URL，可选
+  checkin_type TEXT NOT NULL DEFAULT 'text' CHECK (checkin_type IN ('text', 'image', 'video', 'mixed')),
+  require_text BOOLEAN NOT NULL DEFAULT false,
+  require_image BOOLEAN NOT NULL DEFAULT false,
+  require_video BOOLEAN NOT NULL DEFAULT false,
+  min_text_length INTEGER CHECK (min_text_length IS NULL OR min_text_length >= 0),
+  max_images INTEGER CHECK (max_images IS NULL OR max_images BETWEEN 1 AND 9),
+  require_location BOOLEAN NOT NULL DEFAULT false,
+  geo_lat DECIMAL(10, 8),
+  geo_lng DECIMAL(11, 8),
+  geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 1000),
+  geo_address TEXT,
+  require_face BOOLEAN NOT NULL DEFAULT false,
   scope_type TEXT NOT NULL CHECK (scope_type IN ('school', 'college', 'class')),
   scope_id UUID,  -- AD-21: 统一的范围 ID（替代 target_college_id/target_class_id）
   target_college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
   target_class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
   template_id UUID REFERENCES task_templates(id) ON DELETE SET NULL,  -- 任务模板派生实例
-  geo_lat DECIMAL(10, 8),
-  geo_lng DECIMAL(11, 8),
-  geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 1000),
-  geo_address TEXT,
   created_by UUID NOT NULL REFERENCES users(id),
   published_at TIMESTAMPTZ NOT NULL,
   deadline_at TIMESTAMPTZ NOT NULL,
@@ -170,7 +195,49 @@ CREATE TABLE IF NOT EXISTS tasks (
   )
 );
 
+-- 任务模板库：兼容旧表结构，添加缺失列并调整状态约束
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS cover_image TEXT;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS tags JSONB;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS checkin_type TEXT NOT NULL DEFAULT 'text';
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS require_text BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS require_image BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS require_video BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS min_text_length INTEGER;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS max_images INTEGER;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS require_location BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS start_time TIMESTAMPTZ;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS end_time TIMESTAMPTZ;
+ALTER TABLE task_templates DROP CONSTRAINT IF EXISTS task_templates_status_check;
+ALTER TABLE task_templates ADD CONSTRAINT task_templates_status_check
+  CHECK (status IN ('draft', 'published', 'delisted'));
+ALTER TABLE task_templates ALTER COLUMN status SET DEFAULT 'draft';
+ALTER TABLE task_templates DROP CONSTRAINT IF EXISTS task_templates_checkin_type_check;
+ALTER TABLE task_templates ADD CONSTRAINT task_templates_checkin_type_check
+  CHECK (checkin_type IN ('text', 'image', 'video', 'mixed'));
+ALTER TABLE task_templates DROP CONSTRAINT IF EXISTS task_templates_category_check;
+ALTER TABLE task_templates ADD CONSTRAINT task_templates_category_check
+  CHECK (category IS NULL OR category IN ('学习', '实践', '活动', '会议', '阅读'));
+ALTER TABLE task_templates DROP CONSTRAINT IF EXISTS task_templates_min_text_length_check;
+ALTER TABLE task_templates ADD CONSTRAINT task_templates_min_text_length_check
+  CHECK (min_text_length IS NULL OR min_text_length >= 0);
+ALTER TABLE task_templates DROP CONSTRAINT IF EXISTS task_templates_max_images_check;
+ALTER TABLE task_templates ADD CONSTRAINT task_templates_max_images_check
+  CHECK (max_images IS NULL OR max_images BETWEEN 1 AND 9);
+
 -- AD-21/AD-22: 兼容旧表结构，添加缺失列（生产环境升级）
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS cover_image TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tags JSONB;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS checkin_type TEXT NOT NULL DEFAULT 'text';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_text BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_image BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_video BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS min_text_length INTEGER;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS max_images INTEGER;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_location BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS guiding_questions JSONB;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS video_url TEXT;
@@ -334,6 +401,18 @@ CREATE TRIGGER update_check_ins_updated_at
 
 -- 任务级人脸开关：发任务时可选「需要人脸验证」，开启后学生打卡须拍照比对
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_face BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_checkin_type_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_checkin_type_check
+  CHECK (checkin_type IN ('text', 'image', 'video', 'mixed'));
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_category_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_category_check
+  CHECK (category IS NULL OR category IN ('学习', '实践', '活动', '会议', '阅读'));
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_min_text_length_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_min_text_length_check
+  CHECK (min_text_length IS NULL OR min_text_length >= 0);
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_max_images_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_max_images_check
+  CHECK (max_images IS NULL OR max_images BETWEEN 1 AND 9);
 
 -- 用户注册照特征向量：管理员导入注册照后，提取 512 维向量存此表。
 --   V1 每人一张（UNIQUE(user_id)），存向量而非原图做比对，比对即向量点积（毫秒级）。

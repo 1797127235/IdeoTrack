@@ -8,6 +8,9 @@ import {
   deleteTaskTemplate,
   type TaskTemplate,
   type TaskTemplateStatus,
+  statusLabel,
+  checkinTypeLabel,
+  categoryLabel,
 } from "@/lib/task-templates";
 import { Button, Select, Card, EmptyState, Skeleton, FormField, Badge } from "@/components/ui";
 import { Inbox } from "lucide-react";
@@ -79,6 +82,12 @@ export default function TaskTemplatesPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const statusBadgeVariant = (status: TaskTemplateStatus) => {
+    if (status === "published") return "success";
+    if (status === "draft") return "warning";
+    return "neutral";
+  };
+
   return (
     <div className="space-y-5">
       {error ? (
@@ -103,6 +112,7 @@ export default function TaskTemplatesPage() {
               onChange={(e) => updateQuery({ status: e.target.value as TaskTemplateStatus | "", page: 1 })}
             >
               <option value="">全部</option>
+              <option value="draft">草稿</option>
               <option value="published">已上架</option>
               <option value="delisted">已下架</option>
             </Select>
@@ -123,10 +133,12 @@ export default function TaskTemplatesPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] text-sm">
+              <table className="w-full min-w-[700px] text-sm">
                 <thead>
                   <tr className="border-b border-[var(--color-border)]">
                     <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">模板名称</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">类型</th>
+                    <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">打卡方式</th>
                     <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">状态</th>
                     <th className="text-left py-2 text-[var(--color-ink-muted)] font-medium">创建时间</th>
                     <th className="text-right py-2 text-[var(--color-ink-muted)] font-medium">操作</th>
@@ -135,24 +147,40 @@ export default function TaskTemplatesPage() {
                 <tbody>
                   {templates.map((template) => (
                     <tr key={template.id} className="border-b border-[var(--color-border)] hover:bg-[var(--color-bg)]">
-                      <td className="py-3">{template.title}</td>
                       <td className="py-3">
-                        <Badge variant={template.status === "published" ? "success" : "neutral"}>
-                          {template.status === "published" ? "已上架" : "已下架"}
-                        </Badge>
+                        <div className="font-medium text-[var(--color-ink)]">{template.title}</div>
+                        {template.tags && template.tags.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {template.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-[var(--color-bg)] text-[var(--color-ink-secondary)] border border-[var(--color-border)]"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 text-[var(--color-ink-secondary)]">{categoryLabel(template.category)}</td>
+                      <td className="py-3 text-[var(--color-ink-secondary)]">{checkinTypeLabel(template.checkin_type)}</td>
+                      <td className="py-3">
+                        <Badge variant={statusBadgeVariant(template.status)}>{statusLabel(template.status)}</Badge>
                       </td>
                       <td className="py-3 text-[var(--color-ink-secondary)]">
                         {new Date(template.created_at).toLocaleString("zh-CN")}
                       </td>
                       <td className="py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.push(`/task-templates/${template.id}/publish`)}
-                          >
-                            发布
-                          </Button>
+                          {template.status === "published" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/task-templates/${template.id}/publish`)}
+                            >
+                              发布
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"

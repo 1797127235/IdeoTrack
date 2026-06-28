@@ -3,57 +3,101 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createTaskTemplate } from "@/lib/task-templates";
+import { createTaskTemplate, type TaskTemplateCategory, type CheckinType } from "@/lib/task-templates";
 import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
-import { Button, Input, Textarea, Card, FormField, Switch } from "@/components/ui";
+import { Button, Input, Textarea, Card, FormField, Switch, Select } from "@/components/ui";
+
+const categories: TaskTemplateCategory[] = ["学习", "实践", "活动", "会议", "阅读"];
+const checkinTypes: { value: CheckinType; label: string }[] = [
+  { value: "text", label: "文字心得" },
+  { value: "image", label: "图片上传" },
+  { value: "video", label: "视频上传" },
+  { value: "mixed", label: "图文混合" },
+];
 
 export default function CreateTaskTemplatePage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
+  const [coverImage, setCoverImage] = useState("");
+  const [category, setCategory] = useState<TaskTemplateCategory | "">("");
+  const [tags, setTags] = useState("");
   const [guidingQuestions, setGuidingQuestions] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [checkinType, setCheckinType] = useState<CheckinType>("text");
+  const [requireText, setRequireText] = useState(false);
+  const [requireImage, setRequireImage] = useState(false);
+  const [requireVideo, setRequireVideo] = useState(false);
+  const [minTextLength, setMinTextLength] = useState("");
+  const [maxImages, setMaxImages] = useState("");
   const [geofence, setGeofence] = useState<GeofenceValue | null>(null);
   const [requireLocation, setRequireLocation] = useState(false);
   const [requireFace, setRequireFace] = useState(false);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const buildPayload = (status: "draft" | "published") => {
+    const questions = guidingQuestions
+      .split("\n")
+      .map((q) => q.trim())
+      .filter((q) => q.length > 0);
+    const tagList = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    if (requireLocation && !geofence) {
+      throw new Error("开启定位签到后，请先选择签到范围");
+    }
+
+    const payload: Parameters<typeof createTaskTemplate>[0] = {
+      title: title.trim(),
+      description: description.trim() || null,
+      content: content.trim(),
+      cover_image: coverImage.trim() || null,
+      category: category || null,
+      tags: tagList.length > 0 ? tagList : undefined,
+      guiding_questions: questions.length > 0 ? questions : undefined,
+      source_url: sourceUrl.trim() || null,
+      video_url: videoUrl.trim() || null,
+      checkin_type: checkinType,
+      require_text: requireText,
+      require_image: requireImage,
+      require_video: requireVideo,
+      min_text_length: minTextLength ? parseInt(minTextLength, 10) : null,
+      max_images: maxImages ? parseInt(maxImages, 10) : null,
+      require_location: requireLocation,
+      require_face: requireFace,
+      status,
+      start_time: startTime ? new Date(startTime).toISOString() : null,
+      end_time: endTime ? new Date(endTime).toISOString() : null,
+      ...(requireLocation && geofence
+        ? {
+            geo_lat: geofence.lat,
+            geo_lng: geofence.lng,
+            geo_radius_meters: geofence.radius,
+            geo_address: geofence.address,
+          }
+        : {}),
+    };
+    return payload;
+  };
+
+  const handleSubmit = async (e: React.FormEvent, status: "draft" | "published") => {
     e.preventDefault();
     setError("");
     setSaving(true);
 
     try {
-      const questions = guidingQuestions
-        .split("\n")
-        .map((q) => q.trim())
-        .filter((q) => q.length > 0);
-
-      if (requireLocation && !geofence) {
-        throw new Error("开启定位签到后，请先选择签到范围");
-      }
-
-      await createTaskTemplate({
-        title: title.trim(),
-        content: content.trim(),
-        guiding_questions: questions.length > 0 ? questions : undefined,
-        source_url: sourceUrl.trim() || undefined,
-        video_url: videoUrl.trim() || undefined,
-        require_face: requireFace,
-        ...(requireLocation && geofence
-          ? {
-              geo_lat: geofence.lat,
-              geo_lng: geofence.lng,
-              geo_radius_meters: geofence.radius,
-              geo_address: geofence.address,
-            }
-          : {}),
-      });
+      const payload = buildPayload(status);
+      await createTaskTemplate(payload);
       router.push("/task-templates");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "创建失败");
+      setError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
     }
@@ -68,7 +112,7 @@ export default function CreateTaskTemplatePage() {
       ) : null}
 
       <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form className="space-y-6">
           <FormField label="模板名称" htmlFor="title" required>
             <Input
               id="title"
@@ -77,6 +121,16 @@ export default function CreateTaskTemplatePage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="输入模板名称"
               required
+            />
+          </FormField>
+
+          <FormField label="任务说明" htmlFor="description" hint="可选，用于列表展示">
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              placeholder="输入简短说明"
             />
           </FormField>
 
@@ -90,6 +144,39 @@ export default function CreateTaskTemplatePage() {
               required
             />
           </FormField>
+
+          <FormField label="封面图 URL" htmlFor="coverImage" hint="可选">
+            <Input
+              id="coverImage"
+              type="url"
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              placeholder="https://"
+            />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="任务类型" htmlFor="category">
+              <Select id="category" value={category} onChange={(e) => setCategory(e.target.value as TaskTemplateCategory | "")}>
+                <option value="">未分类</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="标签" htmlFor="tags" hint="用英文逗号分隔">
+              <Input
+                id="tags"
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="红色教育, 党史学习"
+              />
+            </FormField>
+          </div>
 
           <FormField label="思考题（每行一个，可选）" htmlFor="guidingQuestions">
             <Textarea
@@ -120,6 +207,99 @@ export default function CreateTaskTemplatePage() {
                 placeholder="https://"
               />
             </FormField>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="默认开始时间" htmlFor="startTime" hint="可选">
+              <Input
+                id="startTime"
+                type="datetime-local"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </FormField>
+            <FormField label="默认截止时间" htmlFor="endTime" hint="可选">
+              <Input
+                id="endTime"
+                type="datetime-local"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <FormField label="打卡类型" htmlFor="checkinType">
+            <Select
+              id="checkinType"
+              value={checkinType}
+              onChange={(e) => {
+                const value = e.target.value as CheckinType;
+                setCheckinType(value);
+                if (value === "text") {
+                  setRequireImage(false);
+                  setRequireVideo(false);
+                } else if (value === "image") {
+                  setRequireText(false);
+                  setRequireVideo(false);
+                } else if (value === "video") {
+                  setRequireText(false);
+                  setRequireImage(false);
+                }
+              }}
+            >
+              {checkinTypes.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="最少字数" htmlFor="minTextLength" hint="可选">
+              <Input
+                id="minTextLength"
+                type="number"
+                min={0}
+                value={minTextLength}
+                onChange={(e) => setMinTextLength(e.target.value)}
+              />
+            </FormField>
+            <FormField label="最多图片数" htmlFor="maxImages" hint="可选，1-9">
+              <Input
+                id="maxImages"
+                type="number"
+                min={1}
+                max={9}
+                value={maxImages}
+                onChange={(e) => setMaxImages(e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <div className="space-y-4">
+            <FormField label="必填内容" htmlFor="requireText">
+              <div className="flex items-center gap-3 pt-1">
+                <Switch id="requireText" checked={requireText} onCheckedChange={setRequireText} />
+                <span className="text-sm text-[var(--color-ink-secondary)]">必须写心得</span>
+              </div>
+            </FormField>
+            {checkinType === "mixed" && (
+              <>
+                <FormField label="" htmlFor="requireImage">
+                  <div className="flex items-center gap-3 pt-1">
+                    <Switch id="requireImage" checked={requireImage} onCheckedChange={setRequireImage} />
+                    <span className="text-sm text-[var(--color-ink-secondary)]">必须上传图片</span>
+                  </div>
+                </FormField>
+                <FormField label="" htmlFor="requireVideo">
+                  <div className="flex items-center gap-3 pt-1">
+                    <Switch id="requireVideo" checked={requireVideo} onCheckedChange={setRequireVideo} />
+                    <span className="text-sm text-[var(--color-ink-secondary)]">必须上传视频</span>
+                  </div>
+                </FormField>
+              </>
+            )}
           </div>
 
           <FormField label="需定位签到" htmlFor="requireLocation">
@@ -160,8 +340,11 @@ export default function CreateTaskTemplatePage() {
             >
               取消
             </Link>
-            <Button type="submit" isLoading={saving}>
-              {saving ? "保存中…" : "保存"}
+            <Button type="button" variant="secondary" isLoading={saving} onClick={(e) => handleSubmit(e, "draft")}>
+              保存草稿
+            </Button>
+            <Button type="button" isLoading={saving} onClick={(e) => handleSubmit(e, "published")}>
+              立即发布
             </Button>
           </div>
         </form>
