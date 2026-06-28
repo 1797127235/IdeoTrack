@@ -6,6 +6,24 @@ import type { NextConfig } from "next";
 // API 调用走独立的 NEXT_PUBLIC_API_URL，不受影响。
 const nextConfig: NextConfig = {
   basePath: "/admin",
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/admin/login",
+        permanent: false,
+        basePath: false,
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:3000/api/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
