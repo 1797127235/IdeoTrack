@@ -14,6 +14,7 @@ import reportRoutes from './domains/reports/reports.routes.js';
 import leaderboardRoutes from './domains/leaderboard/leaderboard.routes.js';
 import adminRoutes from './domains/admin/admin.routes.js';
 import learningResourceRoutes from './domains/learning-resources/learning-resources.routes.js';
+import uploadRoutes from './domains/upload/upload.routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { config } from './config/index.js';
@@ -48,6 +49,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/learning-resources', learningResourceRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 导出文件下载端点（AD-7：签名 token 自校验，不经过 JWT authenticate）
 app.get('/api/exports/:token', async (req, res, next) => {

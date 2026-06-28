@@ -71,3 +71,37 @@ export async function deleteCoverImage(relPath: string | null | undefined): Prom
     logger.warn({ relPath, err }, '删除学习资料封面图失败（忽略）');
   }
 }
+
+// 任务/任务模板封面图
+export async function saveTaskCoverImage(buffer: Buffer, originalName: string): Promise<string> {
+  const dir = path.join(getUploadRoot(), 'task-covers');
+  await ensureDir(dir);
+
+  const ext = getImageExtension(originalName);
+  const fileId = randomUUID();
+  const filePath = path.join(dir, `${fileId}${ext}`);
+
+  await fs.writeFile(filePath, buffer);
+
+  const relPath = path.relative(process.cwd(), filePath).replace(/\\/g, '/');
+  logger.info({ relPath }, '任务封面图已保存');
+  return relPath;
+}
+
+export function resolveTaskCoverPath(relPath: string): string {
+  if (path.isAbsolute(relPath)) {
+    return relPath;
+  }
+  return path.join(process.cwd(), relPath);
+}
+
+export async function deleteTaskCoverImage(relPath: string | null | undefined): Promise<void> {
+  if (!relPath) return;
+  try {
+    const absPath = resolveTaskCoverPath(relPath);
+    await fs.unlink(absPath);
+    logger.info({ relPath }, '任务封面图已删除');
+  } catch (err) {
+    logger.warn({ relPath, err }, '删除任务封面图失败（忽略）');
+  }
+}

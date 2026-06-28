@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { getTaskTemplate, updateTaskTemplate, type TaskTemplateCategory, type CheckinType } from "@/lib/task-templates";
 import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
+import ImageUploader from "@/components/ImageUploader";
 import { Button, Input, Textarea, Card, FormField, Switch, Select } from "@/components/ui";
 
 const categories: TaskTemplateCategory[] = ["学习", "实践", "活动", "会议", "阅读"];
@@ -30,7 +31,7 @@ export default function EditTaskTemplatePage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
-  const [coverImage, setCoverImage] = useState("");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [category, setCategory] = useState<TaskTemplateCategory | "">("");
   const [tags, setTags] = useState("");
   const [guidingQuestions, setGuidingQuestions] = useState("");
@@ -59,7 +60,7 @@ export default function EditTaskTemplatePage() {
         setTitle(template.title);
         setDescription(template.description ?? "");
         setContent(template.content);
-        setCoverImage(template.cover_image ?? "");
+        setCoverImage(template.cover_image ?? null);
         setCategory(template.category ?? "");
         setTags((template.tags ?? []).join(", "));
         setGuidingQuestions((template.guiding_questions ?? []).join("\n"));
@@ -113,7 +114,7 @@ export default function EditTaskTemplatePage() {
         title: title.trim(),
         description: description.trim() || null,
         content: content.trim(),
-        cover_image: coverImage.trim() || null,
+        cover_image: coverImage?.trim() || null,
         category: category || null,
         tags: tagList.length > 0 ? tagList : null,
         guiding_questions: questions.length > 0 ? questions : null,
@@ -193,14 +194,8 @@ export default function EditTaskTemplatePage() {
             />
           </FormField>
 
-          <FormField label="封面图 URL" htmlFor="coverImage" hint="可选">
-            <Input
-              id="coverImage"
-              type="url"
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="https://"
-            />
+          <FormField label="封面图" htmlFor="coverImage" hint="可选">
+            <ImageUploader value={coverImage} onChange={setCoverImage} />
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">

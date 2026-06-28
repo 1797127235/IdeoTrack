@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createTask, type TaskScopeType, type TaskCategory, type CheckinType } from "@/lib/tasks";
 import { listColleges, listClasses, type College, type Class } from "@/lib/users";
 import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
+import ImageUploader from "@/components/ImageUploader";
 import { Button, Input, Textarea, Select, Card, FormField, Switch } from "@/components/ui";
 
 const categories: TaskCategory[] = ["学习", "实践", "活动", "会议", "阅读"];
@@ -21,7 +22,7 @@ export default function CreateTaskPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
-  const [coverImage, setCoverImage] = useState("");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [category, setCategory] = useState<TaskCategory | "">("");
   const [tags, setTags] = useState("");
   const [guidingQuestions, setGuidingQuestions] = useState("");
@@ -77,7 +78,7 @@ export default function CreateTaskPage() {
         title: title.trim(),
         description: description.trim() || null,
         content: content.trim(),
-        cover_image: coverImage.trim() || null,
+        cover_image: coverImage?.trim() || null,
         category: category || null,
         tags: tagList.length > 0 ? tagList : null,
         guiding_questions: questions.length > 0 ? questions : null,
@@ -154,14 +155,8 @@ export default function CreateTaskPage() {
             />
           </FormField>
 
-          <FormField label="封面图 URL" htmlFor="coverImage" hint="可选">
-            <Input
-              id="coverImage"
-              type="url"
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="https://"
-            />
+          <FormField label="封面图" htmlFor="coverImage" hint="可选">
+            <ImageUploader value={coverImage} onChange={setCoverImage} />
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
