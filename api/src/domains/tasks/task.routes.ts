@@ -19,8 +19,8 @@ const router = Router();
 router.get('/my', authenticate, requireRoles('student'), listMyTasksController);
 router.get('/my/:id', authenticate, requireRoles('student'), getMyTaskDetailController);
 
-// 管理员端：直接创建任务实例
-router.post('/', authenticate, requireRoles('admin'), createTaskController);
+// 管理员/辅导员：直接创建任务实例（辅导员仅限自己所带班级）
+router.post('/', authenticate, requireRoles('admin', 'counselor'), createTaskController);
 
 // 管理员/辅导员：从任务模板发布任务实例
 router.post('/from-template', authenticate, requireRoles('admin', 'counselor'), createTaskFromTemplateController);

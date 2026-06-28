@@ -53,7 +53,7 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         title,
         '内容',
         targetClassId,
-        sourceTaskId,
+        templateId,
         createdBy,
         new Date(Date.now() - 1000).toISOString(),
         new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
