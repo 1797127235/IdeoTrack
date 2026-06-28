@@ -6,7 +6,7 @@ import {
   getSchoolLeaderboard,
   type LeaderboardResult,
 } from '../../../services/leaderboardApi';
-import { fetchTaskPool, Task } from '../../../services/taskApi';
+import { fetchTaskTemplates, type Task, type TaskTemplate } from '../../../services/taskApi';
 import { get } from '../../../services/api';
 import { getUserRole } from '../../../utils/auth';
 import { updateTabBarSelected } from '../../../utils/tabBar';
@@ -51,7 +51,7 @@ Page({
     levelProgress: 0,
     maxWeekly: 1,
     // 辅导员任务
-    poolTasks: [] as Task[],
+    templates: [] as TaskTemplate[],
     dispatchedTasks: [] as Task[],
   },
 
@@ -66,7 +66,7 @@ Page({
       monthlyCompletionRate: 0,
       levelProgress: 0,
       maxWeekly: 1,
-      poolTasks: [],
+      templates: [],
       dispatchedTasks: [],
     });
 
@@ -117,15 +117,13 @@ Page({
   async loadCounselorTasks() {
     this.setData({ loading: true });
     try {
-      const [poolRes, listRes] = await Promise.all([
-        fetchTaskPool(),
+      const [templateRes, listRes] = await Promise.all([
+        fetchTaskTemplates(),
         get<{ items: Task[] }>('/api/tasks'),
       ]);
       this.setData({
-        poolTasks: poolRes.data?.items ?? [],
-        dispatchedTasks: (listRes.data?.items ?? []).filter(
-          (t) => t.scope_type !== 'pool'
-        ),
+        templates: templateRes.data?.items ?? [],
+        dispatchedTasks: listRes.data?.items ?? [],
         loading: false,
       });
     } catch (err) {

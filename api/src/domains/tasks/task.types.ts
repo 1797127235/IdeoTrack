@@ -1,4 +1,4 @@
-export type TaskScopeType = 'school' | 'college' | 'class' | 'pool';
+export type TaskScopeType = 'school' | 'college' | 'class';
 export type TaskStatus = 'published' | 'delisted';
 export type CheckInStatus =
   | 'submitted'
@@ -15,14 +15,14 @@ export interface Task {
   id: string;
   title: string;
   content: string;
-  guiding_questions: string[] | null;  // AD-22: JSONB 数组，可选
-  source_url: string | null;  // AD-22: 外部链接，可选
-  video_url: string | null;  // AD-22: 视频 URL，可选
+  guiding_questions: string[] | null;
+  source_url: string | null;
+  video_url: string | null;
   scope_type: TaskScopeType;
-  scope_id: string | null;  // school_id / college_id / class_id (pool 时为 NULL)
-  target_college_id: string | null;  // 学院 ID（兼容旧 schema）
-  target_class_id: string | null;  // 班级 ID（兼容旧 schema）
-  source_task_id: string | null;  // AD-21: 派发实例指向源任务
+  scope_id: string | null;
+  target_college_id: string | null;
+  target_class_id: string | null;
+  template_id: string | null; // 从任务模板派生的实例
   geo_lat: number | null;
   geo_lng: number | null;
   geo_radius_meters: number | null;
@@ -74,13 +74,13 @@ export interface TaskWithStats extends TaskResponse {
 export interface CreateTaskInput {
   title: string;
   content: string;
-  guiding_questions?: string[] | null;  // AD-22: 可选
-  source_url?: string | null;  // AD-22: 可选
-  video_url?: string | null;  // AD-22: 可选
+  guiding_questions?: string[] | null;
+  source_url?: string | null;
+  video_url?: string | null;
   scope_type: TaskScopeType;
-  scope_id?: string | null;  // school_id / college_id / class_id (pool 时为 NULL)
-  target_college_id?: string | null;  // 学院 ID（兼容旧 schema）
-  target_class_id?: string | null;  // 班级 ID（兼容旧 schema）
+  scope_id?: string | null;
+  target_college_id?: string | null;
+  target_class_id?: string | null;
   geo_lat?: number | null;
   geo_lng?: number | null;
   geo_radius_meters?: number | null;
@@ -90,9 +90,13 @@ export interface CreateTaskInput {
   deadline_at: string;
 }
 
-export interface DispatchTaskInput {
-  source_task_id: string;  // AD-21: 必填
-  target_class_id: string;
+export interface CreateTaskFromTemplateInput {
+  template_id: string;
+  scope_type: TaskScopeType;
+  scope_id?: string | null;
+  target_class_ids?: string[];
+  published_at: string;
+  deadline_at: string;
 }
 
 export interface UpdateTaskInput {

@@ -2,29 +2,29 @@
   <!-- Counselor: task management -->
   <block wx:if="{{role === 'counselor'}}">
     <view class="counselor-container">
-      <view wx:if="{{loading && poolTasks.length === 0 && dispatchedTasks.length === 0}}" class="skeleton-list">
+      <view wx:if="{{loading && templates.length === 0 && dispatchedTasks.length === 0}}" class="skeleton-list">
         <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton section-skeleton"></view>
       </view>
 
       <block wx:else>
-        <!-- 任务池 -->
+        <!-- 任务模板库 -->
         <view class="section">
           <view class="section-header">
-            <view class="section-title">任务池</view>
-            <view class="section-count">{{poolTasks.length}} 个可派发</view>
+            <view class="section-title">任务模板库</view>
+            <view class="section-count">{{templates.length}} 个可发布</view>
           </view>
-          <view class="task-list" wx:if="{{poolTasks.length > 0}}">
-            <view wx:for="{{poolTasks}}" wx:key="id" class="task-card">
+          <view class="task-list" wx:if="{{templates.length > 0}}">
+            <view wx:for="{{templates}}" wx:key="id" class="task-card">
               <view class="task-info">
                 <view class="task-title">{{item.title}}</view>
-                <view class="task-meta">截止 {{item.deadline_at}}</view>
+                <view class="task-meta">更新于 {{item.updated_at}}</view>
               </view>
-              <view class="dispatch-btn" data-id="{{item.id}}" bindtap="dispatchTask">派发</view>
+              <view class="dispatch-btn" data-id="{{item.id}}" bindtap="dispatchTask">发布</view>
             </view>
           </view>
           <view class="empty-state" wx:else>
             <view class="empty-icon empty-icon-pool"></view>
-            <view class="empty-text">暂无任务池任务</view>
+            <view class="empty-text">暂无任务模板</view>
           </view>
         </view>
 

@@ -1,6 +1,6 @@
 import { api } from "./api";
 
-export type TaskScopeType = "school" | "college" | "class" | "pool";
+export type TaskScopeType = "school" | "college" | "class";
 export type TaskStatus = "published" | "delisted";
 
 export interface Task {
@@ -14,7 +14,7 @@ export interface Task {
   scope_id: string | null;
   target_college_id: string | null;
   target_class_id: string | null;
-  source_task_id: string | null;
+  template_id: string | null;
   geo_lat: number | null;
   geo_lng: number | null;
   geo_radius_meters: number | null;
@@ -75,6 +75,16 @@ export const createTask = (data: {
   published_at: string;
   deadline_at: string;
 }) => api.post<Task>("/tasks", data);
+
+export const createTaskFromTemplate = (data: {
+  template_id: string;
+  scope_type: TaskScopeType;
+  scope_id?: string | null;
+  target_class_ids?: string[];
+  published_at: string;
+  deadline_at: string;
+}) => api.post<Task[]>("/tasks/from-template", data);
+
 export const updateTask = (
   id: string,
   data: Partial<{
@@ -97,6 +107,7 @@ export const updateTask = (
     status: TaskStatus;
   }>
 ) => api.put<Task>(`/tasks/${id}`, data);
+
 export const delistTask = (id: string) =>
   api.patch<Task>(`/tasks/${id}/delist`, {});
 
@@ -106,7 +117,6 @@ export function scopeLabel(task: Task): string {
     school: "全校",
     college: "学院",
     class: "班级",
-    pool: "任务池",
   };
   return map[task.scope_type] || task.scope_type;
 }

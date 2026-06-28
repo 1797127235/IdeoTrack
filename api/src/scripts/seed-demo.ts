@@ -150,19 +150,17 @@ async function seedDemo() {
     );
     taskIds.push(schoolTask.rows[0].id);
 
-    // 任务池任务
-    const poolTask = await client.query(
-      `INSERT INTO tasks (title, content, scope_type, created_by, published_at, deadline_at)
-       VALUES ($1, $2, 'pool', $3, $4, $5) RETURNING id`,
+    // 任务模板库
+    const templateTask = await client.query(
+      `INSERT INTO task_templates (title, content, created_by, status)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
       [
-        'Demo-任务池：经典文献研读',
+        'Demo-模板：经典文献研读',
         '阅读经典文献，结合专业谈体会。',
         adminId,
-        new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        'published',
       ]
     );
-    taskIds.push(poolTask.rows[0].id);
 
     // 学院任务
     for (const collegeId of collegeIds) {
@@ -198,13 +196,13 @@ async function seedDemo() {
       taskIds.push(result.rows[0].id);
     }
 
-    // 辅导员从任务池派发一个班级任务
+    // 辅导员从模板库发布一个班级任务
     const dispatchTarget = classRecords[0];
     const dispatched = await client.query(
-      `INSERT INTO tasks (title, content, scope_type, scope_id, target_class_id, source_task_id, created_by, published_at, deadline_at)
-       SELECT title, content, 'class', $1, $1, id, $2, NOW(), deadline_at
-       FROM tasks WHERE id = $3 RETURNING id`,
-      [dispatchTarget.id, counselorIds[0], poolTask.rows[0].id]
+      `INSERT INTO tasks (title, content, scope_type, scope_id, target_class_id, template_id, created_by, published_at, deadline_at)
+       SELECT title, content, 'class', $1, $1, $2, $3, NOW(), $4
+       FROM task_templates WHERE id = $2 RETURNING id`,
+      [dispatchTarget.id, templateTask.rows[0].id, counselorIds[0], new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString()]
     );
     taskIds.push(dispatched.rows[0].id);
     console.log(`Created ${taskIds.length} tasks`);

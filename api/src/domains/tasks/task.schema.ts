@@ -18,13 +18,13 @@ const contentSchema = z
 export const createTaskSchema = z.object({
   title: titleSchema,
   content: contentSchema,
-  guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),  // AD-22: JSONB 数组，可选
-  source_url: z.string().url('外部链接格式无效').nullable().optional(),  // AD-22: 可选
-  video_url: z.string().url('视频 URL 格式无效').nullable().optional(),  // AD-22: 可选
-  scope_type: z.enum(['school', 'college', 'class', 'pool'], {
-    message: '发布范围必须是 school、college、class 或 pool',
+  guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),
+  source_url: z.string().url('外部链接格式无效').nullable().optional(),
+  video_url: z.string().url('视频 URL 格式无效').nullable().optional(),
+  scope_type: z.enum(['school', 'college', 'class'], {
+    message: '发布范围必须是 school、college 或 class',
   }),
-  scope_id: z.string().uuid('范围 ID 格式无效').nullable().optional(),  // AD-21: pool 时为 NULL
+  scope_id: z.string().uuid('范围 ID 格式无效').nullable().optional(),
   published_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage),
   deadline_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage),
   geo_lat: z.number().min(-90).max(90).nullable().optional(),
@@ -34,8 +34,8 @@ export const createTaskSchema = z.object({
   require_face: z.boolean().optional(),
 }).refine(
   (data) => {
-    // AD-21: pool/school 不需要 scope_id；college/class 必须提供有效 scope_id
-    if (data.scope_type === 'pool' && data.scope_id) {
+    // school 不需要 scope_id；college/class 必须提供有效 scope_id
+    if (data.scope_type === 'school' && data.scope_id) {
       return false;
     }
     if ((data.scope_type === 'college' || data.scope_type === 'class') && !data.scope_id) {
@@ -49,7 +49,6 @@ export const createTaskSchema = z.object({
   }
 ).refine(
   (data) => {
-    // P6: 校验截止时间必须晚于发布时间
     return new Date(data.deadline_at) > new Date(data.published_at);
   },
   {
@@ -58,7 +57,6 @@ export const createTaskSchema = z.object({
   }
 ).refine(
   (data) => {
-    // 如果提供了位置范围，经纬度和半径必须同时提供
     const hasLat = data.geo_lat !== undefined && data.geo_lat !== null;
     const hasLng = data.geo_lng !== undefined && data.geo_lng !== null;
     const hasRadius = data.geo_radius_meters !== undefined && data.geo_radius_meters !== null;
@@ -74,10 +72,43 @@ export const createTaskSchema = z.object({
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 
-export const dispatchTaskSchema = z.object({
-  source_task_id: z.string().uuid('源任务 ID 格式无效'),  // AD-21: 必填
-  target_class_id: z.string().uuid('班级 ID 格式无效'),  // AD-21: 必填
-});
+export const createTaskFromTemplateSchema = z.object({
+  template_id: z.string().uuid('模板 ID 格式无效'),
+  scope_type: z.enum(['school', 'college', 'class'], {
+    message: '发布范围必须是 school、college 或 class',
+  }),
+  scope_id: z.string().uuid('范围 ID 格式无效').nullable().optional(),
+  target_class_ids: z.array(z.string().uuid('班级 ID 格式无效')).min(1, '至少选择一个班级').optional(),
+  published_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage),
+  deadline_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage),
+}).refine(
+  (data) => {
+    if (data.scope_type === 'school') {
+      return !data.scope_id && (!data.target_class_ids || data.target_class_ids.length === 0);
+    }
+    if (data.scope_type === 'college') {
+      return !!data.scope_id && (!data.target_class_ids || data.target_class_ids.length === 0);
+    }
+    if (data.scope_type === 'class') {
+      return !!data.target_class_ids && data.target_class_ids.length > 0;
+    }
+    return false;
+  },
+  {
+    message: 'scope_type 与 scope_id/target_class_ids 不匹配',
+    path: ['scope_type'],
+  }
+).refine(
+  (data) => {
+    return new Date(data.deadline_at) > new Date(data.published_at);
+  },
+  {
+    message: '截止时间必须晚于发布时间',
+    path: ['deadline_at'],
+  }
+);
+
+export type CreateTaskFromTemplateInput = z.infer<typeof createTaskFromTemplateSchema>;
 
 export const updateTaskSchema = z.object({
   title: titleSchema.optional(),
@@ -85,7 +116,7 @@ export const updateTaskSchema = z.object({
   guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),
   source_url: z.string().url('外部链接格式无效').nullable().optional(),
   video_url: z.string().url('视频 URL 格式无效').nullable().optional(),
-  scope_type: z.enum(['school', 'college', 'class', 'pool']).optional(),
+  scope_type: z.enum(['school', 'college', 'class']).optional(),
   scope_id: z.string().uuid('范围 ID 格式无效').nullable().optional(),
   published_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage).optional(),
   deadline_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage).optional(),
@@ -98,8 +129,7 @@ export const updateTaskSchema = z.object({
   status: z.enum(['published', 'delisted']).optional(),
 }).refine(
   (data) => {
-    // AD-21: pool/school 不需要 scope_id；college/class 切换时 scope_id 不能为 null
-    if (data.scope_type === 'pool' && data.scope_id) {
+    if (data.scope_type === 'school' && data.scope_id) {
       return false;
     }
     if ((data.scope_type === 'college' || data.scope_type === 'class') && data.scope_id === null) {
@@ -113,7 +143,6 @@ export const updateTaskSchema = z.object({
   }
 ).refine(
   (data) => {
-    // 如果同时提供了发布时间和截止时间，校验时间顺序
     if (data.published_at && data.deadline_at) {
       return new Date(data.deadline_at) > new Date(data.published_at);
     }
@@ -125,7 +154,6 @@ export const updateTaskSchema = z.object({
   }
 ).refine(
   (data) => {
-    // 如果提供了位置范围，经纬度和半径必须同时提供
     const hasLat = data.geo_lat !== undefined && data.geo_lat !== null;
     const hasLng = data.geo_lng !== undefined && data.geo_lng !== null;
     const hasRadius = data.geo_radius_meters !== undefined && data.geo_radius_meters !== null;

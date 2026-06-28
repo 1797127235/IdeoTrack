@@ -10,6 +10,8 @@ const titleMap: Record<string, string> = {
   "/": "数据概览",
   "/tasks": "任务管理",
   "/tasks/create": "新建任务",
+  "/task-templates": "任务模板库",
+  "/task-templates/create": "新建模板",
   "/quotes": "名言管理",
   "/organizations": "组织架构",
   "/users": "用户管理",

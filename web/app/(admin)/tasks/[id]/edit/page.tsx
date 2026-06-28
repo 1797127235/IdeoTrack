@@ -106,7 +106,7 @@ export default function EditTaskPage() {
         source_url: sourceUrl.trim() || null,
         video_url: videoUrl.trim() || null,
         scope_type: scopeType,
-        scope_id: scopeType === "school" || scopeType === "pool" ? null : scopeId,
+        scope_id: scopeType === "school" ? null : scopeId,
         published_at: new Date(publishedAt).toISOString(),
         deadline_at: new Date(deadlineAt).toISOString(),
         geo_lat: requireLocation && geofence ? geofence.lat : null,
@@ -224,7 +224,6 @@ export default function EditTaskPage() {
                 <option value="school">全校</option>
                 <option value="college">学院</option>
                 <option value="class">班级</option>
-                <option value="pool">任务池</option>
               </Select>
             </FormField>
 

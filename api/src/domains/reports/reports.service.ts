@@ -8,7 +8,6 @@ import type {
 } from './reports.types.js';
 
 // 任务驱动口径：当前"进行中"的任务 = status='published' 且 now 在 published_at/deadline_at 窗口内。
-// 活跃任务不应包含 'pool'（任务池本身不直接面向学生打卡）。
 const ACTIVE_TASKS_CTE = `
   active_tasks AS (
     SELECT t.id, t.title, t.deadline_at, t.scope_type,
@@ -17,7 +16,6 @@ const ACTIVE_TASKS_CTE = `
     WHERE t.status = 'published'
       AND t.published_at <= NOW()
       AND t.deadline_at > NOW()
-      AND t.scope_type <> 'pool'
   )
 `;
 
@@ -26,7 +24,6 @@ const ACTIVE_TASKS_CTE = `
 //   school  = 全校启用学生
 //   college = 该学院下的启用学生
 //   class   = 该班级的启用学生
-// pool 不展开（已在上游过滤）。
 const ACTIVE_ASSIGNMENTS_CTE = `
   active_assignments AS (
     SELECT a.id AS task_id, a.title AS task_title, a.deadline_at AS task_deadline,

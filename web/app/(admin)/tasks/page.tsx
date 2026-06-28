@@ -121,9 +121,14 @@ export default function TasksPage() {
 
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-[var(--color-ink)]">任务管理</h1>
-        <Button variant="primary" onClick={() => router.push("/tasks/create")}>
-          新建任务
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={() => router.push("/task-templates")}>
+            任务模板库
+          </Button>
+          <Button variant="primary" onClick={() => router.push("/tasks/create")}>
+            新建任务
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -160,7 +165,6 @@ export default function TasksPage() {
               <option value="school">全校</option>
               <option value="college">学院</option>
               <option value="class">班级</option>
-              <option value="pool">任务池</option>
             </Select>
           </FormField>
 

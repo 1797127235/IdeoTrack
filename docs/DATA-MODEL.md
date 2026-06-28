@@ -13,12 +13,16 @@ IdeoTrack 的核心数据围绕「学院 → 班级 → 学生」的组织树展
   ├── 直属学院：users.college_id（一所一属，唯一归属）
   └── 所带班级：counselor_classes（1 个辅导员 → N 个班，但必须同属其直属学院）
 
-任务 task
-  └── 发布范围 scope_type：school（全校）/ college（学院）/ class（班级）/ pool（任务池）
-        scope_id 指向 college 或 class（pool/school 时为空）
+任务模板 task_template
+  └── 管理员维护的内容快照，不直接面向学生
+
+任务实例 task
+  └── 发布范围 scope_type：school（全校）/ college（学院）/ class（班级）
+        scope_id 指向 college 或 class（school 时为空）
+        template_id 指向 task_template（模板派生时）
 
 打卡 check_in
-  └── 学生对某任务的打卡记录（含心得、人脸现场照、审核状态）
+  └── 学生对某任务实例的打卡记录（含心得、人脸现场照、审核状态）
 ```
 
 ## 关键表结构
@@ -29,7 +33,8 @@ IdeoTrack 的核心数据围绕「学院 → 班级 → 学生」的组织树展
 | `classes` | 班级 | `id`, `college_id`, `name`，唯一约束 `(college_id, name)` |
 | `users` | 所有角色账号 | `school_id`（唯一）, `role`, `college_id`, `class_id`, `password_hash`, `wechat_openid`, `is_enabled` |
 | `counselor_classes` | 辅导员↔所带班级 | `counselor_id`, `class_id`，唯一约束 `(counselor_id, class_id)` |
-| `tasks` | 思政任务 | `scope_type`, `scope_id`/`target_college_id`/`target_class_id`, `geo_*`（签到范围） |
+| `task_templates` | 任务模板库 | `title`, `content`, `guiding_questions`, `geo_*`, `require_face`, `status` |
+| `tasks` | 思政任务实例 | `scope_type`, `scope_id`/`target_college_id`/`target_class_id`, `template_id`, `geo_*`（签到范围） |
 | `check_ins` | 打卡记录 | `user_id`, `task_id`, `status`, `reflection_content`, `geo_*` |
 | `user_faces` | 注册照 + 人脸向量 | `user_id`, `photo_path`, `embedding` |
 
@@ -76,9 +81,16 @@ function generateDefaultPassword(schoolId: string): string {
 
 **用户导入**要求组织（学院/班级）已存在；若不存在会逐行报错。典型流程：先导入组织 → 再导入用户 → 最后导入注册照。
 
+## 任务模板与任务实例
+
+- 管理员在 Web 后台维护**任务模板库**（`task_templates`），只保存内容、思考题、签到要求等快照，不指定发布范围。
+- 辅导员在小程序从模板库选择模板，发布为所辖班级的**任务实例**（`tasks`，`scope_type='class'`）。
+- 管理员也可以直接将模板发布为全校/全院任务，或绕过模板直接创建任务实例。
+- 任务实例的 `template_id` 指向来源模板；直接创建的实例 `template_id` 为 NULL。
+
 ## 任务签到范围
 
-管理员在 Web 后台创建/编辑任务时，可用高德地图划定签到范围（点 + 半径），学生在小程序签到时必须处于该范围内。
+管理员在 Web 后台创建/编辑任务模板或任务实例时，可用高德地图划定签到范围（点 + 半径），学生在小程序签到时必须处于该范围内。
 
 - Web 地图组件：`web/components/GeofencePicker.tsx`
 - 后端距离校验：`api/src/domains/checkins/checkins.service.ts`、`api/src/domains/tasks/task.utils.ts`

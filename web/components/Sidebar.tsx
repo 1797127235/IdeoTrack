@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Quote,
   BookOpen,
+  FileText,
   Building2,
   Users,
   Settings,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "数据概览", icon: LayoutDashboard },
   { href: "/tasks", label: "任务管理", icon: ClipboardList },
+  { href: "/task-templates", label: "任务模板库", icon: FileText },
   { href: "/learning-resources", label: "学习资料", icon: BookOpen },
   { href: "/quotes", label: "名言管理", icon: Quote },
   { href: "/organizations", label: "组织架构", icon: Building2 },

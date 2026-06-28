@@ -113,7 +113,34 @@ CREATE INDEX IF NOT EXISTS idx_quotes_is_enabled ON quotes(is_enabled);
 CREATE INDEX IF NOT EXISTS idx_quotes_display_order ON quotes(display_order);
 CREATE INDEX IF NOT EXISTS idx_daily_quotes_date ON daily_quotes(date);
 
--- 任务表
+-- 任务模板库：管理员维护的内容快照，不直接面向学生
+CREATE TABLE IF NOT EXISTS task_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  guiding_questions JSONB,
+  source_url TEXT,
+  video_url TEXT,
+  geo_lat DECIMAL(10, 8),
+  geo_lng DECIMAL(11, 8),
+  geo_radius_meters INTEGER CHECK (geo_radius_meters IS NULL OR geo_radius_meters BETWEEN 50 AND 1000),
+  geo_address TEXT,
+  require_face BOOLEAN NOT NULL DEFAULT false,
+  created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'delisted')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_templates_status ON task_templates(status);
+CREATE INDEX IF NOT EXISTS idx_task_templates_created_by ON task_templates(created_by);
+
+DROP TRIGGER IF EXISTS update_task_templates_updated_at ON task_templates;
+CREATE TRIGGER update_task_templates_updated_at
+  BEFORE UPDATE ON task_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 任务表（仅保存面向学生的任务实例：school/college/class）
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
@@ -121,11 +148,11 @@ CREATE TABLE IF NOT EXISTS tasks (
   guiding_questions JSONB,  -- AD-22: 思考题数组，可选
   source_url TEXT,  -- AD-22: 外部链接，可选
   video_url TEXT,  -- AD-22: 视频 URL，可选
-  scope_type TEXT NOT NULL CHECK (scope_type IN ('school', 'college', 'class', 'pool')),
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('school', 'college', 'class')),
   scope_id UUID,  -- AD-21: 统一的范围 ID（替代 target_college_id/target_class_id）
   target_college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
   target_class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  source_task_id UUID REFERENCES tasks(id) ON DELETE SET NULL,  -- AD-21: 派发实例指向源任务
+  template_id UUID REFERENCES task_templates(id) ON DELETE SET NULL,  -- 任务模板派生实例
   geo_lat DECIMAL(10, 8),
   geo_lng DECIMAL(11, 8),
   geo_radius_meters INTEGER CHECK (geo_radius_meters BETWEEN 50 AND 1000),
@@ -139,8 +166,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   CONSTRAINT valid_task_scope CHECK (
     (scope_type = 'school' AND target_college_id IS NULL AND target_class_id IS NULL) OR
     (scope_type = 'college' AND target_college_id IS NOT NULL AND target_class_id IS NULL) OR
-    (scope_type = 'class' AND target_college_id IS NULL AND target_class_id IS NOT NULL) OR
-    (scope_type = 'pool' AND target_college_id IS NULL AND target_class_id IS NULL)  -- AD-21: 任务池
+    (scope_type = 'class' AND target_college_id IS NULL AND target_class_id IS NOT NULL)
   )
 );
 
@@ -157,28 +183,29 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_address TEXT;
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_geo_radius_meters_check;
 ALTER TABLE tasks ADD CONSTRAINT tasks_geo_radius_meters_check
   CHECK (geo_radius_meters IS NULL OR geo_radius_meters BETWEEN 50 AND 1000);
--- 旧数据可能没有外键约束，安全起见先删除再重建（幂等）
-ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_source_task_id_fkey;
-ALTER TABLE tasks ADD CONSTRAINT tasks_source_task_id_fkey
-  FOREIGN KEY (source_task_id) REFERENCES tasks(id) ON DELETE SET NULL;
+-- 兼容旧数据：将 source_task_id 映射为 template_id 后，最终可删除 source_task_id 列
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS template_id UUID REFERENCES task_templates(id) ON DELETE SET NULL;
 
--- 旧表的 scope_type CHECK 可能不包含 'pool'，需要更新约束
+-- 旧数据可能没有外键约束，安全起见先删除再重建（幂等）
+-- 注意：source_task_id 列将在后续迁移脚本中删除，此处仅保留 ALTER 以兼容旧库
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_source_task_id_fkey;
+
+-- 旧表的 scope_type CHECK 需要移除 'pool'
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_scope_type_check;
 ALTER TABLE tasks ADD CONSTRAINT tasks_scope_type_check
-  CHECK (scope_type IN ('school', 'college', 'class', 'pool'));
+  CHECK (scope_type IN ('school', 'college', 'class'));
 
--- 旧表的 valid_task_scope CHECK 可能不包含 pool 规则，需要更新约束
+-- 旧表的 valid_task_scope CHECK 需要移除 pool 规则
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS valid_task_scope;
 ALTER TABLE tasks ADD CONSTRAINT valid_task_scope CHECK (
   (scope_type = 'school' AND target_college_id IS NULL AND target_class_id IS NULL) OR
   (scope_type = 'college' AND target_college_id IS NOT NULL AND target_class_id IS NULL) OR
-  (scope_type = 'class' AND target_college_id IS NULL AND target_class_id IS NOT NULL) OR
-  (scope_type = 'pool' AND target_college_id IS NULL AND target_class_id IS NULL)
+  (scope_type = 'class' AND target_college_id IS NULL AND target_class_id IS NOT NULL)
 );
 
--- AD-21: 防止重复派发（同一源任务对同一班级只能派发一次）
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_unique_dispatch ON tasks(source_task_id, target_class_id) 
-  WHERE source_task_id IS NOT NULL AND target_class_id IS NOT NULL;
+-- 防止重复从同一模板派发至同一班级
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_unique_template_dispatch ON tasks(template_id, target_class_id)
+  WHERE template_id IS NOT NULL AND target_class_id IS NOT NULL;
 
 -- 打卡记录表（Epic 3 最小版本，Epic 4 扩展定位与心得）
 CREATE TABLE IF NOT EXISTS check_ins (

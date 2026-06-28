@@ -81,7 +81,7 @@ END $$;
 DO $$
 DECLARE
   admin_id UUID;
-  pool_task_id UUID;
+  template_task_id UUID;
 BEGIN
   SELECT id INTO admin_id FROM users WHERE role = 'admin' LIMIT 1;
   IF admin_id IS NULL THEN
@@ -92,10 +92,10 @@ BEGIN
   INSERT INTO tasks (title, content, scope_type, created_by, published_at, deadline_at)
   VALUES ('Demo-全校思政学习任务', '请阅读指定材料并撰写心得。', 'school', admin_id, NOW() - INTERVAL '7 days', NOW() + INTERVAL '7 days');
 
-  -- 任务池任务
-  INSERT INTO tasks (title, content, scope_type, created_by, published_at, deadline_at)
-  VALUES ('Demo-任务池：经典文献研读', '阅读经典文献，结合专业谈体会。', 'pool', admin_id, NOW() - INTERVAL '7 days', NOW() + INTERVAL '14 days')
-  RETURNING id INTO pool_task_id;
+  -- 任务模板库
+  INSERT INTO task_templates (title, content, created_by, status)
+  VALUES ('Demo-模板：经典文献研读', '阅读经典文献，结合专业谈体会。', admin_id, 'published')
+  RETURNING id INTO template_task_id;
 
   -- 学院任务
   INSERT INTO tasks (title, content, scope_type, scope_id, target_college_id, created_by, published_at, deadline_at)
@@ -110,10 +110,10 @@ BEGIN
   JOIN colleges co ON cl.college_id = co.id
   WHERE co.name LIKE 'Demo-%学院';
 
-  -- 辅导员从任务池派发一个班级任务
-  INSERT INTO tasks (title, content, scope_type, scope_id, target_class_id, source_task_id, created_by, published_at, deadline_at)
-  SELECT t.title, t.content, 'class', cl.id, cl.id, pool_task_id, admin_id, NOW(), t.deadline_at
-  FROM tasks t
+  -- 辅导员从模板库发布一个班级任务
+  INSERT INTO tasks (title, content, scope_type, scope_id, target_class_id, template_id, created_by, published_at, deadline_at)
+  SELECT t.title, t.content, 'class', cl.id, cl.id, template_task_id, admin_id, NOW(), NOW() + INTERVAL '14 days'
+  FROM task_templates t
   CROSS JOIN (
     SELECT cl.id
     FROM classes cl
@@ -122,7 +122,7 @@ BEGIN
     ORDER BY cl.id
     LIMIT 1
   ) cl
-  WHERE t.id = pool_task_id;
+  WHERE t.id = template_task_id;
 END $$;
 
 -- 生成打卡记录（一个学生一个任务只打一次）

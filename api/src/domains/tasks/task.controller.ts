@@ -2,7 +2,14 @@ import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
 import { auditLog } from '../../lib/audit.js';
 import * as taskService from './task.service.js';
-import { createTaskSchema, dispatchTaskSchema, updateTaskSchema, type CreateTaskInput, type UpdateTaskInput } from './task.schema.js';
+import { createTaskSchema, createTaskFromTemplateSchema, updateTaskSchema, type CreateTaskInput, type UpdateTaskInput } from './task.schema.js';
+
+function getClientInfo(req: Request) {
+  return {
+    ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
+    userAgent: req.headers['user-agent'],
+  };
+}
 
 export async function createTaskController(
   req: Request,
@@ -33,8 +40,7 @@ export async function createTaskController(
       targetId: task.id,
       targetName: task.title,
       details: { scopeType: task.scope_type },
-      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
-      userAgent: req.headers['user-agent'],
+      ...getClientInfo(req),
     });
     res.status(201).json({ success: true, data: task });
   } catch (error) {
@@ -42,13 +48,13 @@ export async function createTaskController(
   }
 }
 
-export async function dispatchTaskController(
+export async function createTaskFromTemplateController(
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const parseResult = dispatchTaskSchema.safeParse(req.body);
+    const parseResult = createTaskFromTemplateSchema.safeParse(req.body);
     if (!parseResult.success) {
       throw new AppError(
         'VALIDATION_ERROR',
@@ -61,8 +67,25 @@ export async function dispatchTaskController(
       throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
     }
 
-    const task = await taskService.dispatchTask(req.user.userId, req.user.role, parseResult.data);
-    res.status(201).json({ success: true, data: task });
+    const tasks = await taskService.createTaskFromTemplate(
+      req.user.userId,
+      req.user.role,
+      parseResult.data
+    );
+
+    void auditLog({
+      action: 'create',
+      category: 'task',
+      actorId: req.user.userId,
+      actorRole: req.user.role,
+      targetType: 'task',
+      targetId: tasks[0]?.id,
+      targetName: tasks[0]?.title,
+      details: { source: 'template', count: tasks.length },
+      ...getClientInfo(req),
+    });
+
+    res.status(201).json({ success: true, data: tasks });
   } catch (error) {
     next(error);
   }
@@ -78,15 +101,14 @@ export async function listTasksController(
       throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
     }
 
-    const filters: { status?: 'published' | 'delisted'; scopeType?: 'school' | 'college' | 'class' | 'pool' } = {};
+    const filters: { status?: 'published' | 'delisted'; scopeType?: 'school' | 'college' | 'class' } = {};
     if (req.query.status === 'published' || req.query.status === 'delisted') {
       filters.status = req.query.status;
     }
-    if (req.query.scope_type === 'school' || req.query.scope_type === 'college' || req.query.scope_type === 'class' || req.query.scope_type === 'pool') {
+    if (req.query.scope_type === 'school' || req.query.scope_type === 'college' || req.query.scope_type === 'class') {
       filters.scopeType = req.query.scope_type;
     }
 
-    // P3: 管理端分页参数
     const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
 
@@ -117,7 +139,6 @@ export async function updateTaskController(
     }
 
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    // P1: status 不再通过 update 修改，强制走 delist 端点
     if (parseResult.data.status !== undefined) {
       throw new AppError(
         'VALIDATION_ERROR',
@@ -135,8 +156,7 @@ export async function updateTaskController(
       targetId: task.id,
       targetName: task.title,
       details: parseResult.data,
-      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
-      userAgent: req.headers['user-agent'],
+      ...getClientInfo(req),
     });
     res.json({ success: true, data: task });
   } catch (error) {
@@ -163,8 +183,7 @@ export async function delistTaskController(
       targetType: 'task',
       targetId: task.id,
       targetName: task.title,
-      ipAddress: Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress,
-      userAgent: req.headers['user-agent'],
+      ...getClientInfo(req),
     });
     res.json({ success: true, data: task });
   } catch (error) {
@@ -210,28 +229,6 @@ export async function getMyTaskDetailController(
   }
 }
 
-// DN-1: 任务池查询端点（辅导员专用）
-export async function listTaskPoolController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    if (!req.user) {
-      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
-    }
-
-    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
-
-    const result = await taskService.listTaskPool(req.user.userId, page, limit);
-    res.json({ success: true, data: result });
-  } catch (error) {
-    next(error);
-  }
-}
-
-// P2: 获取单个任务详情（管理员/辅导员）
 export async function getTaskByIdController(
   req: Request,
   res: Response,
@@ -250,7 +247,6 @@ export async function getTaskByIdController(
   }
 }
 
-// AC-5: 任务统计端点
 export async function getTaskStatsController(
   req: Request,
   res: Response,

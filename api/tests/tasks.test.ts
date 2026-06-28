@@ -43,10 +43,10 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
     return request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send(payload);
   }
 
-  async function seedCounselorTask(title: string, createdBy: string = counselorId, targetClassId: string = classId, sourceTaskId: string | null = null) {
+  async function seedCounselorTask(title: string, createdBy: string = counselorId, targetClassId: string = classId, templateId: string | null = null) {
     const res = await client.query(
       `INSERT INTO tasks (
-        title, content, scope_type, scope_id, target_college_id, target_class_id, source_task_id, created_by, published_at, deadline_at
+        title, content, scope_type, scope_id, target_college_id, target_class_id, template_id, created_by, published_at, deadline_at
       ) VALUES ($1, $2, 'class', $3, NULL, $3, $4, $5, $6, $7)
       RETURNING id`,
       [
@@ -124,11 +124,13 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
       expect(res.body.data.scope_label).toBe('学院');
     });
 
-    it('rejects counselor creating task', async () => {
-      // AD-21: 辅导员不能直接创建任务，只能从任务池派发
+    it('allows counselor creating class task for managed class', async () => {
       const res = await createTask(counselorToken, basePayload);
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(201);
+      expect(res.body.data.scope_type).toBe('class');
+    });
 
+    it('rejects counselor creating school/college task', async () => {
       const schoolRes = await createTask(counselorToken, {
         ...basePayload,
         scope_type: 'school',
@@ -142,6 +144,15 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
         scope_id: collegeId,
       });
       expect(collegeRes.status).toBe(403);
+    });
+
+    it('rejects counselor creating class task for unmanaged class', async () => {
+      const res = await createTask(counselorToken, {
+        ...basePayload,
+        scope_type: 'class',
+        scope_id: otherClassId,
+      });
+      expect(res.status).toBe(403);
     });
 
     it('rejects student creating task', async () => {
@@ -531,6 +542,71 @@ describe.skipIf(!DATABASE_URL)('Tasks API', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.title).toBe('TEST TASK 详情');
       expect(res.body.data.content).toBe('详情内容');
+    });
+  });
+
+  describe('POST /api/tasks/from-template', () => {
+    async function seedTemplate(title: string) {
+      const res = await client.query(
+        `INSERT INTO task_templates (title, content, created_by, status)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [title, '模板内容', adminId, 'published']
+      );
+      return res.rows[0].id as string;
+    }
+
+    it('allows counselor to dispatch template to managed classes', async () => {
+      const templateId = await seedTemplate('TEST TASK 模板派发');
+
+      const res = await request(app)
+        .post('/api/tasks/from-template')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({
+          template_id: templateId,
+          scope_type: 'class',
+          target_class_ids: [classId],
+          published_at: new Date(Date.now() - 1000).toISOString(),
+          deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].scope_type).toBe('class');
+      expect(res.body.data[0].template_id).toBe(templateId);
+    });
+
+    it('rejects counselor dispatching to unmanaged classes', async () => {
+      const templateId = await seedTemplate('TEST TASK 越权派发');
+
+      const res = await request(app)
+        .post('/api/tasks/from-template')
+        .set('Authorization', `Bearer ${counselorToken}`)
+        .send({
+          template_id: templateId,
+          scope_type: 'class',
+          target_class_ids: [otherClassId],
+          published_at: new Date(Date.now() - 1000).toISOString(),
+          deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('allows admin to publish template as school task', async () => {
+      const templateId = await seedTemplate('TEST TASK 全校模板');
+
+      const res = await request(app)
+        .post('/api/tasks/from-template')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          template_id: templateId,
+          scope_type: 'school',
+          published_at: new Date(Date.now() - 1000).toISOString(),
+          deadline_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data[0].scope_type).toBe('school');
     });
   });
 });

@@ -11,6 +11,7 @@
     "test": "vitest run --no-file-parallelism --testTimeout 30000 --hookTimeout 30000",
     "test:watch": "vitest",
     "db:migrate": "tsx src/scripts/migrate.ts",
+    "db:migrate:task-pool": "tsx src/scripts/migrate-task-pool-to-templates.ts",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:seed:demo": "tsx src/scripts/seed-demo.ts"
   },
