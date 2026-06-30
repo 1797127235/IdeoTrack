@@ -1,0 +1,9 @@
+{
+  "name": "ideotrack-miniprogram-v2",
+  "version": "1.0.0",
+  "description": "IdeoTrack 小程序 V2",
+  "private": true,
+  "dependencies": {
+    "@babel/runtime": "^7.24.0"
+  }
+}

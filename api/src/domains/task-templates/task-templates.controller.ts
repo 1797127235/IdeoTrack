@@ -23,7 +23,10 @@ export async function listTaskTemplatesController(
     }
 
     const filters: { status?: 'published' | 'delisted' } = {};
-    if (req.query.status === 'published' || req.query.status === 'delisted') {
+    if (req.user.role === 'counselor') {
+      // 辅导员只能看到已发布模板，不可通过 status 参数筛选
+      filters.status = 'published';
+    } else if (req.query.status === 'published' || req.query.status === 'delisted') {
       filters.status = req.query.status;
     }
 

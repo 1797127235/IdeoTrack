@@ -1,0 +1,13 @@
+<view class="splash-page" bindtap="onSkip">
+  <image
+    class="splash-bg"
+    src="/assets/images/splash.jpg"
+    mode="aspectFill"
+  />
+
+  <view class="splash-progress-container">
+    <view class="splash-progress-track">
+      <view class="splash-progress-bar" style="width: {{progress}}%;"></view>
+    </view>
+  </view>
+</view>

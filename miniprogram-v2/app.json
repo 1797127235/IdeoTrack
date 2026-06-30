@@ -1,0 +1,41 @@
+{
+  "pages": [
+    "pages/splash/index",
+    "pages/teacher/classes/index",
+    "pages/teacher/class-detail/index",
+    "pages/teacher/dashboard/index",
+    "pages/teacher/class-ranking/index",
+    "pages/teacher/report-export/index",
+    "pages/teacher/tasks/index",
+    "pages/teacher/task-detail/index",
+    "pages/teacher/mine/index",
+    "pages/teacher/task-records/index",
+    "pages/teacher/reviews/index",
+    "pages/teacher/reviews/detail/index",
+    "pages/teacher/task-publish/index",
+    "pages/teacher/task-publish-from-template/index",
+    "pages/student/home/index",
+    "pages/student/task/index",
+    "pages/student/task-detail/index",
+    "pages/student/growth/index",
+    "pages/student/learning-resource-detail/index",
+    "pages/student/records/index",
+    "pages/student/mine/index",
+    "pages/auth/login/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#F5F7FA",
+    "navigationBarTitleText": "IdeoTrack",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F7FA"
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于选择签到位置"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation"],
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

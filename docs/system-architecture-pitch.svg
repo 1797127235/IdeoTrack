@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">IdeoTrack 路演风格系统架构图</title>
+  <desc id="desc">适配 IdeoTrack 路演 PPT 风格的三层系统架构图：前端、后端、基础设施。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#080D1A"/>
+      <stop offset="52%" stop-color="#0F1829"/>
+      <stop offset="100%" stop-color="#101B2E"/>
+    </linearGradient>
+    <linearGradient id="layerFront" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#818CF8" stop-opacity="0.10"/>
+    </linearGradient>
+    <linearGradient id="layerBack" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#34D399" stop-opacity="0.10"/>
+    </linearGradient>
+    <linearGradient id="layerInfra" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#34D399" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.08"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-30%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto">
+      <path d="M0,0 L12,5 L0,10 Z" fill="#94A3B8"/>
+    </marker>
+    <style>
+      .title { font: 700 44px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #FFFFFF; letter-spacing: 0; }
+      .subtitle { font: 400 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #94A3B8; }
+      .layer-title { font: 700 24px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #E2E8F0; }
+      .layer-label { font: 700 15px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #94A3B8; }
+      .node-title { font: 700 22px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #FFFFFF; }
+      .node-muted { font: 400 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #94A3B8; }
+      .node { fill: rgba(15,24,41,0.92); stroke: #334155; stroke-width: 1.4; rx: 18; filter: url(#softShadow); }
+      .node-blue { stroke: #60A5FA; }
+      .node-indigo { stroke: #818CF8; }
+      .node-green { stroke: #34D399; }
+      .node-red { stroke: #F87171; }
+      .layer { stroke: #1F2A3B; stroke-width: 1.4; rx: 26; }
+      .line { stroke: #94A3B8; stroke-width: 2.4; fill: none; marker-end: url(#arrow); opacity: 0.82; }
+      .line-soft { stroke: #64748B; stroke-width: 1.6; stroke-dasharray: 8 8; fill: none; opacity: 0.58; }
+      .accent-blue { fill: #60A5FA; }
+      .accent-indigo { fill: #818CF8; }
+      .accent-green { fill: #34D399; }
+      .accent-red { fill: #F87171; }
+      .tiny { font: 700 12px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #080D1A; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <path d="M0 690 C240 620 420 760 650 685 C880 610 1020 640 1220 575 C1400 516 1510 540 1600 500 L1600 900 L0 900 Z" fill="#0B1220" opacity="0.56"/>
+  <path d="M80 790 C300 735 430 805 620 760 C805 718 980 770 1160 720 C1320 675 1460 685 1530 650" stroke="#1E3A5F" stroke-width="2" opacity="0.7" fill="none"/>
+  <path d="M140 140 L1460 140" stroke="#1E3A5F" stroke-width="1.2" opacity="0.65"/>
+
+  <text class="title" x="110" y="92">IdeoTrack 系统架构</text>
+  <text class="subtitle" x="110" y="124">前端触达 · 后端闭环 · 基础设施承载</text>
+  <text class="subtitle" x="1348" y="124">ARCHITECTURE</text>
+
+  <rect class="layer" x="100" y="170" width="1400" height="180" fill="url(#layerFront)"/>
+  <text class="layer-title" x="130" y="212">前端层</text>
+  <text class="layer-label" x="130" y="238">用户入口与访问通道</text>
+
+  <rect class="node node-blue" x="355" y="220" width="210" height="82"/>
+  <circle class="accent-blue" cx="388" cy="261" r="16"/>
+  <text class="tiny" x="380" y="266">01</text>
+  <text class="node-title" x="420" y="254">微信小程序</text>
+  <text class="node-muted" x="420" y="280">学生 / 辅导员</text>
+
+  <rect class="node node-blue" x="695" y="220" width="210" height="82"/>
+  <circle class="accent-blue" cx="728" cy="261" r="16"/>
+  <text class="tiny" x="720" y="266">02</text>
+  <text class="node-title" x="760" y="254">管理后台</text>
+  <text class="node-muted" x="760" y="280">管理员</text>
+
+  <rect class="node node-indigo" x="1035" y="220" width="210" height="82"/>
+  <circle class="accent-indigo" cx="1068" cy="261" r="16"/>
+  <text class="tiny" x="1060" y="266">03</text>
+  <text class="node-title" x="1100" y="254">统一入口</text>
+  <text class="node-muted" x="1100" y="280">Caddy / API</text>
+
+  <rect class="layer" x="100" y="385" width="1400" height="210" fill="url(#layerBack)"/>
+  <text class="layer-title" x="130" y="427">后端层</text>
+  <text class="layer-label" x="130" y="453">业务闭环与数据处理</text>
+
+  <rect class="node node-indigo" x="245" y="470" width="200" height="82"/>
+  <circle class="accent-indigo" cx="278" cy="511" r="16"/>
+  <text class="tiny" x="270" y="516">04</text>
+  <text class="node-title" x="310" y="504">Express API</text>
+  <text class="node-muted" x="310" y="530">统一服务入口</text>
+
+  <rect class="node node-indigo" x="540" y="470" width="200" height="82"/>
+  <circle class="accent-indigo" cx="573" cy="511" r="16"/>
+  <text class="tiny" x="565" y="516">05</text>
+  <text class="node-title" x="605" y="504">认证权限</text>
+  <text class="node-muted" x="605" y="530">JWT / RBAC</text>
+
+  <rect class="node node-green" x="835" y="470" width="200" height="82"/>
+  <circle class="accent-green" cx="868" cy="511" r="16"/>
+  <text class="tiny" x="860" y="516">06</text>
+  <text class="node-title" x="900" y="504">业务服务</text>
+  <text class="node-muted" x="900" y="530">任务 / 打卡 / 审核</text>
+
+  <rect class="node node-green" x="1130" y="470" width="200" height="82"/>
+  <circle class="accent-green" cx="1163" cy="511" r="16"/>
+  <text class="tiny" x="1155" y="516">07</text>
+  <text class="node-title" x="1195" y="504">报表导出</text>
+  <text class="node-muted" x="1195" y="530">看板 / 文件</text>
+
+  <rect class="layer" x="100" y="630" width="1400" height="190" fill="url(#layerInfra)"/>
+  <text class="layer-title" x="130" y="672">基础设施层</text>
+  <text class="layer-label" x="130" y="698">数据、存储、外部能力与部署</text>
+
+  <rect class="node node-green" x="245" y="720" width="160" height="66"/>
+  <text class="node-title" x="285" y="760">数据库</text>
+
+  <rect class="node node-green" x="460" y="720" width="160" height="66"/>
+  <text class="node-title" x="500" y="760">文件存储</text>
+
+  <rect class="node node-blue" x="675" y="720" width="160" height="66"/>
+  <text class="node-title" x="715" y="760">人脸服务</text>
+
+  <rect class="node node-blue" x="890" y="720" width="160" height="66"/>
+  <text class="node-title" x="930" y="760">外部平台</text>
+
+  <rect class="node node-red" x="1105" y="720" width="160" height="66"/>
+  <text class="node-title" x="1145" y="760">AI 服务</text>
+
+  <rect class="node node-indigo" x="1320" y="720" width="130" height="66"/>
+  <text class="node-title" x="1356" y="760">部署</text>
+
+  <path class="line" d="M565 261 L695 261"/>
+  <path class="line" d="M905 261 L1035 261"/>
+  <path class="line" d="M1140 302 C1140 355 345 390 345 470"/>
+  <path class="line" d="M445 511 L540 511"/>
+  <path class="line" d="M740 511 L835 511"/>
+  <path class="line" d="M1035 511 L1130 511"/>
+  <path class="line" d="M935 552 C935 625 325 640 325 720"/>
+  <path class="line" d="M935 552 C935 630 540 640 540 720"/>
+  <path class="line" d="M935 552 C935 636 755 646 755 720"/>
+  <path class="line" d="M935 552 C935 640 970 650 970 720"/>
+  <path class="line" d="M935 552 C935 642 1185 650 1185 720"/>
+  <path class="line-soft" d="M1385 720 C1385 625 1240 615 1230 552"/>
+
+  <text class="subtitle" x="110" y="858">IdeoTrack · 高校思政教育过程管理平台</text>
+  <text class="subtitle" x="1290" y="858">三层架构 / 简洁版</text>
+</svg>

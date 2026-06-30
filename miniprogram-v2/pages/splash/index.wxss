@@ -1,0 +1,42 @@
+.splash-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.splash-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.splash-progress-container {
+  position: absolute;
+  bottom: calc(64rpx + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200rpx;
+  z-index: 2;
+}
+
+.splash-progress-track {
+  width: 100%;
+  height: 8rpx;
+  background-color: rgba(255, 255, 255, 0.4);
+  border-radius: 9999rpx;
+  overflow: hidden;
+}
+
+.splash-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22C55E, #4ADE80);
+  border-radius: 9999rpx;
+  transition: width 50ms linear;
+}

@@ -1,0 +1,28 @@
+<view class="records-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap"></view>
+    <view class="top-title">成长记录</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="content">
+    <view class="record-list" wx:if="{{records.length > 0}}">
+      <view class="record-item" wx:for="{{records}}" wx:key="id">
+        <view class="record-timeline">
+          <view class="record-icon {{item.icon}}"></view>
+          <view class="timeline-line" wx:if="{{index < records.length - 1}}"></view>
+        </view>
+        <view class="record-main">
+          <view class="record-title">{{item.title}}</view>
+          <view class="record-time">{{item.time}}</view>
+        </view>
+        <view class="record-points">{{item.points}}</view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{records.length === 0}}">
+      <view class="empty-text">暂无成长记录</view>
+      <view class="empty-hint">完成任务后，成长记录会出现在这里</view>
+    </view>
+  </view>
+</view>

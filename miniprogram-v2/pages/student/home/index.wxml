@@ -1,0 +1,170 @@
+<view class="home-page">
+  <view class="hero">
+    <view class="campus-art" aria-hidden="true">
+      <view class="sun"></view>
+      <view class="cloud cloud-left"></view>
+      <view class="cloud cloud-right"></view>
+      <view class="leaf leaf-one"></view>
+      <view class="leaf leaf-two"></view>
+      <view class="building">
+        <view class="tower">
+          <view class="spire"></view>
+          <view class="clock">◷</view>
+          <view class="tower-window"></view>
+        </view>
+        <view class="hall">
+          <view class="roof"></view>
+          <view class="window-row">
+            <view class="school-window"></view>
+            <view class="school-window"></view>
+            <view class="school-window"></view>
+          </view>
+          <view class="window-row lower">
+            <view class="school-window"></view>
+            <view class="school-window"></view>
+            <view class="school-window"></view>
+          </view>
+        </view>
+      </view>
+      <view class="trees">
+        <view class="tree tree-one"></view>
+        <view class="tree tree-two"></view>
+        <view class="tree tree-three"></view>
+      </view>
+    </view>
+
+    <view class="page-top">
+      <view class="page-title">首页</view>
+      <view class="notice-button" bindtap="onNotificationTap">
+        <view class="bell">
+          <view class="bell-dot"></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="greeting">下午好，{{studentName}}！</view>
+    <view class="date-row">{{currentDate}}　{{weekday}}</view>
+    <view class="motto">立德修身，知行合一，让青春在奋斗中绽放光彩。</view>
+  </view>
+
+  <view class="content">
+    <view class="quote-card">
+      <view class="quote-icon">
+        <view class="sprout">
+          <view class="stem"></view>
+          <view class="leaf-shape left"></view>
+          <view class="leaf-shape right"></view>
+        </view>
+      </view>
+      <view class="quote-text">{{quote.content}}</view>
+      <view class="quote-author" wx:if="{{quote.author}}">—— {{quote.author}}</view>
+    </view>
+
+    <view class="task-panel panel">
+      <view class="section-head">
+        <view class="section-title-wrap">
+          <view class="section-icon clipboard-icon"></view>
+          <view class="section-title">我的任务</view>
+        </view>
+        <view class="more-link" bindtap="onViewAllTasks">查看全部 <text class="chevron">›</text></view>
+      </view>
+      <view class="section-subtitle">还有 {{pendingTaskCount}} 项待办任务</view>
+
+      <view class="task-card">
+        <view class="task-body">
+          <view class="task-visual">
+            <view class="red-banner"></view>
+            <view class="gold-pillar"></view>
+            <view class="open-book">
+              <view class="book-page left-page"></view>
+              <view class="book-page right-page"></view>
+            </view>
+          </view>
+          <view class="task-info">
+            <view class="task-title-row">
+              <view class="task-title">{{task.title}}</view>
+              <view class="task-status">待完成</view>
+            </view>
+            <view class="task-summary">{{task.summary}}</view>
+            <view class="task-meta">
+              <view class="meta-item">
+                <view class="meta-clock"></view>
+                <text>{{task.deadline}}</text>
+              </view>
+              <view class="meta-item">
+                <view class="meta-clock"></view>
+                <text>{{task.estimate}}</text>
+              </view>
+              <view class="meta-item points">
+                <text class="point-star">★</text>
+                <text>{{task.points}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <button class="complete-btn" bindtap="onStartTask">去完成</button>
+      </view>
+    </view>
+
+    <view class="stats-grid">
+      <view class="stat-card panel">
+        <view class="stat-title">连续打卡</view>
+        <view class="streak-row">
+          <view class="streak-number">{{streakDays}}</view>
+          <view class="streak-unit">天</view>
+          <view class="calendar-badge">
+            <view class="calendar-top"></view>
+            <view class="calendar-check"></view>
+          </view>
+        </view>
+        <view class="stat-note">再坚持 <text>{{nextBadgeDays}} 天</text> 可得徽章</view>
+      </view>
+
+      <view class="stat-card panel">
+        <view class="stat-title">进度</view>
+        <view class="progress-layout">
+          <view class="progress-ring" style="background: conic-gradient(#24a659 0deg {{progressDeg}}deg, #e8f3eb {{progressDeg}}deg 360deg);">
+            <view class="progress-value">{{taskProgress}}<text>%</text></view>
+            <view class="progress-label">任务完成</view>
+          </view>
+          <view class="progress-list">
+            <view class="progress-row" wx:for="{{taskStats}}" wx:key="label">
+              <view class="dot {{item.color}}"></view>
+              <text class="progress-name">{{item.label}}</text>
+              <text class="progress-days">{{item.value}} 项</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="reading-card" bindtap="onOpenReading">
+      <view class="reading-icon" wx:if="{{!reading.coverUrl}}"></view>
+      <image class="reading-cover" wx:if="{{reading.coverUrl}}" src="{{reading.coverUrl}}" mode="aspectFill" />
+      <view class="reading-label">推荐阅读</view>
+      <view class="divider"></view>
+      <view class="reading-info">
+        <view class="reading-title">{{reading.title}}</view>
+        <view class="reading-subtitle">{{reading.subtitle}}</view>
+      </view>
+      <view class="reading-book" wx:if="{{!reading.coverUrl}}">
+        <view class="book-cover left"></view>
+        <view class="book-cover right"></view>
+      </view>
+      <view class="reading-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="student-tabbar">
+    <view
+      class="tab-item {{item.active ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      <view class="tab-icon {{item.icon}}"></view>
+      <view class="tab-label">{{item.label}}</view>
+    </view>
+  </view>
+</view>

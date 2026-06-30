@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 
 export class AppError extends Error {
@@ -71,8 +72,17 @@ export function errorHandler(
     },
     'Unhandled error'
   );
-  res.status(500).json({
+  const errorResponse: Record<string, unknown> = {
     success: false,
     error: { code: 'INTERNAL_ERROR', message: '服务器内部错误' },
-  });
+  };
+  if (config.isDev) {
+    errorResponse.error = {
+      code: 'INTERNAL_ERROR',
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+    };
+  }
+  res.status(500).json(errorResponse);
 }

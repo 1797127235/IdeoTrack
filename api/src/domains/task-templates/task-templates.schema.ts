@@ -11,7 +11,7 @@ const contentSchema = z
   .min(1, '模板内容不能为空')
   .max(2000, '模板内容不能超过 2000 字');
 const descriptionSchema = z.string().trim().max(500, '任务说明不能超过 500 字').nullable().optional();
-const coverImageSchema = z.string().url('封面图 URL 格式无效').nullable().optional();
+const coverImageSchema = z.string().nullable().optional();
 const categorySchema = z.enum(['学习', '实践', '活动', '会议', '阅读']).nullable().optional();
 const tagsSchema = z.array(z.string().trim().min(1, '标签不能为空').max(20, '单个标签不能超过 20 字')).nullable().optional();
 const checkinTypeSchema = z.enum(['text', 'image', 'video', 'mixed']).optional();
@@ -32,6 +32,7 @@ const baseFields = {
   guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),
   source_url: z.string().url('外部链接格式无效').nullable().optional(),
   video_url: z.string().url('视频 URL 格式无效').nullable().optional(),
+  attachment_url: z.string().nullable().optional(),
   checkin_type: checkinTypeSchema,
   require_text: z.boolean().optional(),
   require_image: z.boolean().optional(),
@@ -95,10 +96,6 @@ const refineEndTime = (data: { start_time?: string | null; end_time?: string | n
 
 export const createTaskTemplateSchema = z
   .object(baseFields)
-  .refine(refineGeofence, {
-    message: '开启定位签到后，必须提供纬度、经度和半径',
-    path: ['geo_radius_meters'],
-  })
   .refine(refineCheckinType, {
     message: '打卡类型与必填内容不匹配',
     path: ['checkin_type'],
@@ -112,10 +109,6 @@ export type CreateTaskTemplateInput = z.infer<typeof createTaskTemplateSchema>;
 
 export const updateTaskTemplateSchema = z
   .object(baseFields)
-  .refine(refineGeofence, {
-    message: '开启定位签到后，必须提供纬度、经度和半径',
-    path: ['geo_radius_meters'],
-  })
   .refine(refineCheckinType, {
     message: '打卡类型与必填内容不匹配',
     path: ['checkin_type'],

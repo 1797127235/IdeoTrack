@@ -29,12 +29,13 @@ export async function listPendingReviewsController(
   try {
     const counselorId = assertCounselor(req);
 
-    const { classId } = req.query;
+    const { classId, taskId } = req.query;
     const page = parsePositiveInt(req.query.page, 1);
     const limit = parsePositiveInt(req.query.limit, 20);
 
     const data = await listPendingReviewsForCounselor(counselorId, {
       classId: typeof classId === 'string' && UUID_RE.test(classId) ? classId : undefined,
+      taskId: typeof taskId === 'string' && UUID_RE.test(taskId) ? taskId : undefined,
       page,
       limit,
     });

@@ -1,0 +1,139 @@
+<view class="teacher-dashboard-page">
+  <view class="topbar">
+    <view class="top-placeholder"></view>
+    <view class="top-title">看板</view>
+    <view class="capsule">
+      <view class="more-dot"></view>
+      <view class="capsule-divider"></view>
+      <view class="circle-dot"></view>
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="action-row">
+      <view class="action-btn export" bindtap="onExportTap">
+        <view class="export-icon"></view>
+        <text>导出报告</text>
+      </view>
+    </view>
+
+    <view class="filter-row">
+      <view class="filter-card week" bindtap="onWeekFilterTap">
+        <view class="calendar-icon"></view>
+        <text class="filter-strong">{{filters.weekLabel}}</text>
+        <text class="filter-text">{{filters.dateRange}}</text>
+        <text class="filter-arrow">▾</text>
+      </view>
+      <picker mode="selector" range="{{classRange}}" value="{{classIndex}}" bindchange="onClassPickerChange">
+        <view class="filter-card class">
+          <view class="people-icon"></view>
+          <text class="filter-strong">{{filters.classLabel}}</text>
+          <text class="filter-arrow">▾</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="metric-grid">
+      <view class="metric-card">
+        <view class="metric-icon green check"></view>
+        <view class="metric-label">今日打卡率</view>
+        <view class="metric-value green">{{metrics.checkInRate}}<text>%</text></view>
+        <view class="metric-delta muted">暂无昨日对比</view>
+      </view>
+      <view class="metric-card">
+        <view class="metric-icon orange warn"></view>
+        <view class="metric-label">待人工复核</view>
+        <view class="metric-value orange">{{metrics.pendingReviews}}<text>条</text></view>
+        <view class="metric-delta muted">暂无昨日对比</view>
+      </view>
+      <view class="metric-card">
+        <view class="metric-icon green group"></view>
+        <view class="metric-label">班级完成率 <text class="inline-info">i</text></view>
+        <view class="metric-value green">{{metrics.completionRate}}<text>%</text></view>
+        <view class="metric-delta muted">暂无昨日对比</view>
+      </view>
+    </view>
+
+    <view class="info-line">
+      <view class="small-info">i</view>
+      <text>完成率 = 已完成全部当前任务的学生占比</text>
+    </view>
+
+    <view class="panel trend-panel">
+      <view class="panel-head compact">
+        <view class="panel-title">近7天打卡趋势</view>
+        <view class="data-note" wx:if="{{!hasTrendData}}">暂无历史数据</view>
+      </view>
+      <view class="chart" wx:if="{{hasTrendData}}">
+        <view class="axis-label y100">100%</view>
+        <view class="axis-label y75">75%</view>
+        <view class="axis-label y50">50%</view>
+        <view class="axis-label y25">25%</view>
+        <view class="axis-label y0">0%</view>
+        <view class="grid-line l100"></view>
+        <view class="grid-line l75"></view>
+        <view class="grid-line l50"></view>
+        <view class="grid-line l25"></view>
+        <view class="grid-line l0"></view>
+        <image class="trend-svg" src="{{trendSvg}}" mode="aspectFill" wx:if="{{trendSvg}}"></image>
+        <view
+          class="trend-point"
+          wx:for="{{trendPoints}}"
+          wx:key="date"
+          style="left: {{item.left}}%; bottom: {{item.bottom}}%;"
+        >
+          <view class="point-value">{{item.value}}%</view>
+          <view class="point-dot"></view>
+          <view class="point-date">{{item.date}}</view>
+        </view>
+      </view>
+      <view class="empty-chart" wx:if="{{!hasTrendData}}">
+        <view class="empty-text">暂无近7天打卡数据</view>
+      </view>
+    </view>
+
+    <view class="panel pending-panel" bindtap="onPendingTap">
+      <view class="panel-title">待处理事项</view>
+      <view class="pending-row">
+        <view class="pending-icon"></view>
+        <view class="pending-main">
+          <text class="pending-title">待人工复核</text>
+          <text class="pending-tag">需人工审核</text>
+        </view>
+        <view class="pending-count">{{metrics.pendingReviews}}<text>条</text></view>
+        <view class="pending-arrow">›</view>
+      </view>
+    </view>
+
+    <view class="panel ranking-panel">
+      <view class="panel-head">
+        <view class="panel-title">班级完成率排行 Top 5</view>
+        <view class="view-all" bindtap="onViewRanking">查看全部 <text>›</text></view>
+      </view>
+      <view class="ranking-list" wx:if="{{ranking.length > 0}}">
+        <view class="ranking-row" wx:for="{{ranking}}" wx:key="name">
+          <view class="rank-badge {{item.tone}}">{{item.rank}}</view>
+          <view class="rank-name">{{item.name}}</view>
+          <view class="rank-track">
+            <view class="rank-bar" style="width: {{item.width}};"></view>
+          </view>
+          <view class="rank-rate">{{item.rate}}%</view>
+        </view>
+      </view>
+      <view class="empty-tip" wx:if="{{ranking.length === 0}}">暂无班级排行数据</view>
+    </view>
+  </view>
+
+  <view class="teacher-tabbar">
+    <view
+      class="tab-item {{item.active ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      <view class="tab-icon {{item.icon}}"></view>
+      <view class="tab-label">{{item.label}}</view>
+    </view>
+  </view>
+</view>

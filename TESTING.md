@@ -49,6 +49,18 @@ npm test
 
 ## 3. 小程序类型检查
 
+### V2（当前主版本）
+
+```bash
+cd miniprogram-v2
+npm install
+npm run tsc
+```
+
+预期结果：`tsc --noEmit` 通过。
+
+### V1（旧版本，参考）
+
 ```bash
 cd miniprogram
 npm install
@@ -75,7 +87,7 @@ npm run dev
 3. 运行前先执行一次 `cd api && npm run db:seed`，确保测试账号未被锁定、密码为初始值。
 4. 在 Runner 中运行整个 collection。
 
-预期结果：`19` 个请求全部通过。
+预期结果：collection 中所有请求通过（Bruno 输出以实际 collection 为准）。
 
 ### 方式 B：命令行
 
@@ -89,10 +101,10 @@ npx --yes @usebruno/cli run . -r --env-file environments/本地开发.bru
 预期结果：
 
 ```text
-Requests      19 (19 Passed)
-Assertions    53/53
 Status        PASS
 ```
+
+> 随着接口持续增加，Bruno collection 的请求数可能会变化，以实际输出为准。
 
 ## 5. 常见失败处理
 

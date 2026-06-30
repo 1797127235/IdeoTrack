@@ -3,11 +3,17 @@ import { z } from 'zod';
 import { AppError } from '../../middleware/error-handler.js';
 import {
   exportClassCheckIns,
+  exportDashboardReport,
+  exportTaskCheckIns,
+  getCheckInTrend,
+  getClassDetail,
+  getClassRanking,
   getClassReminders,
   getClassStudentList,
   getCounselorClasses,
   getCounselorDashboard,
   getHighRiskStudents,
+  getTaskCheckInDetail,
   getTaskClassStats,
   sendReminders,
   MAX_EXPORT_CLASS_IDS,
@@ -28,6 +34,45 @@ const highRiskQuerySchema = z.object({
   absent_threshold: z.coerce.number().int().min(1).max(30).default(3),
 });
 
+const checkInTrendQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(30).default(7),
+  classId: z.string().uuid('classId 必须是 UUID').optional(),
+});
+
+const dashboardQuerySchema = z.object({
+  classId: z.string().uuid('classId 必须是 UUID').optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate 必须是 YYYY-MM-DD').optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'endDate 必须是 YYYY-MM-DD').optional(),
+});
+
+const reportExportSchema = z
+  .object({
+    period: z.enum(['week', 'month', 'custom']),
+    start_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'start_date 必须是 YYYY-MM-DD')
+      .optional(),
+    end_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date 必须是 YYYY-MM-DD')
+      .optional(),
+    class_id: z.string().uuid('class_id 必须是 UUID').optional().nullable(),
+    report_type: z.enum(['summary', 'class', 'student']),
+    format: z.enum(['pdf', 'excel']),
+  })
+  .refine(
+    (data) => {
+      if (data.period === 'custom') {
+        return Boolean(data.start_date) && Boolean(data.end_date);
+      }
+      return true;
+    },
+    {
+      message: '自定义周期必须提供 start_date 和 end_date',
+      path: ['period'],
+    }
+  );
+
 function parseClassId(raw: unknown): string {
   const parsed = z.string().uuid().safeParse(raw);
   if (!parsed.success) {
@@ -46,8 +91,39 @@ export async function getDashboardController(
       throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
     }
 
-    const data = await getCounselorDashboard(req.user.userId);
+    const parsed = dashboardQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues.map((i) => i.message).join('; '), 400);
+    }
 
+    const data = await getCounselorDashboard(req.user.userId, {
+      classId: parsed.data.classId,
+      startDate: parsed.data.startDate,
+      endDate: parsed.data.endDate,
+    });
+
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getCheckInTrendController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const parsed = checkInTrendQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues.map((i) => i.message).join('; '), 400);
+    }
+
+    const data = await getCheckInTrend(req.user.userId, parsed.data.days, parsed.data.classId);
     res.status(200).json({ success: true, data });
   } catch (err) {
     next(err);
@@ -105,6 +181,25 @@ export async function getClassStudentsController(
   }
 }
 
+export async function getClassDetailController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const classId = parseClassId(req.params.id);
+    const data = await getClassDetail(req.user.userId, classId);
+
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getHighRiskStudentsController(
   req: Request,
   res: Response,
@@ -127,6 +222,55 @@ export async function getHighRiskStudentsController(
     );
 
     res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getClassRankingController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const parsed = dashboardQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues.map((i) => i.message).join('; '), 400);
+    }
+
+    const data = await getClassRanking(req.user.userId, {
+      classId: parsed.data.classId,
+      startDate: parsed.data.startDate,
+      endDate: parsed.data.endDate,
+    });
+
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportReportController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const parsed = reportExportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues.map((i) => i.message).join('; '), 400);
+    }
+
+    const data = await exportDashboardReport(req.user.userId, parsed.data);
+    res.status(201).json({ success: true, data });
   } catch (err) {
     next(err);
   }
@@ -195,6 +339,25 @@ export async function getTaskClassesController(
   }
 }
 
+export async function getTaskCheckInDetailController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const taskId = parseTaskId(req.params.id);
+    const data = await getTaskCheckInDetail(req.user.userId, taskId);
+
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 const exportCheckInsSchema = z.object({
   class_ids: z.array(z.string().uuid()).min(1, '至少选择一个班级').max(MAX_EXPORT_CLASS_IDS, `class_ids 数量不能超过 ${MAX_EXPORT_CLASS_IDS}`),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'start_date 必须是 YYYY-MM-DD 格式'),
@@ -217,6 +380,25 @@ export async function exportCheckInsController(
     }
 
     const data = await exportClassCheckIns(req.user.userId, parsed.data);
+    res.status(201).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportTaskCheckInsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError('AUTH_UNAUTHORIZED', '未认证', 401);
+    }
+
+    const taskId = parseTaskId(req.params.id);
+    const data = await exportTaskCheckIns(req.user.userId, taskId);
+
     res.status(201).json({ success: true, data });
   } catch (err) {
     next(err);

@@ -18,3 +18,22 @@ export async function uploadCoverImage(file: File): Promise<string> {
   const data = await res.json();
   return data.data.path as string;
 }
+
+export async function uploadAttachment(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("attachment", file);
+
+  const res = await fetch(`${API_BASE_URL}/upload/attachment`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: { message: "上传失败" } }));
+    throw new Error(data.error?.message || "上传失败");
+  }
+
+  const data = await res.json();
+  return data.data.path as string;
+}

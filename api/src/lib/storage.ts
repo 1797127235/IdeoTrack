@@ -27,6 +27,8 @@ function getExportRoot(): string {
 
 interface DownloadTokenPayload {
   fileId: string;
+  filename?: string;
+  ext?: string;
 }
 
 /**
@@ -49,8 +51,10 @@ export async function saveExportFile(buffer: Buffer, ext: string): Promise<{ fil
  * 为指定文件签发下载 token（AD-7：24h 有效）。
  * 复用 JWT（jsonwebtoken 已安装）与 config.jwtSecret。
  */
-export function signDownloadToken(fileId: string): string {
-  return jwt.sign({ fileId } as DownloadTokenPayload, config.jwtSecret, {
+export function signDownloadToken(fileId: string, filename?: string, ext = '.xlsx'): string {
+  const payload: DownloadTokenPayload = { fileId, ext };
+  if (filename) payload.filename = filename;
+  return jwt.sign(payload, config.jwtSecret, {
     expiresIn: config.exportLinkTtlSeconds,
   });
 }
@@ -58,13 +62,19 @@ export function signDownloadToken(fileId: string): string {
 /**
  * 校验下载 token。过期或无效返回 null。
  */
-export function verifyDownloadToken(token: string): { fileId: string } | null {
+export function verifyDownloadToken(
+  token: string
+): { fileId: string; filename?: string; ext: string } | null {
   try {
     const payload = jwt.verify(token, config.jwtSecret) as DownloadTokenPayload;
     if (typeof payload.fileId !== 'string' || !UUID_RE.test(payload.fileId)) {
       return null;
     }
-    return { fileId: payload.fileId };
+    return {
+      fileId: payload.fileId,
+      filename: typeof payload.filename === 'string' ? payload.filename : undefined,
+      ext: typeof payload.ext === 'string' && payload.ext.startsWith('.') ? payload.ext : '.xlsx',
+    };
   } catch {
     return null;
   }
@@ -74,20 +84,21 @@ export function verifyDownloadToken(token: string): { fileId: string } | null {
  * 根据 fileId 拼接绝对路径。
  * fileId 必须为合法 UUID，防止目录穿越（如 ../../etc/passwd）。
  */
-export function resolveFilePath(fileId: string): string {
+export function resolveFilePath(fileId: string, ext = '.xlsx'): string {
   if (!UUID_RE.test(fileId)) {
     throw new Error('Invalid fileId');
   }
-  return path.join(getExportRoot(), `${fileId}.xlsx`);
+  const safeExt = ext.startsWith('.') ? ext : `.${ext}`;
+  return path.join(getExportRoot(), `${fileId}${safeExt}`);
 }
 
 /**
  * 下载后删除文件（可选，资源回收）。
  * 失败仅记录日志，不抛错（下载已完成，不应因清理失败影响用户）。
  */
-export async function deleteExportFile(fileId: string): Promise<void> {
+export async function deleteExportFile(fileId: string, ext = '.xlsx'): Promise<void> {
   if (!UUID_RE.test(fileId)) return;
-  const filePath = resolveFilePath(fileId);
+  const filePath = resolveFilePath(fileId, ext);
   try {
     await fs.unlink(filePath);
     logger.info({ fileId }, '导出文件已清理');

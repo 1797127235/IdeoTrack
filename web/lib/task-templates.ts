@@ -15,6 +15,7 @@ export interface TaskTemplate {
   guiding_questions: string[] | null;
   source_url: string | null;
   video_url: string | null;
+  attachment_url: string | null;
   checkin_type: CheckinType;
   require_text: boolean;
   require_image: boolean;
@@ -71,6 +72,7 @@ export interface CreateTaskTemplateData {
   guiding_questions?: string[] | null;
   source_url?: string | null;
   video_url?: string | null;
+  attachment_url?: string | null;
   checkin_type?: CheckinType;
   require_text?: boolean;
   require_image?: boolean;

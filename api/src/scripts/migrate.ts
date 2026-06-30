@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS task_templates (
   guiding_questions JSONB,
   source_url TEXT,
   video_url TEXT,
+  attachment_url TEXT,
   checkin_type TEXT NOT NULL DEFAULT 'text' CHECK (checkin_type IN ('text', 'image', 'video', 'mixed')),
   require_text BOOLEAN NOT NULL DEFAULT false,
   require_image BOOLEAN NOT NULL DEFAULT false,
@@ -165,6 +166,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   guiding_questions JSONB,  -- AD-22: 思考题数组，可选
   source_url TEXT,  -- AD-22: 外部链接，可选
   video_url TEXT,  -- AD-22: 视频 URL，可选
+  attachment_url TEXT,
   checkin_type TEXT NOT NULL DEFAULT 'text' CHECK (checkin_type IN ('text', 'image', 'video', 'mixed')),
   require_text BOOLEAN NOT NULL DEFAULT false,
   require_image BOOLEAN NOT NULL DEFAULT false,
@@ -209,6 +211,7 @@ ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS max_images INTEGER;
 ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS require_location BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS start_time TIMESTAMPTZ;
 ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS end_time TIMESTAMPTZ;
+ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS attachment_url TEXT;
 ALTER TABLE task_templates DROP CONSTRAINT IF EXISTS task_templates_status_check;
 ALTER TABLE task_templates ADD CONSTRAINT task_templates_status_check
   CHECK (status IN ('draft', 'published', 'delisted'));
@@ -241,6 +244,7 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_location BOOLEAN NOT NULL DEF
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS guiding_questions JSONB;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS video_url TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS attachment_url TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scope_id UUID;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_lat DECIMAL(10, 8);
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS geo_lng DECIMAL(11, 8);

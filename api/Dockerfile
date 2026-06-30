@@ -17,6 +17,18 @@ FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
+# 安装 Chromium 与中文字体，供 puppeteer-core 生成 PDF 报告使用
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto-cjk
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 COPY package*.json ./
 # 生产环境同样跳过可选依赖，避免 lock 文件跨平台缺失 native binding
 RUN npm install --omit=dev --omit=optional

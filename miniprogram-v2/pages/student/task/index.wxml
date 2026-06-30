@@ -1,0 +1,84 @@
+<view class="task-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap"></view>
+    <view class="top-title">我的任务</view>
+    <view class="top-actions">
+      <view class="search-button" bindtap="onSearchTap"></view>
+      <view class="filter-button" bindtap="onFilterTap"></view>
+    </view>
+  </view>
+
+  <view class="status-tabs">
+    <view
+      class="status-tab {{item.active ? 'active' : ''}}"
+      wx:for="{{taskTabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onStatusTap"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="task-summary">共 <text>{{totalCount}}</text> 项任务，待完成 <text class="pending-count">{{pendingCount}}</text> 项</view>
+
+    <view class="task-list">
+      <view
+        class="task-card"
+        wx:for="{{visibleTasks}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onTaskAction"
+        hover-class="task-card-hover"
+        hover-stay-time="100"
+      >
+        <view class="task-visual {{item.visual}}">
+          <view class="visual-shape shape-one"></view>
+          <view class="visual-shape shape-two"></view>
+          <view class="visual-shape shape-three"></view>
+        </view>
+
+        <view class="task-main">
+          <view class="task-head">
+            <view class="task-title">{{item.title}}</view>
+            <view class="task-badges">
+              <view class="attachment-badge" wx:if="{{item.attachmentUrl}}">附件</view>
+              <view class="status-pill {{item.status}}">{{item.statusLabel}}</view>
+            </view>
+          </view>
+          <view class="task-desc">{{item.summary}}</view>
+          <view class="task-meta">
+            <view class="meta-item">
+              <view class="calendar-icon"></view>
+              <text>{{item.deadline}}</text>
+            </view>
+            <view class="meta-item">
+              <view class="clock-icon"></view>
+              <text>{{item.estimate}}</text>
+            </view>
+          </view>
+          <view class="task-foot">
+            <view class="points"><text>★</text>{{item.points}}</view>
+            <view class="action-button {{item.status}}">
+              {{item.actionText}}
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="student-tabbar">
+    <view
+      class="tab-item {{item.active ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      <view class="tab-icon {{item.icon}}"></view>
+      <view class="tab-label">{{item.label}}</view>
+    </view>
+  </view>
+</view>

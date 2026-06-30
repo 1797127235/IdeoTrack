@@ -105,3 +105,80 @@ export async function deleteTaskCoverImage(relPath: string | null | undefined): 
     logger.warn({ relPath, err }, '删除任务封面图失败（忽略）');
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 通用附件（任务/模板可选附件）
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ALLOWED_ATTACHMENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'application/zip',
+  'application/x-rar-compressed',
+  'application/x-zip-compressed',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/ogg',
+  'video/quicktime',
+];
+
+const ALLOWED_ATTACHMENT_EXTS = [
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.zip', '.rar',
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.mp3', '.wav', '.ogg', '.mov',
+];
+
+export function isAllowedAttachmentMimeType(mimeType: string): boolean {
+  return ALLOWED_ATTACHMENT_TYPES.includes(mimeType);
+}
+
+export function getAttachmentExtension(originalName: string): string {
+  const ext = path.extname(originalName).toLowerCase();
+  if (ALLOWED_ATTACHMENT_EXTS.includes(ext)) {
+    return ext;
+  }
+  return '';
+}
+
+export async function saveAttachment(buffer: Buffer, originalName: string): Promise<string> {
+  const dir = path.join(getUploadRoot(), 'attachments');
+  await ensureDir(dir);
+
+  const ext = getAttachmentExtension(originalName) || path.extname(originalName).toLowerCase() || '.bin';
+  const fileId = randomUUID();
+  const filePath = path.join(dir, `${fileId}${ext}`);
+
+  await fs.writeFile(filePath, buffer);
+
+  const relPath = path.relative(process.cwd(), filePath).replace(/\\/g, '/');
+  logger.info({ relPath, originalName }, '附件已保存');
+  return relPath;
+}
+
+export function resolveAttachmentPath(relPath: string): string {
+  if (path.isAbsolute(relPath)) {
+    return relPath;
+  }
+  return path.join(process.cwd(), relPath);
+}
+
+export async function deleteAttachment(relPath: string | null | undefined): Promise<void> {
+  if (!relPath) return;
+  try {
+    const absPath = resolveAttachmentPath(relPath);
+    await fs.unlink(absPath);
+    logger.info({ relPath }, '附件已删除');
+  } catch (err) {
+    logger.warn({ relPath, err }, '删除附件失败（忽略）');
+  }
+}

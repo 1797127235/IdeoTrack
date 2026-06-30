@@ -1,0 +1,127 @@
+<view class="teacher-task-detail-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap"></view>
+    <view class="top-title">任务详情</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="content" wx:if="{{detail && !loading}}">
+    <!-- 任务信息 -->
+    <view class="task-card">
+      <view class="task-title">{{detail.task.title}}</view>
+      <view class="task-desc">{{detail.task.content}}</view>
+      <view class="task-meta-list">
+        <view class="task-meta-item">
+          <view class="meta-icon deadline"></view>
+          <text>截止时间：{{deadlineText}}</text>
+        </view>
+        <view class="task-meta-item">
+          <view class="meta-icon checkin"></view>
+          <text>打卡方式：{{detail.task.checkin_type === 'text' ? '文字' : detail.task.checkin_type === 'image' ? '图片' : detail.task.checkin_type === 'video' ? '视频' : '图文混合'}}</text>
+        </view>
+        <view class="task-meta-item" wx:if="{{detail.task.require_location}}">
+          <view class="meta-icon location"></view>
+          <text>需要定位签到</text>
+        </view>
+        <view class="task-meta-item" wx:if="{{detail.task.require_face}}">
+          <view class="meta-icon face"></view>
+          <text>需要人脸核验</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 统计概览 -->
+    <view class="stat-card">
+      <view class="stat-item">
+        <view class="stat-value">{{summary.total}}</view>
+        <view class="stat-label">应打卡人数</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value green">{{summary.checked}}</view>
+        <view class="stat-label">已打卡</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value orange">{{summary.absent}}</view>
+        <view class="stat-label">未打卡</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{summary.rate}}%</view>
+        <view class="stat-label">完成率</view>
+      </view>
+    </view>
+
+    <!-- 各班完成情况 -->
+    <view class="section-card">
+      <view class="section-title">各班完成情况</view>
+      <view class="class-list">
+        <view class="class-item" wx:for="{{detail.classes}}" wx:key="class_id">
+          <view class="class-info">
+            <view class="class-name">{{item.class_name}}</view>
+            <view class="class-count">{{item.checked_count}}/{{item.total_students}}</view>
+          </view>
+          <view class="class-bar-wrap">
+            <view class="class-bar" style="width: {{item.check_in_rate}}%;"></view>
+          </view>
+          <view class="class-rate">{{item.check_in_rate}}%</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 名单 -->
+    <view class="section-card list-card">
+      <view class="tab-bar">
+        <view
+          class="tab-item {{activeTab === 'absent' ? 'active' : ''}}"
+          data-key="absent"
+          bindtap="onTabChange"
+        >未打卡（{{detail.absent_students.length}}）</view>
+        <view
+          class="tab-item {{activeTab === 'checked' ? 'active' : ''}}"
+          data-key="checked"
+          bindtap="onTabChange"
+        >已打卡（{{detail.checked_students.length}}）</view>
+      </view>
+
+      <view class="student-list" wx:if="{{activeTab === 'absent'}}">
+        <view class="student-item" wx:for="{{detail.absent_students}}" wx:key="student_id">
+          <view class="student-info">
+            <view class="student-name">{{item.student_name}}</view>
+            <view class="student-class">{{item.class_name}}</view>
+          </view>
+          <view class="student-id">{{item.student_school_id}}</view>
+        </view>
+        <view class="empty-tip" wx:if="{{detail.absent_students.length === 0}}">🎉 所有学生已完成打卡</view>
+      </view>
+
+      <view class="student-list" wx:if="{{activeTab === 'checked'}}">
+        <view class="student-item" wx:for="{{detail.checked_students}}" wx:key="student_id">
+          <view class="student-info">
+            <view class="student-name">{{item.student_name}}</view>
+            <view class="student-class">{{item.class_name}}</view>
+          </view>
+          <view class="student-status {{item.status}}">{{item.status === 'approved' || item.status === 'ai_approved' ? '已通过' : item.status === 'pending_manual_review' ? '待复核' : '已提交'}}</view>
+        </view>
+        <view class="empty-tip" wx:if="{{detail.checked_students.length === 0}}">暂无已打卡学生</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-text">加载中…</view>
+  </view>
+
+  <view class="error-state" wx:if="{{error}}">
+    <view class="error-text">{{error}}</view>
+    <button class="retry-btn" bindtap="onRetry">重新加载</button>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{detail && !loading}}">
+    <button class="action-btn secondary" bindtap="onExport" loading="{{exporting}}" disabled="{{exporting}}">
+      {{exporting ? '导出中' : '导出 Excel'}}
+    </button>
+    <button class="action-btn primary" bindtap="onRemindAll" loading="{{reminding}}" disabled="{{reminding}}">
+      {{reminding ? '提醒中' : '一键提醒'}}
+    </button>
+  </view>
+</view>

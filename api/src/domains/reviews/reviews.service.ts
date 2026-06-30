@@ -311,6 +311,11 @@ export async function listPendingReviewsForCounselor(
     : '';
   if (filters.classId) params.push(filters.classId);
 
+  const taskFilter = filters.taskId
+    ? `AND t.id = $${params.length + 1}`
+    : '';
+  if (filters.taskId) params.push(filters.taskId);
+
   // 注意：复核范围以「打卡学生所属班级」为准，而非任务目标班级。
   // 这样全校/学院/任务池类型任务的打卡也能正确归属到对应辅导员的待复核列表。
   const countRows = await query<{ total: number }>(
@@ -321,7 +326,8 @@ export async function listPendingReviewsForCounselor(
      JOIN classes c ON u.class_id = c.id
      JOIN counselor_classes cc ON cc.class_id = c.id AND cc.counselor_id = $1
      WHERE ci.status = 'pending_manual_review'
-     ${classFilter}`,
+     ${classFilter}
+     ${taskFilter}`,
     params
   );
 
@@ -333,7 +339,7 @@ export async function listPendingReviewsForCounselor(
        ci.id AS check_in_id,
        u.id AS student_id,
        u.school_id AS student_school_id,
-       u.school_id AS student_name,
+       u.name AS student_name,
        c.id AS class_id,
        c.name AS class_name,
        t.id AS task_id,
@@ -348,6 +354,7 @@ export async function listPendingReviewsForCounselor(
      JOIN counselor_classes cc ON cc.class_id = c.id AND cc.counselor_id = $1
      WHERE ci.status = 'pending_manual_review'
      ${classFilter}
+     ${taskFilter}
      ORDER BY ci.checked_in_at DESC
      LIMIT $${params.length + 1}
      OFFSET $${params.length + 2}`,
@@ -375,7 +382,7 @@ export async function getPendingReviewDetail(
        ci.id AS check_in_id,
        u.id AS student_id,
        u.school_id AS student_school_id,
-       u.school_id AS student_name,
+       u.name AS student_name,
        c.id AS class_id,
        c.name AS class_name,
        t.id AS task_id,

@@ -19,12 +19,13 @@ export const createTaskSchema = z.object({
   title: titleSchema,
   description: z.string().trim().max(500, '任务说明不能超过 500 字').nullable().optional(),
   content: contentSchema,
-  cover_image: z.string().url('封面图 URL 格式无效').nullable().optional(),
+  cover_image: z.string().nullable().optional(),
   category: z.enum(['学习', '实践', '活动', '会议', '阅读']).nullable().optional(),
   tags: z.array(z.string().trim().min(1, '标签不能为空').max(20, '单个标签不能超过 20 字')).nullable().optional(),
   guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),
   source_url: z.string().url('外部链接格式无效').nullable().optional(),
   video_url: z.string().url('视频 URL 格式无效').nullable().optional(),
+  attachment_url: z.string().nullable().optional(),
   checkin_type: z.enum(['text', 'image', 'video', 'mixed']).optional(),
   require_text: z.boolean().optional(),
   require_image: z.boolean().optional(),
@@ -114,6 +115,10 @@ export const createTaskFromTemplateSchema = z.object({
   target_class_ids: z.array(z.string().uuid('班级 ID 格式无效')).min(1, '至少选择一个班级').optional(),
   published_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage),
   deadline_at: z.string().regex(isoDatetimeRegex, isoDatetimeMessage),
+  geo_lat: z.number().min(-90).max(90).nullable().optional(),
+  geo_lng: z.number().min(-180).max(180).nullable().optional(),
+  geo_radius_meters: z.number().int().min(50).max(1000).nullable().optional(),
+  geo_address: z.string().trim().max(200).nullable().optional(),
 }).refine(
   (data) => {
     if (data.scope_type === 'school') {
@@ -153,6 +158,7 @@ export const updateTaskSchema = z.object({
   guiding_questions: z.array(z.string().trim().min(1, '思考题不能为空')).nullable().optional(),
   source_url: z.string().url('外部链接格式无效').nullable().optional(),
   video_url: z.string().url('视频 URL 格式无效').nullable().optional(),
+  attachment_url: z.string().nullable().optional(),
   checkin_type: z.enum(['text', 'image', 'video', 'mixed']).optional(),
   require_text: z.boolean().optional(),
   require_image: z.boolean().optional(),

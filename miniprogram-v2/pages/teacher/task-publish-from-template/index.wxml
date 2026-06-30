@@ -1,0 +1,152 @@
+<view class="teacher-task-publish-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap">
+      <view class="back-icon"></view>
+    </view>
+    <view class="top-title">使用模板发布</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="content">
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-spinner"></view>
+      <text>加载中…</text>
+    </view>
+
+    <block wx:if="{{!loading}}">
+      <view class="section-title">选择模板</view>
+      <view class="template-list" wx:if="{{templates.length > 0}}">
+        <view
+          class="template-card {{selectedTemplateId === item.id ? 'active' : ''}}"
+          wx:for="{{templates}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="onTemplateSelect"
+        >
+          <view class="template-title">{{item.title}}</view>
+          <view class="template-desc" wx:if="{{item.description}}">{{item.description}}</view>
+          <view class="template-meta">
+            <text class="template-category" wx:if="{{item.category}}">{{item.category}}</text>
+            <text class="template-checkin">{{item.checkin_type === 'text' ? '文字打卡' : item.checkin_type === 'image' ? '图片打卡' : item.checkin_type === 'video' ? '视频打卡' : '混合打卡'}}</text>
+            <text class="template-location {{item.require_location ? 'required' : ''}}">{{item.require_location ? '需定位' : '无需定位'}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="empty-state" wx:if="{{templates.length === 0}}">
+        <view class="empty-icon"></view>
+        <view>暂无可用模板</view>
+      </view>
+
+      <view class="section-title">选择班级</view>
+      <view class="class-list" wx:if="{{classes.length > 0}}">
+        <view
+          class="class-tag {{item.selected ? 'active' : ''}}"
+          wx:for="{{classes}}"
+          wx:key="class_id"
+          data-index="{{index}}"
+          bindtap="onClassToggle"
+        >{{item.class_name}}</view>
+      </view>
+      <view class="empty-state" wx:if="{{classes.length === 0}}">
+        <view>暂无管理班级</view>
+      </view>
+
+      <view class="section-title">附件</view>
+      <view class="attachment-card" wx:if="{{selectedTemplateAttachmentUrl}}">
+        <view class="attachment-name">{{selectedTemplateAttachmentName}}</view>
+        <view class="attachment-tag">随模板下发</view>
+      </view>
+      <view class="empty-state" wx:if="{{!selectedTemplateAttachmentUrl}}">
+        <view>该模板未上传附件</view>
+      </view>
+
+      <view class="form-card" wx:if="{{selectedTemplateRequireLocation}}">
+        <view class="form-item">
+          <view class="form-label">签到位置（在地图点击选点或搜索）</view>
+          <view class="locate-btn" bindtap="onLocateTap">
+            <view class="locate-icon"></view>
+            <text>定位到当前位置</text>
+          </view>
+          <view class="map-search">
+            <view class="search-icon"></view>
+            <input
+              class="map-search-input"
+              placeholder="搜索地点"
+              placeholder-class="input-placeholder"
+              value="{{searchKeyword}}"
+              bindinput="onSearchInput"
+            />
+            <view class="search-results" wx:if="{{showSearchResults}}">
+              <view
+                class="search-result-item"
+                wx:for="{{searchResults}}"
+                wx:key="id"
+                data-index="{{index}}"
+                bindtap="onSearchResultTap"
+              >
+                <view class="result-name">{{item.name}}</view>
+                <view class="result-address">{{item.address}}</view>
+              </view>
+            </view>
+          </view>
+          <map
+            class="location-map"
+            latitude="{{mapCenter.latitude}}"
+            longitude="{{mapCenter.longitude}}"
+            markers="{{markers}}"
+            circles="{{circles}}"
+            scale="16"
+            show-location
+            bindtap="onMapTap"
+          />
+          <view class="selected-location" wx:if="{{location}}">
+            <view class="location-name">{{location.name}}</view>
+            <view class="location-address">{{location.address}}</view>
+          </view>
+        </view>
+        <view class="form-item">
+          <view class="form-label">签到半径（米）</view>
+          <input
+            class="radius-input"
+            type="number"
+            value="{{radius}}"
+            bindinput="onRadiusInput"
+            placeholder="50-1000"
+          />
+        </view>
+      </view>
+
+      <view class="form-card">
+        <view class="form-item">
+          <view class="form-label">发布时间</view>
+          <view class="datetime-row">
+            <picker mode="date" value="{{publishedDate}}" bindchange="onPublishedDateChange">
+              <view class="picker-value">{{publishedDate}}</view>
+            </picker>
+            <picker mode="time" value="{{publishedTime}}" bindchange="onPublishedTimeChange">
+              <view class="picker-value">{{publishedTime}}</view>
+            </picker>
+          </view>
+        </view>
+
+        <view class="form-item">
+          <view class="form-label">截止时间</view>
+          <view class="datetime-row">
+            <picker mode="date" value="{{deadlineDate}}" bindchange="onDeadlineDateChange">
+              <view class="picker-value">{{deadlineDate}}</view>
+            </picker>
+            <picker mode="time" value="{{deadlineTime}}" bindchange="onDeadlineTimeChange">
+              <view class="picker-value">{{deadlineTime}}</view>
+            </picker>
+          </view>
+        </view>
+      </view>
+
+      <button
+        class="submit-btn {{submitting ? 'disabled' : ''}}"
+        disabled="{{submitting}}"
+        bindtap="submit"
+      >{{submitting ? '发布中…' : '确认发布'}}</button>
+    </block>
+  </view>
+</view>

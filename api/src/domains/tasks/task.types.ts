@@ -24,6 +24,7 @@ export interface Task {
   guiding_questions: string[] | null;
   source_url: string | null;
   video_url: string | null;
+  attachment_url: string | null;
   checkin_type: CheckinType;
   require_text: boolean;
   require_image: boolean;
@@ -61,6 +62,7 @@ export interface StudentTask {
   deadline_at: string;
   status: StudentTaskStatus;
   completed_at?: string;
+  attachment_url?: string | null;
 }
 
 export interface TaskDetail extends StudentTask {
@@ -75,6 +77,7 @@ export interface TaskDetail extends StudentTask {
   cover_image?: string | null;
   category?: TaskTemplateCategory | null;
   tags?: string[] | null;
+  attachment_url?: string | null;
   checkin_type?: CheckinType;
   require_text?: boolean;
   require_image?: boolean;
@@ -105,6 +108,7 @@ export interface CreateTaskInput {
   guiding_questions?: string[] | null;
   source_url?: string | null;
   video_url?: string | null;
+  attachment_url?: string | null;
   checkin_type?: CheckinType;
   require_text?: boolean;
   require_image?: boolean;
@@ -132,6 +136,10 @@ export interface CreateTaskFromTemplateInput {
   target_class_ids?: string[];
   published_at: string;
   deadline_at: string;
+  geo_lat?: number | null;
+  geo_lng?: number | null;
+  geo_radius_meters?: number | null;
+  geo_address?: string | null;
 }
 
 export interface UpdateTaskInput {
@@ -144,6 +152,7 @@ export interface UpdateTaskInput {
   guiding_questions?: string[] | null;
   source_url?: string | null;
   video_url?: string | null;
+  attachment_url?: string | null;
   checkin_type?: CheckinType;
   require_text?: boolean;
   require_image?: boolean;

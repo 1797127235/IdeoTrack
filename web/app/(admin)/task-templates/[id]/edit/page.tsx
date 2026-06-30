@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { getTaskTemplate, updateTaskTemplate, type TaskTemplateCategory, type CheckinType } from "@/lib/task-templates";
-import GeofencePicker, { type GeofenceValue } from "@/components/GeofencePicker";
 import ImageUploader from "@/components/ImageUploader";
+import FileUploader from "@/components/FileUploader";
 import { Button, Input, Textarea, Card, FormField, Switch, Select } from "@/components/ui";
 
 const categories: TaskTemplateCategory[] = ["学习", "实践", "活动", "会议", "阅读"];
@@ -37,13 +37,13 @@ export default function EditTaskTemplatePage() {
   const [guidingQuestions, setGuidingQuestions] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [checkinType, setCheckinType] = useState<CheckinType>("text");
   const [requireText, setRequireText] = useState(false);
   const [requireImage, setRequireImage] = useState(false);
   const [requireVideo, setRequireVideo] = useState(false);
   const [minTextLength, setMinTextLength] = useState("");
   const [maxImages, setMaxImages] = useState("");
-  const [geofence, setGeofence] = useState<GeofenceValue | null>(null);
   const [requireLocation, setRequireLocation] = useState(false);
   const [requireFace, setRequireFace] = useState(false);
   const [startTime, setStartTime] = useState("");
@@ -66,6 +66,7 @@ export default function EditTaskTemplatePage() {
         setGuidingQuestions((template.guiding_questions ?? []).join("\n"));
         setSourceUrl(template.source_url ?? "");
         setVideoUrl(template.video_url ?? "");
+        setAttachmentUrl(template.attachment_url ?? null);
         setCheckinType(template.checkin_type);
         setRequireText(template.require_text);
         setRequireImage(template.require_image);
@@ -77,14 +78,6 @@ export default function EditTaskTemplatePage() {
         setStatus(template.status);
         setStartTime(formatDateTimeLocal(template.start_time));
         setEndTime(formatDateTimeLocal(template.end_time));
-        if (template.geo_lat !== null && template.geo_lng !== null && template.geo_radius_meters !== null) {
-          setGeofence({
-            lat: template.geo_lat,
-            lng: template.geo_lng,
-            radius: template.geo_radius_meters,
-            address: template.geo_address ?? "",
-          });
-        }
       })
       .catch((err) => setError(err instanceof Error ? err.message : "加载失败"))
       .finally(() => setLoading(false));
@@ -106,10 +99,6 @@ export default function EditTaskTemplatePage() {
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
-      if (requireLocation && !geofence) {
-        throw new Error("开启定位签到后，请先选择签到范围");
-      }
-
       await updateTaskTemplate(id, {
         title: title.trim(),
         description: description.trim() || null,
@@ -120,6 +109,7 @@ export default function EditTaskTemplatePage() {
         guiding_questions: questions.length > 0 ? questions : null,
         source_url: sourceUrl.trim() || null,
         video_url: videoUrl.trim() || null,
+        attachment_url: attachmentUrl,
         checkin_type: checkinType,
         require_text: requireText,
         require_image: requireImage,
@@ -131,14 +121,10 @@ export default function EditTaskTemplatePage() {
         status,
         start_time: startTime ? new Date(startTime).toISOString() : null,
         end_time: endTime ? new Date(endTime).toISOString() : null,
-        ...(requireLocation && geofence
-          ? {
-              geo_lat: geofence.lat,
-              geo_lng: geofence.lng,
-              geo_radius_meters: geofence.radius,
-              geo_address: geofence.address,
-            }
-          : { geo_lat: null, geo_lng: null, geo_radius_meters: null, geo_address: null }),
+        geo_lat: null,
+        geo_lng: null,
+        geo_radius_meters: null,
+        geo_address: null,
       });
       router.push("/task-templates");
     } catch (err) {
@@ -252,6 +238,10 @@ export default function EditTaskTemplatePage() {
             </FormField>
           </div>
 
+          <FormField label="附件" htmlFor="attachment" hint="可选，学生可在任务详情中下载">
+            <FileUploader value={attachmentUrl} onChange={setAttachmentUrl} />
+          </FormField>
+
           <div className="grid grid-cols-2 gap-4">
             <FormField label="默认开始时间" htmlFor="startTime" hint="可选">
               <Input
@@ -353,27 +343,14 @@ export default function EditTaskTemplatePage() {
             )}
           </div>
 
-          <FormField label="需定位签到" htmlFor="requireLocation">
+          <FormField label="需定位签到" htmlFor="requireLocation" hint="开启后，辅导员发布时需自行选择签到位置">
             <div className="flex items-center gap-3 pt-1">
-              <Switch
-                id="requireLocation"
-                checked={requireLocation}
-                onCheckedChange={(checked) => {
-                  setRequireLocation(checked);
-                  if (!checked) setGeofence(null);
-                }}
-              />
+              <Switch id="requireLocation" checked={requireLocation} onCheckedChange={setRequireLocation} />
               <span className="text-sm text-[var(--color-ink-secondary)]">
                 {requireLocation ? "已开启" : "未开启"}
               </span>
             </div>
           </FormField>
-
-          {requireLocation && (
-            <FormField label="签到范围" required={requireLocation}>
-              <GeofencePicker value={geofence} onChange={setGeofence} />
-            </FormField>
-          )}
 
           <FormField label="需人脸打卡" htmlFor="requireFace">
             <div className="flex items-center gap-3 pt-1">

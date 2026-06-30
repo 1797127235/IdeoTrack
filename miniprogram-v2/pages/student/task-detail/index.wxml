@@ -1,0 +1,199 @@
+<view class="student-task-detail-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap"></view>
+    <view class="top-title">任务详情</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="content" wx:if="{{task}}">
+    <!-- 任务主卡片 -->
+    <view class="hero-card">
+      <view class="hero-cover {{coverVisual}}">
+        <image class="cover-image" wx:if="{{coverImageUrl}}" src="{{coverImageUrl}}" mode="aspectFill" />
+        <view class="cover-fallback" wx:else></view>
+      </view>
+      <view class="hero-info">
+        <view class="hero-title">{{task.title}}</view>
+        <view class="status-pill {{statusClass}}">{{statusLabel}}</view>
+        <view class="hero-meta-row">
+          <view class="hero-meta tag">
+            <view class="meta-icon star"></view>
+            <text>{{task.category || '学习'}}</text>
+          </view>
+          <view class="hero-meta points">
+            <view class="meta-icon coin"></view>
+            <text>+15 积分</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 信息栏 -->
+    <view class="info-bar">
+      <view class="info-item">
+        <view class="info-icon deadline"></view>
+        <view class="info-label">截止时间</view>
+        <view class="info-value">{{deadlineShort}}</view>
+      </view>
+      <view class="info-divider"></view>
+      <view class="info-item">
+        <view class="info-icon clock"></view>
+        <view class="info-label">预计用时</view>
+        <view class="info-value">{{estimateText}}</view>
+      </view>
+      <view class="info-divider"></view>
+      <view class="info-item">
+        <view class="info-icon reward"></view>
+        <view class="info-label">完成奖励</view>
+        <view class="info-value reward">+15 积分</view>
+      </view>
+    </view>
+
+    <!-- 任务说明 -->
+    <view class="section-card">
+      <view class="section-title">任务说明</view>
+      <view class="desc-body">{{task.content}}</view>
+      <view class="sub-title">学习要求</view>
+      <view class="requirement-list">
+        <view class="requirement-item" wx:for="{{requirements}}" wx:key="*this">
+          <view class="requirement-dot"></view>
+          <view class="requirement-text">{{item}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 学习材料 -->
+    <view class="section-card material-card" wx:if="{{materialName}}" bindtap="onOpenMaterial">
+      <view class="section-title">学习材料</view>
+      <view class="material-row">
+        <view class="material-icon"></view>
+        <view class="material-info">
+          <view class="material-name">{{materialName}}</view>
+          <view class="material-meta">阅读材料 · 约 {{materialDuration}} 分钟</view>
+        </view>
+        <view class="material-arrow"></view>
+      </view>
+    </view>
+
+    <!-- 我的进度 -->
+    <view class="section-card progress-card">
+      <view class="progress-header">
+        <view class="section-title inline">我的进度</view>
+        <view class="progress-percent">{{progressPercent}}%</view>
+      </view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{progressPercent}}%;"></view>
+      </view>
+      <view class="step-list">
+        <view class="step-item {{currentStep >= 0 ? 'active' : ''}} {{currentStep === 0 ? 'current' : ''}}">
+          <view class="step-dot"></view>
+          <view class="step-label">未开始</view>
+        </view>
+        <view class="step-line {{currentStep >= 1 ? 'active' : ''}}"></view>
+        <view class="step-item {{currentStep >= 1 ? 'active' : ''}} {{currentStep === 1 ? 'current' : ''}}">
+          <view class="step-dot"></view>
+          <view class="step-label">学习中</view>
+        </view>
+        <view class="step-line {{currentStep >= 2 ? 'active' : ''}}"></view>
+        <view class="step-item {{currentStep >= 2 ? 'active' : ''}} {{currentStep === 2 ? 'current' : ''}}">
+          <view class="step-dot"></view>
+          <view class="step-label">已提交</view>
+        </view>
+        <view class="step-line {{currentStep >= 3 ? 'active' : ''}}"></view>
+        <view class="step-item {{currentStep >= 3 ? 'active' : ''}} {{currentStep === 3 ? 'current' : ''}}">
+          <view class="step-dot"></view>
+          <view class="step-label">已完成</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 完成任务 -->
+    <view class="section-card submit-card" wx:if="{{canCheckIn}}">
+      <view class="section-title">完成任务</view>
+      <view class="form-item" wx:if="{{showReflection}}">
+        <textarea
+          class="form-textarea"
+          placeholder="写下你的学习心得..."
+          placeholder-class="input-placeholder"
+          maxlength="2000"
+          value="{{form.reflectionContent}}"
+          bindinput="onReflectionInput"
+        />
+        <view class="char-count">{{form.reflectionContent.length}}/2000</view>
+      </view>
+
+      <view class="upload-row" wx:if="{{showImageUpload}}">
+        <view class="upload-btn" bindtap="onUploadPlaceholder">
+          <view class="upload-icon"></view>
+          <text>上传图片</text>
+        </view>
+        <view class="upload-count">0/3</view>
+      </view>
+
+      <view class="check-row" wx:if="{{task.require_location}}">
+        <view class="check-info">
+          <view class="check-icon location"></view>
+          <view class="check-text">
+            <view class="check-title">位置签到</view>
+            <view class="check-status {{form.latitude ? 'success' : ''}}">
+              {{form.latitude ? form.address : '尚未获取定位'}}
+            </view>
+          </view>
+        </view>
+        <button
+          class="check-btn"
+          bindtap="onLocateTap"
+          loading="{{locating}}"
+          disabled="{{locating}}"
+        >{{locating ? '定位中' : '获取定位'}}</button>
+      </view>
+
+      <view class="check-row" wx:if="{{task.require_face}}">
+        <view class="check-info">
+          <view class="check-icon face"></view>
+          <view class="check-text">
+            <view class="check-title">人脸核验</view>
+            <view class="check-status {{form.facePhotoPath ? 'success' : ''}}">
+              {{form.facePhotoPath ? '已拍摄现场照' : '尚未拍摄人脸'}}
+            </view>
+          </view>
+        </view>
+        <button class="check-btn" bindtap="onFaceVerifyTap">
+          {{form.facePhotoPath ? '重新拍摄' : '去拍摄'}}
+        </button>
+      </view>
+    </view>
+
+    <!-- 非打卡状态提示 -->
+    <view class="state-card completed" wx:if="{{task.status === 'completed'}}">
+      <view class="state-icon"></view>
+      <view class="state-text">该任务已完成打卡</view>
+    </view>
+
+    <view class="state-card overdue" wx:if="{{task.status === 'overdue'}}">
+      <view class="state-icon"></view>
+      <view class="state-text">该任务已逾期，无法打卡</view>
+    </view>
+
+    <view class="state-card reviewing" wx:if="{{task.status === 'reviewing'}}">
+      <view class="state-icon"></view>
+      <view class="state-text">打卡已提交，正在审核中</view>
+    </view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-bar" wx:if="{{canCheckIn}}">
+    <button class="draft-btn" bindtap="onSaveDraft">保存草稿</button>
+    <button
+      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      disabled="{{submitting}}"
+      bindtap="onSubmit"
+    >{{submitting ? '提交中…' : '提交任务'}}</button>
+  </view>
+
+  <view class="error-state" wx:if="{{error}}">
+    <view class="error-icon"></view>
+    <view class="error-text">{{error}}</view>
+    <button class="retry-btn" bindtap="onRetry">重新加载</button>
+  </view>
+</view>

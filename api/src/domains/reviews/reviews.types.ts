@@ -44,6 +44,7 @@ export interface PendingReviewList {
 
 export interface PendingReviewFilters {
   classId?: string;
+  taskId?: string;
   page?: number;
   limit?: number;
 }

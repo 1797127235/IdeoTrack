@@ -1,0 +1,131 @@
+<view class="growth-page">
+  <view class="topbar">
+    <view class="top-placeholder"></view>
+    <view class="top-title">成长</view>
+    <view class="help-link" bindtap="onHelpTap">
+      <view class="help-icon"></view>
+      <text>成长说明</text>
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="growth-hero">
+      <view class="hero-left">
+        <view class="level-row">
+          <text class="level-pill">{{level}}</text>
+          <text class="growth-title">{{title}}</text>
+        </view>
+        <view class="growth-label">累计成长值</view>
+        <view class="growth-score">{{growthValue}}</view>
+        <view class="next-line"></view>
+        <view class="next-text">距离下一级还差 <text>{{remainingValue}}</text> 分</view>
+      </view>
+
+      <view class="hero-art">
+        <view class="ring"></view>
+        <view class="hill"></view>
+        <view class="tree">
+          <view class="trunk"></view>
+          <view class="crown crown-one"></view>
+          <view class="crown crown-two"></view>
+          <view class="crown crown-three"></view>
+          <view class="crown crown-four"></view>
+        </view>
+        <view class="hero-leaf leaf-a"></view>
+        <view class="hero-leaf leaf-b"></view>
+        <view class="score-chip">
+          <text class="score-current">{{growthValue}}</text>
+          <text class="score-total"> / {{nextLevelValue}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="stats-row">
+      <view class="stat-card" wx:for="{{stats}}" wx:key="key">
+        <view class="stat-icon {{item.icon}}"></view>
+        <view class="stat-text">
+          <view class="stat-label">{{item.label}}</view>
+          <view class="stat-value">{{item.value}}<text>{{item.unit}}</text></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="panel ranking-panel">
+      <view class="ranking-head">
+        <view class="panel-title">我的排名</view>
+        <view class="ranking-tabs">
+          <view
+            class="ranking-tab {{item.active ? 'active' : ''}}"
+            wx:for="{{rankingTabs}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="onRankTabTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
+        <view class="ranking-arrow" bindtap="onRankingTap">›</view>
+      </view>
+
+      <view class="ranking-summary">
+        <view class="rank-copy">
+          <view class="rank-label">我的排名</view>
+          <view class="rank-value">第 {{rankInfo.rank}} 名</view>
+        </view>
+        <view class="rank-percent">超过了 <text>{{rankInfo.percent}}%</text> 的同学</view>
+      </view>
+    </view>
+
+    <view class="panel record-panel">
+      <view class="panel-head">
+        <view class="panel-title">成长记录</view>
+        <view class="more-link" bindtap="onViewAllRecords">查看全部 <text>›</text></view>
+      </view>
+
+      <view class="record-list">
+        <view class="record-item" wx:for="{{records}}" wx:key="title">
+          <view class="record-timeline">
+            <view class="record-icon {{item.icon}}"></view>
+            <view class="timeline-line" wx:if="{{index < records.length - 1}}"></view>
+          </view>
+          <view class="record-main">
+            <view class="record-title">{{item.title}}</view>
+            <view class="record-time">{{item.time}}</view>
+          </view>
+          <view class="record-points">{{item.points}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="panel achievement-panel">
+      <view class="panel-title">成长成就</view>
+      <view class="achievement-row">
+        <view class="achievement-card {{item.unlocked ? 'unlocked' : 'locked'}}" wx:for="{{achievements}}" wx:key="title">
+          <view class="badge">
+            <view class="badge-core"></view>
+            <view class="badge-ribbon"></view>
+          </view>
+          <view class="achievement-text">
+            <view class="achievement-title">{{item.title}}</view>
+            <view class="achievement-status">{{item.status}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <button class="task-button" bindtap="onCompleteTask">去完成任务</button>
+  </view>
+
+  <view class="student-tabbar">
+    <view
+      class="tab-item {{item.active ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      <view class="tab-icon {{item.icon}}"></view>
+      <view class="tab-label">{{item.label}}</view>
+    </view>
+  </view>
+</view>

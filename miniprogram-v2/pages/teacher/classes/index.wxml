@@ -1,0 +1,100 @@
+<view class="teacher-classes-page">
+  <view class="topbar">
+    <view class="top-placeholder"></view>
+    <view class="top-title">班级</view>
+    <view class="notice-button" bindtap="onNotificationTap">
+      <view class="bell-icon"></view>
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="summary-card">
+      <view class="summary-row">
+        <view class="summary-item">
+          <view class="summary-label">管理班级数</view>
+          <view class="summary-value">{{summary.classCount}}<text>个</text></view>
+        </view>
+        <view class="summary-divider"></view>
+        <view class="summary-item">
+          <view class="summary-label">学生总数</view>
+          <view class="summary-value">{{summary.studentCount}}<text>人</text></view>
+        </view>
+        <view class="summary-divider"></view>
+        <view class="summary-item">
+          <view class="summary-label">平均完成率</view>
+          <view class="summary-value">{{summary.averageRate}}<text>%</text></view>
+        </view>
+      </view>
+      <view class="summary-note">
+        <view class="info-icon">i</view>
+        <text>完成率 = 已完成全部当前任务的学生占比</text>
+      </view>
+    </view>
+
+    <view class="section-title">我管理的班级</view>
+
+    <view class="class-list">
+      <view
+        class="class-card {{item.color}}"
+        wx:for="{{classes}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+        bindtap="onViewClass"
+      >
+        <view class="class-main">
+          <view class="class-icon-wrap {{item.color}}">
+            <view class="class-icon {{item.icon}}"></view>
+          </view>
+
+          <view class="class-info">
+            <view class="class-title-row">
+              <view class="class-name">{{item.name}}</view>
+              <view class="class-arrow">›</view>
+            </view>
+            <view class="class-metrics">
+              <view class="metric">
+                <view class="metric-label">学生数</view>
+                <view class="metric-value">{{item.studentCount}}人</view>
+              </view>
+              <view class="metric-divider"></view>
+              <view class="metric">
+                <view class="metric-label">已完成全部任务</view>
+                <view class="metric-value">{{item.completedCount}}人</view>
+              </view>
+              <view class="metric-divider"></view>
+              <view class="metric">
+                <view class="metric-label">待复核</view>
+                <view class="metric-value">{{item.reviewCount}}人</view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="class-footer">
+          <view class="completion-copy">
+            <view class="completion-label">完成率 <text>（完成全部任务学生占比）</text></view>
+            <view class="completion-value {{item.color}}">{{item.completionRate}}%</view>
+          </view>
+          <view class="progress-track">
+            <view class="progress-bar {{item.color}}" style="width: {{item.completionRate}}%;"></view>
+          </view>
+          <button class="view-button {{item.color}}" data-id="{{item.id}}" data-name="{{item.name}}" catchtap="onViewClass">查看班级</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="teacher-tabbar">
+    <view
+      class="tab-item {{item.active ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      <view class="tab-icon {{item.icon}}"></view>
+      <view class="tab-label">{{item.label}}</view>
+    </view>
+  </view>
+</view>

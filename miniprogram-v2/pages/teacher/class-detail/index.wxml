@@ -1,0 +1,122 @@
+<view class="teacher-class-detail-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap"></view>
+    <view class="top-title">{{className || '班级详情'}}</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="content" wx:if="{{detail && !loading}}">
+    <!-- 班级头部 -->
+    <view class="header-card">
+      <view class="header-main">
+        <view class="class-icon"></view>
+        <view class="header-info">
+          <view class="class-name">{{detail.class_name}}</view>
+          <view class="class-sub">{{detail.college_name}} · {{detail.student_count}}人</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 概览 -->
+    <view class="overview-card">
+      <view class="overview-item">
+        <view class="overview-icon overview-task"></view>
+        <view class="overview-value">{{overview.taskCount}}</view>
+        <view class="overview-label">当前任务</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-icon overview-chart"></view>
+        <view class="overview-value green">{{overview.avgRate}}%</view>
+        <view class="overview-label">平均完成率</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-icon overview-warning"></view>
+        <view class="overview-value orange">{{overview.reviewCount}}</view>
+        <view class="overview-label">待复核</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-icon overview-pending"></view>
+        <view class="overview-value red">{{overview.incompleteCount}}</view>
+        <view class="overview-label">未完成学生</view>
+      </view>
+    </view>
+
+    <!-- 任务进度 -->
+    <view class="section-card" wx:if="{{detail.tasks.length > 0}}">
+      <view class="section-header">
+        <view class="section-title">班级任务进度</view>
+        <view class="section-link" bindtap="onViewAllTasks">全部任务 ›</view>
+      </view>
+      <view class="task-list">
+        <view class="task-item" wx:for="{{detail.tasks}}" wx:key="task_id" data-id="{{item.task_id}}" bindtap="onTaskTap">
+          <view class="task-icon {{item.category}}"></view>
+          <view class="task-info">
+            <view class="task-title">{{item.title}}</view>
+            <view class="task-meta">截止 {{formatDate(item.deadline_at)}} · {{item.checked_count}}/{{item.total_students}}</view>
+          </view>
+          <view class="task-rate-wrap">
+            <view class="task-rate">{{item.completion_rate}}%</view>
+            <view class="task-bar-wrap">
+              <view class="task-bar" style="width: {{item.completion_rate}}%;"></view>
+            </view>
+          </view>
+          <view class="task-review" wx:if="{{item.review_count > 0}}">待复核 {{item.review_count}} 条</view>
+          <view class="task-arrow">›</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-section" wx:if="{{detail.tasks.length === 0}}">
+      <text>暂无可见任务</text>
+    </view>
+
+    <!-- 班级成员 -->
+    <view class="section-card member-card">
+      <view class="section-header">
+        <view class="section-title">班级成员</view>
+      </view>
+      <view class="member-tab-bar">
+        <view
+          class="member-tab {{memberTab === item.key ? 'active' : ''}}"
+          wx:for="{{memberTabs}}"
+          wx:key="key"
+          data-key="{{item.key}}"
+          bindtap="onMemberTabChange"
+        >{{item.label}}</view>
+      </view>
+      <view class="member-list">
+        <view class="member-item" wx:for="{{filteredStudents}}" wx:key="student_id" data-id="{{item.student_id}}" data-name="{{item.student_name}}" bindtap="onStudentTap">
+          <view class="member-info">
+            <view class="member-name">{{item.student_name}}</view>
+            <view class="member-id">{{item.student_school_id}}</view>
+          </view>
+          <view class="member-progress">
+            <view class="member-bar-wrap">
+              <view class="member-bar" style="width: {{item.completion_rate}}%;"></view>
+            </view>
+            <view class="member-rate">{{item.completion_rate}}%</view>
+          </view>
+          <view class="member-status {{item.review_count > 0 ? 'review' : item.completed_count === item.total_tasks && item.total_tasks > 0 ? 'done' : 'incomplete'}}">
+            {{item.review_count > 0 ? '待复核' : item.completed_count === item.total_tasks && item.total_tasks > 0 ? '已完成' : '未完成'}}
+          </view>
+          <view class="member-arrow">›</view>
+        </view>
+        <view class="empty-tip" wx:if="{{filteredStudents.length === 0}}">暂无成员</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-text">加载中…</view>
+  </view>
+
+  <view class="error-state" wx:if="{{error}}">
+    <view class="error-text">{{error}}</view>
+    <button class="retry-btn" bindtap="onRetry">重新加载</button>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{detail && !loading}}">
+    <button class="action-btn primary full" bindtap="onRemindIncomplete">提醒未完成</button>
+  </view>
+</view>

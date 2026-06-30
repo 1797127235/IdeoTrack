@@ -1,0 +1,170 @@
+<view class="teacher-task-publish-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap">
+      <view class="back-icon"></view>
+    </view>
+    <view class="top-title">发布任务</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="content">
+    <view class="form-card">
+      <view class="form-item">
+        <view class="form-label">任务标题</view>
+        <input
+          class="form-input"
+          placeholder="请输入任务标题"
+          placeholder-class="input-placeholder"
+          maxlength="100"
+          value="{{title}}"
+          bindinput="onTitleInput"
+        />
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">任务内容</view>
+        <textarea
+          class="form-textarea"
+          placeholder="请输入任务内容"
+          placeholder-class="input-placeholder"
+          maxlength="2000"
+          value="{{content}}"
+          bindinput="onContentInput"
+        />
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">打卡类型</view>
+        <view class="checkin-types">
+          <view
+            class="type-tag {{checkinType === item.key ? 'active' : ''}}"
+            wx:for="{{checkinTypes}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="onCheckinTypeChange"
+          >{{item.label}}</view>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">目标班级</view>
+        <view class="class-list" wx:if="{{classes.length > 0}}">
+          <view
+            class="class-tag {{item.selected ? 'active' : ''}}"
+            wx:for="{{classes}}"
+            wx:key="class_id"
+            data-index="{{index}}"
+            bindtap="onClassToggle"
+          >{{item.class_name}}</view>
+        </view>
+        <view class="empty-classes" wx:if="{{classes.length === 0}}">暂无管理班级</view>
+      </view>
+
+      <view class="form-item switch-row">
+        <view class="form-label">需要定位签到</view>
+        <switch checked="{{requireLocation}}" bindchange="onRequireLocationChange" color="#4f46e5" />
+      </view>
+
+      <view class="form-item switch-row">
+        <view class="form-label">需要人脸打卡</view>
+        <switch checked="{{requireFace}}" bindchange="onRequireFaceChange" color="#4f46e5" />
+      </view>
+
+      <view class="form-item" wx:if="{{requireLocation}}">
+        <view class="form-label">签到位置（在地图点击选点或搜索）</view>
+        <view class="locate-btn" bindtap="onLocateTap">
+          <view class="locate-icon"></view>
+          <text>定位到当前位置</text>
+        </view>
+        <view class="map-search">
+          <view class="search-icon"></view>
+          <input
+            class="map-search-input"
+            placeholder="搜索地点"
+            placeholder-class="input-placeholder"
+            value="{{searchKeyword}}"
+            bindinput="onSearchInput"
+          />
+          <view class="search-results" wx:if="{{showSearchResults}}">
+            <view
+              class="search-result-item"
+              wx:for="{{searchResults}}"
+              wx:key="id"
+              data-index="{{index}}"
+              bindtap="onSearchResultTap"
+            >
+              <view class="result-name">{{item.name}}</view>
+              <view class="result-address">{{item.address}}</view>
+            </view>
+          </view>
+        </view>
+        <map
+          class="location-map"
+          latitude="{{mapCenter.latitude}}"
+          longitude="{{mapCenter.longitude}}"
+          markers="{{markers}}"
+          circles="{{circles}}"
+          scale="16"
+          show-location
+          bindtap="onMapTap"
+        />
+        <view class="selected-location" wx:if="{{location}}">
+          <view class="location-name">{{location.name}}</view>
+          <view class="location-address">{{location.address}}</view>
+        </view>
+        <view class="radius-row">
+          <view class="form-label small">签到半径（米）</view>
+          <input
+            class="radius-input"
+            type="number"
+            value="{{radius}}"
+            bindinput="onRadiusInput"
+            placeholder="50-1000"
+          />
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">附件（可选）</view>
+        <view wx:if="{{attachmentUrl}}" class="attachment-row">
+          <view class="attachment-name">{{attachmentName}}</view>
+          <view class="attachment-remove" bindtap="onRemoveAttachment">移除</view>
+        </view>
+        <view wx:else class="attachment-box" bindtap="onChooseAttachment">
+          <view class="attachment-placeholder">点击上传附件</view>
+          <view class="attachment-hint">PDF、Word、Excel、PPT、图片、音视频等，最大 20MB</view>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">发布时间</view>
+        <view class="datetime-row">
+          <picker mode="date" value="{{publishedDate}}" bindchange="onPublishedDateChange">
+            <view class="picker-value">{{publishedDate}}</view>
+          </picker>
+          <picker mode="time" value="{{publishedTime}}" bindchange="onPublishedTimeChange">
+            <view class="picker-value">{{publishedTime}}</view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">截止时间</view>
+        <view class="datetime-row">
+          <picker mode="date" value="{{deadlineDate}}" bindchange="onDeadlineDateChange">
+            <view class="picker-value">{{deadlineDate}}</view>
+          </picker>
+          <picker mode="time" value="{{deadlineTime}}" bindchange="onDeadlineTimeChange">
+            <view class="picker-value">{{deadlineTime}}</view>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <button
+      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      disabled="{{submitting}}"
+      bindtap="submit"
+    >{{submitting ? '发布中…' : '确认发布'}}</button>
+  </view>
+</view>

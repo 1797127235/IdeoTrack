@@ -1,0 +1,62 @@
+<view class="teacher-ranking-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap"></view>
+    <view class="top-title">班级完成率排行</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="filter-bar">
+    <view class="filter-card" bindtap="onWeekFilterTap">
+      <view class="filter-icon calendar"></view>
+      <view class="filter-main">
+        <view class="filter-strong">{{weekLabel}}</view>
+        <view class="filter-text">{{dateRange}}</view>
+      </view>
+      <view class="filter-arrow">▾</view>
+    </view>
+  </view>
+
+  <view class="content" wx:if="{{!loading && !error}}">
+    <view class="ranking-list" wx:if="{{ranking.length > 0}}">
+      <view
+        class="ranking-item {{index < 3 ? 'top' : ''}}"
+        wx:for="{{ranking}}"
+        wx:key="class_id"
+        data-id="{{item.class_id}}"
+        data-name="{{item.class_name}}"
+        bindtap="onItemTap"
+      >
+        <view class="rank-badge {{index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : 'normal'}}">
+          {{index + 1}}
+        </view>
+        <view class="rank-info">
+          <view class="class-title">{{item.class_name}}</view>
+          <view class="class-sub">{{item.college_name}} · {{item.total_students}}人</view>
+        </view>
+        <view class="rank-progress">
+          <view class="progress-track">
+            <view class="progress-bar" style="width: {{item.completion_rate}}%;"></view>
+          </view>
+          <view class="progress-count">{{item.checked_count}}/{{item.total_students}}</view>
+        </view>
+        <view class="rank-rate">{{item.completion_rate}}%</view>
+        <view class="rank-arrow">›</view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{ranking.length === 0}}">
+      <view class="empty-icon"></view>
+      <view class="empty-title">暂无排行数据</view>
+      <view class="empty-subtitle">当前周期内没有可统计的班级任务</view>
+    </view>
+  </view>
+
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-text">加载中…</view>
+  </view>
+
+  <view class="error-state" wx:if="{{error}}">
+    <view class="error-text">{{error}}</view>
+    <button class="retry-btn" bindtap="onRetry">重新加载</button>
+  </view>
+</view>

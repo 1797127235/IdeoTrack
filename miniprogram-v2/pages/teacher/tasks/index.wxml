@@ -1,0 +1,137 @@
+<view class="teacher-tasks-page">
+  <view class="topbar">
+    <view class="top-placeholder"></view>
+    <view class="top-title">任务</view>
+    <view class="notice-button" bindtap="onNotificationTap">
+      <view class="bell-icon"></view>
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="action-row">
+      <view class="action-btn action-primary" bindtap="onCreateTask">
+        <view class="plus-icon"></view>
+        <text>发布任务</text>
+      </view>
+      <view class="action-btn action-secondary" bindtap="onUseTemplate">
+        <view class="template-icon"></view>
+        <text>使用模板</text>
+      </view>
+    </view>
+
+    <view class="filter-bar">
+      <view
+        class="filter-item {{item.key === activeFilter ? 'active' : ''}}"
+        wx:for="{{filters}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onFilterTap"
+      >{{item.label}}</view>
+    </view>
+
+    <view class="section-title">我的任务</view>
+
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-spinner"></view>
+      <text>加载中…</text>
+    </view>
+
+    <view class="empty-state" wx:if="{{!loading && filteredTasks.length === 0}}">
+      <view class="empty-icon"></view>
+      <view class="empty-text">暂无{{activeFilter === 'draft' ? '草稿' : activeFilter === 'ended' ? '已结束' : activeFilter === 'ongoing' ? '进行中' : ''}}任务</view>
+    </view>
+
+    <view class="task-list" wx:if="{{!loading && filteredTasks.length > 0}}">
+      <view
+        class="task-card {{item.status}} {{item.categoryType}}"
+        wx:for="{{filteredTasks}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        data-title="{{item.title}}"
+        bindtap="onViewDetail"
+      >
+        <view class="task-main">
+          <view class="task-icon-wrap {{item.categoryType}}">
+            <view class="task-icon {{item.categoryType}}"></view>
+          </view>
+          <view class="task-info">
+            <view class="task-title-row">
+              <view class="task-title">{{item.title}}</view>
+              <view class="status-tag {{item.status}}">
+                {{item.status === 'ongoing' ? '进行中' : item.status === 'ended' ? '已结束' : '草稿'}}
+              </view>
+            </view>
+            <view class="category-tag {{item.categoryType}}">{{item.category}}</view>
+            <view class="task-meta">
+              <view class="meta-row">
+                <view class="people-mini-icon"></view>
+                <text>目标班级：{{item.targetClasses.join('、') || '未指定'}}</text>
+              </view>
+              <view class="meta-row">
+                <view class="calendar-mini-icon"></view>
+                <text>任务周期：{{item.period}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="task-progress">
+          <view class="progress-copy">
+            <text>已完成</text>
+            <text class="progress-count">{{item.completedCount}}/{{item.totalCount}}</text>
+          </view>
+          <view class="progress-track">
+            <view class="progress-bar" style="width: {{item.completionRate}}%;"></view>
+          </view>
+          <view class="progress-rate">
+            <text>完成率</text>
+            <text class="progress-count">{{item.completionRate}}%</text>
+          </view>
+        </view>
+
+        <view class="task-footer">
+          <view class="review-hint {{item.reviewCount > 0 ? 'visible' : ''}}">
+            <view class="warn-mini-icon"></view>
+            <text>待人工复核</text>
+            <text class="review-count">{{item.reviewCount}}条</text>
+          </view>
+          <view class="task-actions">
+            <view
+              class="btn-outline"
+              data-id="{{item.id}}"
+              data-title="{{item.title}}"
+              catchtap="onViewDetail"
+            >查看详情</view>
+            <view
+              class="btn-solid"
+              wx:if="{{item.status !== 'draft'}}"
+              data-id="{{item.id}}"
+              data-title="{{item.title}}"
+              catchtap="onReview"
+            >去复核</view>
+            <view
+              class="btn-solid"
+              wx:if="{{item.status === 'draft'}}"
+              data-id="{{item.id}}"
+              data-title="{{item.title}}"
+              catchtap="onContinueEdit"
+            >继续编辑</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="teacher-tabbar">
+    <view
+      class="tab-item {{item.active ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      <view class="tab-icon {{item.icon}}"></view>
+      <view class="tab-label">{{item.label}}</view>
+    </view>
+  </view>
+</view>

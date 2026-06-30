@@ -23,6 +23,9 @@ IdeoTrack 的核心数据围绕「学院 → 班级 → 学生」的组织树展
 
 打卡 check_in
   └── 学生对某任务实例的打卡记录（含心得、人脸现场照、审核状态）
+
+学习资料 learning_resource
+  └── 管理员发布的学习内容（图文、视频、文档、链接）
 ```
 
 ## 关键表结构
@@ -32,11 +35,16 @@ IdeoTrack 的核心数据围绕「学院 → 班级 → 学生」的组织树展
 | `colleges` | 学院 | `id`, `name`（唯一） |
 | `classes` | 班级 | `id`, `college_id`, `name`，唯一约束 `(college_id, name)` |
 | `users` | 所有角色账号 | `school_id`（唯一）, `role`, `college_id`, `class_id`, `password_hash`, `wechat_openid`, `is_enabled` |
-| `counselor_classes` | 辅导员↔所带班级 | `counselor_id`, `class_id`，唯一约束 `(counselor_id, class_id)` |
-| `task_templates` | 任务模板库 | `title`, `content`, `guiding_questions`, `geo_*`, `require_face`, `status` |
-| `tasks` | 思政任务实例 | `scope_type`, `scope_id`/`target_college_id`/`target_class_id`, `template_id`, `geo_*`（签到范围） |
-| `check_ins` | 打卡记录 | `user_id`, `task_id`, `status`, `reflection_content`, `geo_*` |
+| `counselor_classes` | 辅导员↔所带班级 | `counselor_id`, `class_id`，唯一约束 `(counselor, class)` |
+| `task_templates` | 任务模板库 | `title`, `description`, `content`, `cover_image`, `category`, `tags`, `checkin_type`, `require_*`, `geo_*`, `require_face`, `status`, `start_time`, `end_time`, `attachment_url` |
+| `tasks` | 思政任务实例 | `scope_type`, `scope_id`/`target_college_id`/`target_class_id`, `template_id`, 继承模板全部字段 |
+| `check_ins` | 打卡记录 | `user_id`, `task_id`, `status`, `reflection_content`, `geo_*`, `face_photo_path`, `face_verified`, `face_similarity` |
 | `user_faces` | 注册照 + 人脸向量 | `user_id`, `photo_path`, `embedding` |
+| `learning_resources` | 学习资料 | `title`, `type`, `content`/`url`, `cover_url`, `category`, `tags`, `status` |
+| `ai_reviews` | AI 初审记录 | `check_in_id`, `status`, `reason`, `reason_code` |
+| `point_records` | 积分发放记录 | `user_id`, `check_in_id`, `points`, `reason` |
+| `reminders` | 一键提醒记录 | `counselor_id`, `class_id`, `student_id`, `task_id`, `reminder_date`, `status` |
+| `audit_logs` | 审计日志 | `action`, `category`, `actor_id`, `target_type`, `target_id`, `details` |
 
 > 完整建表 SQL 见 [`api/src/scripts/migrate.ts`](../api/src/scripts/migrate.ts)。
 
@@ -83,10 +91,89 @@ function generateDefaultPassword(schoolId: string): string {
 
 ## 任务模板与任务实例
 
-- 管理员在 Web 后台维护**任务模板库**（`task_templates`），只保存内容、思考题、签到要求等快照，不指定发布范围。
-- 辅导员在小程序从模板库选择模板，发布为所辖班级的**任务实例**（`tasks`，`scope_type='class'`）。
-- 管理员也可以直接将模板发布为全校/全院任务，或绕过模板直接创建任务实例。
-- 任务实例的 `template_id` 指向来源模板；直接创建的实例 `template_id` 为 NULL。
+IdeoTrack 将任务内容管理与任务发布分离：
+
+- **任务模板库**：管理员在 Web 后台维护模板（`task_templates`），保存内容、说明、封面图、分类标签、思考题、外部链接/视频/附件、打卡类型与必填项、签到范围、人脸要求、起止时间、状态等快照，不指定发布范围。
+- **发布任务实例**：辅导员在小程序从模板库选择模板，发布到所辖班级；管理员也可以直接将模板发布为全校/全院任务，或绕过模板直接创建任务实例。
+- **角色边界**：管理员负责内容生产，辅导员负责班级教学组织，学生只接收任务实例并打卡。
+- **字段继承**：从模板派生任务实例时，文案类字段（标题、内容、说明、封面、附件、打卡要求等）从模板复制；坐标类字段（`geo_lat/lng/radius_meters/address`）在发布时由发布者指定，模板仅保留 `require_location` 开关。详见 [`docs/TASK-TEMPLATES.md`](./TASK-TEMPLATES.md)。
+
+### `task_templates` 关键字段
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `title` | text | 模板标题（1-100 字） |
+| `description` | text | 任务说明（≤500 字） |
+| `content` | text | 任务正文（1-2000 字） |
+| `cover_image` | text | 封面图相对路径，存于 `uploads/task-covers/` |
+| `category` | text | 分类：`学习`/`实践`/`活动`/`会议`/`阅读` |
+| `tags` | jsonb | 标签数组，每个标签 1-20 字 |
+| `guiding_questions` | jsonb | 思考题数组 |
+| `source_url` | text | 外部链接 |
+| `video_url` | text | 视频 URL |
+| `attachment_url` | text | 附件相对路径，存于 `uploads/attachments/` |
+| `checkin_type` | text | 打卡类型：`text`/`image`/`video`/`mixed` |
+| `require_text` | boolean | 是否要求文字心得 |
+| `require_image` | boolean | 是否要求图片 |
+| `require_video` | boolean | 是否要求视频 |
+| `min_text_length` | integer | 最少字数（≥0） |
+| `max_images` | integer | 最大图片数（1-9） |
+| `require_location` | boolean | 是否要求定位签到 |
+| `geo_lat/lng/radius_meters/address` | - | 签到坐标（模板可留空，发布时指定） |
+| `require_face` | boolean | 是否要求人脸验证 |
+| `status` | text | `draft`/`published`/`delisted` |
+| `start_time`/`end_time` | timestamptz | 模板建议起止时间 |
+
+### `tasks` 关键字段
+
+任务实例表字段与模板基本一致，额外包含：
+
+| 字段 | 说明 |
+|---|---|
+| `scope_type` | `school`/`college`/`class` |
+| `scope_id` | 统一范围 ID（学院/班级 UUID，school 时为 NULL） |
+| `target_college_id`/`target_class_id` | 与 `scope_id` 同步的目标学院/班级，用于查询 |
+| `template_id` | 来源模板 ID；直接创建为 NULL |
+| `published_at`/`deadline_at` | 实际发布时间 / 截止时间 |
+| `status` | `published`/`delisted` |
+
+约束：`valid_task_scope` CHECK 保证 scope_type 与 target id 组合合法；唯一索引 `idx_tasks_unique_template_dispatch` 防止同一模板重复派发至同一班级。
+
+## 打卡记录状态机
+
+`check_ins.status` 流转：
+
+```
+submitted → ai_reviewing → ai_approved → pending_manual_review → approved / rejected / requires_modification
+```
+
+| 状态 | 含义 |
+|---|---|
+| `submitted` | 学生提交心得/图片/视频 |
+| `ai_reviewing` | 正在 AI 初审 |
+| `ai_approved` | AI 初审通过，等待辅导员复核 |
+| `pending_manual_review` | 进入辅导员待复核列表 |
+| `approved` | 辅导员复核通过，发放积分 |
+| `rejected` | 辅导员拒绝 |
+| `requires_modification` | 要求修改后重新提交 |
+
+涉及代码：`api/src/domains/checkins/checkins.service.ts`、`api/src/domains/reviews/reviews.service.ts`。
+
+## 文件存储约定
+
+数据库只存相对路径，实际文件落盘到本地文件系统（生产环境通过 Docker bind mount 持久化）。
+
+| 用途 | 存储目录 | 读取端点 | 代码 |
+|---|---|---|---|
+| 任务/模板封面图 | `uploads/task-covers/{uuid}.ext` | `GET /api/upload/cover?path=...` | `api/src/lib/resource-storage.ts` |
+| 任务/模板附件 | `uploads/attachments/{uuid}.ext` | `GET /api/upload/attachment?path=...` | `api/src/lib/resource-storage.ts` |
+| 学习资料封面图 | `uploads/learning-resources/covers/{uuid}.ext` | 学习资料接口返回 URL | `api/src/lib/resource-storage.ts` |
+| 人脸注册照 | `FACE_PHOTO_DIR`（默认 `uploads/faces/`） | 内部使用 | `api/src/domains/users/users.service.ts` |
+| 导出文件 | `EXPORT_FILE_DIR`（默认 `uploads/exports/`） | `GET /api/exports/:token` | `api/src/lib/storage.ts` |
+
+root 解析：优先 `LEARNING_RESOURCE_UPLOAD_DIR` 环境变量，否则进程工作目录下的 `./uploads`。
+
+详见 [`docs/UPLOAD-AND-STORAGE.md`](./UPLOAD-AND-STORAGE.md)。
 
 ## 任务签到范围
 
@@ -94,6 +181,7 @@ function generateDefaultPassword(schoolId: string): string {
 
 - Web 地图组件：`web/components/GeofencePicker.tsx`
 - 后端距离校验：`api/src/domains/checkins/checkins.service.ts`、`api/src/domains/tasks/task.utils.ts`
+- 半径范围：50-1000 米
 
 ## 人脸模块（可选）
 
@@ -102,3 +190,13 @@ function generateDefaultPassword(schoolId: string): string {
 - 微服务：`face-service/`
 - 配置：`FACE_SERVICE_URL`、`FACE_PHOTO_DIR`
 - 部署说明：[`docs/FACE-TEST-DEPLOY.md`](./FACE-TEST-DEPLOY.md)
+
+## 辅导员报告导出
+
+辅导员可在小程序一键导出看板报告（PDF/Excel）和任务打卡记录（Excel）。PDF 生成依赖 Chromium（Docker 镜像已内置 + 中文字体），本地开发需配置 `PUPPETEER_EXECUTABLE_PATH`。
+
+- 生成器：`api/src/domains/counselor/report.generator.ts`
+- 下载端点：`GET /api/exports/:token`（签名 token，无需 JWT）
+- 配置：`PUPPETEER_EXECUTABLE_PATH`、`EXPORT_FILE_DIR`
+
+详见 [`docs/API-REFERENCE.md`](./API-REFERENCE.md) 的 Counselor 章节。

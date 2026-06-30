@@ -1,5 +1,6 @@
 import { query, queryOne, queryCount } from '../../lib/db.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { deleteAttachment } from '../../lib/resource-storage.js';
 import { getReviewReasonCode } from '../reviews/reviews.service.js';
 import { fetchTaskTemplateById } from '../task-templates/task-templates.service.js';
 import type {
@@ -254,13 +255,13 @@ export async function createTask(
   const rows = await query<Task>(
     `INSERT INTO tasks (
       title, description, content, cover_image, category, tags,
-      guiding_questions, source_url, video_url,
+      guiding_questions, source_url, video_url, attachment_url,
       checkin_type, require_text, require_image, require_video,
       min_text_length, max_images, require_location,
       scope_type, scope_id, target_college_id, target_class_id, template_id,
       created_by, published_at, deadline_at,
       geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
     RETURNING *`,
     [
       input.title,
@@ -272,6 +273,7 @@ export async function createTask(
       input.guiding_questions ? JSON.stringify(input.guiding_questions) : null,
       input.source_url ?? null,
       input.video_url ?? null,
+      input.attachment_url ?? null,
       input.checkin_type ?? 'text',
       input.require_text ?? false,
       input.require_image ?? false,
@@ -322,6 +324,19 @@ export async function createTaskFromTemplate(
     throw new AppError('VALIDATION_ERROR', '截止时间必须晚于发布时间', 400);
   }
 
+  const requireLocation = template.require_location ?? false;
+
+  // 方案 A：模板只保留定位开关，不保存具体坐标；发布时才由辅导员/管理员指定本次签到位置。
+  // 若模板未开启定位，则忽略任何坐标数据；若开启定位，优先使用发布页传入的坐标，再兼容旧模板残留坐标。
+  const geoLat = requireLocation ? (input.geo_lat ?? template.geo_lat ?? null) : null;
+  const geoLng = requireLocation ? (input.geo_lng ?? template.geo_lng ?? null) : null;
+  const geoRadius = requireLocation ? (input.geo_radius_meters ?? template.geo_radius_meters ?? null) : null;
+  const geoAddress = requireLocation ? (input.geo_address ?? template.geo_address ?? null) : null;
+
+  if (requireLocation && (geoLat === null || geoLng === null || geoRadius === null)) {
+    throw new AppError('VALIDATION_ERROR', '该模板需要定位签到，请提供经纬度和签到半径', 400);
+  }
+
   const baseValues = {
     title: template.title,
     description: template.description ?? null,
@@ -338,11 +353,12 @@ export async function createTaskFromTemplate(
     requireVideo: template.require_video ?? false,
     minTextLength: template.min_text_length ?? null,
     maxImages: template.max_images ?? null,
-    requireLocation: template.require_location ?? false,
-    geoLat: template.geo_lat ?? null,
-    geoLng: template.geo_lng ?? null,
-    geoRadius: template.geo_radius_meters ?? null,
-    geoAddress: template.geo_address ?? null,
+    requireLocation,
+    geoLat,
+    geoLng,
+    geoRadius,
+    geoAddress,
+    attachmentUrl: template.attachment_url ?? null,
     requireFace: template.require_face ?? false,
   };
 
@@ -356,13 +372,13 @@ export async function createTaskFromTemplate(
     const rows = await query<Task>(
       `INSERT INTO tasks (
         title, description, content, cover_image, category, tags,
-        guiding_questions, source_url, video_url,
+        guiding_questions, source_url, video_url, attachment_url,
         checkin_type, require_text, require_image, require_video,
         min_text_length, max_images, require_location,
         scope_type, scope_id, target_college_id, target_class_id, template_id,
         created_by, published_at, deadline_at,
         geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'school', NULL, NULL, NULL, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'school', NULL, NULL, NULL, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING *`,
       [
         baseValues.title,
@@ -381,6 +397,7 @@ export async function createTaskFromTemplate(
         baseValues.minTextLength,
         baseValues.maxImages,
         baseValues.requireLocation,
+        baseValues.attachmentUrl,
         template.id,
         userId,
         input.published_at,
@@ -407,13 +424,13 @@ export async function createTaskFromTemplate(
     const rows = await query<Task>(
       `INSERT INTO tasks (
         title, description, content, cover_image, category, tags,
-        guiding_questions, source_url, video_url,
+        guiding_questions, source_url, video_url, attachment_url,
         checkin_type, require_text, require_image, require_video,
         min_text_length, max_images, require_location,
         scope_type, scope_id, target_college_id, target_class_id, template_id,
         created_by, published_at, deadline_at,
         geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'college', $17, $17, NULL, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'college', $17, $17, NULL, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
       RETURNING *`,
       [
         baseValues.title,
@@ -432,6 +449,7 @@ export async function createTaskFromTemplate(
         baseValues.minTextLength,
         baseValues.maxImages,
         baseValues.requireLocation,
+        baseValues.attachmentUrl,
         input.scope_id,
         template.id,
         userId,
@@ -478,13 +496,13 @@ export async function createTaskFromTemplate(
     const rows = await query<Task>(
       `INSERT INTO tasks (
         title, description, content, cover_image, category, tags,
-        guiding_questions, source_url, video_url,
+        guiding_questions, source_url, video_url, attachment_url,
         checkin_type, require_text, require_image, require_video,
         min_text_length, max_images, require_location,
         scope_type, scope_id, target_college_id, target_class_id, template_id,
         created_by, published_at, deadline_at,
         geo_lat, geo_lng, geo_radius_meters, geo_address, require_face
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'class', $17, NULL, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'class', $17, NULL, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
       RETURNING *`,
       [
         baseValues.title,
@@ -503,6 +521,7 @@ export async function createTaskFromTemplate(
         baseValues.minTextLength,
         baseValues.maxImages,
         baseValues.requireLocation,
+        baseValues.attachmentUrl,
         classId,
         template.id,
         userId,
@@ -752,6 +771,12 @@ export async function updateTask(
   }
   if (input.source_url !== undefined) addSet('source_url', input.source_url ?? null);
   if (input.video_url !== undefined) addSet('video_url', input.video_url ?? null);
+  if (input.attachment_url !== undefined) {
+    if (task.attachment_url && task.attachment_url !== input.attachment_url) {
+      await deleteAttachment(task.attachment_url);
+    }
+    addSet('attachment_url', input.attachment_url ?? null);
+  }
   if (input.checkin_type !== undefined) addSet('checkin_type', input.checkin_type);
   if (input.require_text !== undefined) addSet('require_text', input.require_text);
   if (input.require_image !== undefined) addSet('require_image', input.require_image);
@@ -937,6 +962,7 @@ export async function listMyTasks(
       deadline_at: task.deadline_at,
       status,
       completed_at: status === 'completed' ? checkIn?.created_at : undefined,
+      attachment_url: task.attachment_url,
     };
   });
 }
@@ -990,6 +1016,7 @@ export async function getMyTaskDetail(userId: string, taskId: string): Promise<T
     cover_image: task.cover_image,
     category: task.category,
     tags: task.tags,
+    attachment_url: task.attachment_url,
     checkin_type: task.checkin_type,
     require_text: task.require_text,
     require_image: task.require_image,

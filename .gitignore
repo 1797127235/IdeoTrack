@@ -57,3 +57,7 @@ _bmad-output/
 
 # WeChat Mini Program (个人本地配置，不入库)
 project.private.config.json
+
+# Local tool state and generated outputs
+.impeccable/
+outputs/

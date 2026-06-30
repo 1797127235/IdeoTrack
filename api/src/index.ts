@@ -63,7 +63,7 @@ app.get('/api/exports/:token', async (req, res, next) => {
       return;
     }
 
-    const filePath = resolveFilePath(payload.fileId);
+    const filePath = resolveFilePath(payload.fileId, payload.ext);
     try {
       await fs.access(filePath);
     } catch {
@@ -74,9 +74,10 @@ app.get('/api/exports/:token', async (req, res, next) => {
       return;
     }
 
-    res.download(filePath, '打卡记录.xlsx', async () => {
+    const filename = payload.filename || (payload.ext === '.pdf' ? '导出报告.pdf' : '打卡记录.xlsx');
+    res.download(filePath, filename, async () => {
       // 下载完成后清理临时文件（best-effort）
-      await deleteExportFile(payload.fileId);
+      await deleteExportFile(payload.fileId, payload.ext);
     });
   } catch (err) {
     next(err);

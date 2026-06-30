@@ -1,5 +1,6 @@
 import { query, queryOne, queryCount } from '../../lib/db.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { deleteAttachment } from '../../lib/resource-storage.js';
 import type {
   TaskTemplate,
   TaskTemplateResponse,
@@ -103,12 +104,12 @@ export async function createTaskTemplate(
   const rows = await query<TaskTemplate>(
     `INSERT INTO task_templates (
       title, description, content, cover_image, category, tags,
-      guiding_questions, source_url, video_url,
+      guiding_questions, source_url, video_url, attachment_url,
       checkin_type, require_text, require_image, require_video,
       min_text_length, max_images, require_location,
       geo_lat, geo_lng, geo_radius_meters, geo_address, require_face,
       created_by, status, start_time, end_time
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
     RETURNING *`,
     [
       input.title,
@@ -120,6 +121,7 @@ export async function createTaskTemplate(
       stringifyJson(input.guiding_questions),
       input.source_url ?? null,
       input.video_url ?? null,
+      input.attachment_url ?? null,
       input.checkin_type ?? 'text',
       input.require_text ?? false,
       input.require_image ?? false,
@@ -185,6 +187,12 @@ export async function updateTaskTemplate(
   }
   if (input.source_url !== undefined) addSet('source_url', input.source_url ?? null);
   if (input.video_url !== undefined) addSet('video_url', input.video_url ?? null);
+  if (input.attachment_url !== undefined) {
+    if (existing.attachment_url && existing.attachment_url !== input.attachment_url) {
+      await deleteAttachment(existing.attachment_url);
+    }
+    addSet('attachment_url', input.attachment_url ?? null);
+  }
   if (input.checkin_type !== undefined) addSet('checkin_type', input.checkin_type);
   if (input.require_text !== undefined) addSet('require_text', input.require_text);
   if (input.require_image !== undefined) addSet('require_image', input.require_image);
@@ -262,5 +270,6 @@ export async function deleteTaskTemplate(id: string): Promise<void> {
     throw new AppError('TASK_TEMPLATE_IN_USE', '该模板已存在派发实例，无法删除', 409);
   }
 
+  await deleteAttachment(existing.attachment_url);
   await query('DELETE FROM task_templates WHERE id = $1', [id]);
 }

@@ -1,0 +1,114 @@
+<view class="task-records-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap">
+      <view class="back-icon"></view>
+    </view>
+    <view class="top-title">任务记录</view>
+    <view class="top-action" bindtap="onCreateTask">发布</view>
+  </view>
+
+  <view class="content">
+    <view class="summary-card">
+      <view class="summary-title">我发布的任务</view>
+      <view class="summary-grid">
+        <view class="summary-item">
+          <view class="summary-value">{{summary.total}}</view>
+          <view class="summary-label">总任务</view>
+        </view>
+        <view class="summary-divider"></view>
+        <view class="summary-item">
+          <view class="summary-value green">{{summary.ongoing}}</view>
+          <view class="summary-label">进行中</view>
+        </view>
+        <view class="summary-divider"></view>
+        <view class="summary-item">
+          <view class="summary-value gray">{{summary.ended}}</view>
+          <view class="summary-label">已结束</view>
+        </view>
+        <view class="summary-divider"></view>
+        <view class="summary-item">
+          <view class="summary-value orange">{{summary.reviews}}</view>
+          <view class="summary-label">待复核</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="filter-bar">
+      <view
+        class="filter-item {{item.key === activeFilter ? 'active' : ''}}"
+        wx:for="{{filters}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onFilterTap"
+      >{{item.label}}</view>
+    </view>
+
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+
+    <view class="empty-state" wx:if="{{!loading && visibleRecords.length === 0}}">
+      <view class="empty-icon"></view>
+      <view class="empty-title">暂无任务记录</view>
+      <view class="empty-desc">发布任务后，这里会汇总展示历史记录。</view>
+      <view class="empty-button" bindtap="onCreateTask">去发布任务</view>
+    </view>
+
+    <view class="record-list" wx:if="{{!loading && visibleRecords.length > 0}}">
+      <view
+        class="record-card {{item.status}}"
+        wx:for="{{visibleRecords}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onRecordTap"
+      >
+        <view class="record-head">
+          <view class="record-icon-wrap {{item.categoryType}}">
+            <view class="record-icon {{item.categoryType}}"></view>
+          </view>
+          <view class="record-main">
+            <view class="record-title-row">
+              <view class="record-title">{{item.title}}</view>
+              <view class="status-tag {{item.status}}">{{item.statusLabel}}</view>
+            </view>
+            <view class="record-tags">
+              <view class="category-tag {{item.categoryType}}">{{item.category}}</view>
+              <view class="review-tag" wx:if="{{item.reviewCount > 0}}">待复核 {{item.reviewCount}}</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="record-info">
+          <view class="info-row">
+            <view class="people-icon"></view>
+            <text>{{item.targetText}}</text>
+          </view>
+          <view class="info-row">
+            <view class="calendar-icon"></view>
+            <text>{{item.period}}</text>
+          </view>
+        </view>
+
+        <view class="progress-block">
+          <view class="progress-head">
+            <view class="progress-title">完成情况</view>
+            <view class="progress-number">{{item.completedCount}}/{{item.totalCount}}</view>
+          </view>
+          <view class="progress-track">
+            <view class="progress-bar" style="width: {{item.completionRate}}%;"></view>
+          </view>
+          <view class="progress-foot">
+            <text>完成率 {{item.completionRate}}%</text>
+            <text>截止 {{item.deadlineText}}</text>
+          </view>
+        </view>
+
+        <view class="record-footer">
+          <view class="published-text">发布于 {{item.publishedText}}</view>
+          <view class="review-button" wx:if="{{item.reviewCount > 0}}" catchtap="onReviewTap">去复核</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

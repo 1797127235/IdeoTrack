@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc">
+  <title id="title">IdeoTrack 分层系统架构图</title>
+  <desc id="desc">按前端、后端、基础设施三层展示 IdeoTrack 系统架构。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f8fb; }
+      .title { font: 700 36px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #172033; }
+      .subtitle { font: 400 16px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #5d6a7d; }
+      .layer { fill: #ffffff; stroke: #d9e0ea; stroke-width: 1.5; rx: 18; }
+      .layer-title { font: 700 22px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #223047; }
+      .layer-note { font: 400 13px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #6c7789; }
+      .box { stroke-width: 1.6; rx: 12; }
+      .box-title { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #172033; }
+      .box-text { font: 400 13px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #3d4858; }
+      .small { font: 400 12px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #657184; }
+      .front { fill: #eaf4ff; stroke: #6ca8dd; }
+      .entry { fill: #fff5df; stroke: #d8a24a; }
+      .api { fill: #f1eeff; stroke: #8b77d6; }
+      .domain { fill: #f8f3ff; stroke: #a28bdc; }
+      .infra { fill: #eef8f5; stroke: #72ad9a; }
+      .external { fill: #fff0f0; stroke: #d57d7d; }
+      .flow { stroke: #536174; stroke-width: 2.2; fill: none; marker-end: url(#arrowhead); }
+      .soft { stroke-dasharray: 7 7; stroke-width: 1.8; }
+      .label { font: 400 12px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #4c5868; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#536174" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="1180" />
+  <text class="title" x="60" y="64">IdeoTrack 分层系统架构图</text>
+  <text class="subtitle" x="60" y="95">前端与入口层 -> 后端应用层 -> 基础设施与外部依赖层</text>
+
+  <rect class="layer" x="50" y="130" width="1500" height="270" />
+  <text class="layer-title" x="80" y="168">前端与入口层</text>
+  <text class="layer-note" x="80" y="193">用户访问、页面应用、API 请求入口</text>
+
+  <rect class="box front" x="92" y="225" width="245" height="112" />
+  <text class="box-title" x="118" y="258">微信小程序 V2</text>
+  <text class="box-text" x="118" y="285">学生：任务、学习、打卡</text>
+  <text class="box-text" x="118" y="310">辅导员：发布、审核、报表</text>
+
+  <rect class="box front" x="382" y="225" width="245" height="112" />
+  <text class="box-title" x="408" y="258">Next.js 管理后台</text>
+  <text class="box-text" x="408" y="285">管理员后台页面</text>
+  <text class="box-text" x="408" y="310">组织、用户、模板、运维</text>
+
+  <rect class="box front" x="672" y="225" width="245" height="112" />
+  <text class="box-title" x="698" y="258">前端调用封装</text>
+  <text class="box-text" x="698" y="285">web/lib/* fetch</text>
+  <text class="box-text" x="698" y="310">miniprogram-v2/services wx.request</text>
+
+  <rect class="box entry" x="962" y="225" width="245" height="112" />
+  <text class="box-title" x="988" y="258">Caddy 反向代理</text>
+  <text class="box-text" x="988" y="285">/admin* -> web:3001</text>
+  <text class="box-text" x="988" y="310">其他路径 -> api:3000</text>
+
+  <rect class="box entry" x="1252" y="225" width="245" height="112" />
+  <text class="box-title" x="1278" y="258">Web 容器</text>
+  <text class="box-text" x="1278" y="285">web/ Next.js App Router</text>
+  <text class="box-text" x="1278" y="310">basePath: /admin</text>
+
+  <rect class="layer" x="50" y="455" width="1500" height="305" />
+  <text class="layer-title" x="80" y="493">后端应用层</text>
+  <text class="layer-note" x="80" y="518">统一 API、认证鉴权、领域业务服务</text>
+
+  <rect class="box api" x="120" y="560" width="320" height="124" />
+  <text class="box-title" x="148" y="594">Express API 入口</text>
+  <text class="box-text" x="148" y="621">api/src/index.ts</text>
+  <text class="box-text" x="148" y="646">/api/* 路由挂载</text>
+  <text class="small" x="148" y="670">health / exports 下载也在此处理</text>
+
+  <rect class="box api" x="485" y="560" width="320" height="124" />
+  <text class="box-title" x="513" y="594">通用中间件</text>
+  <text class="box-text" x="513" y="621">helmet / cors / cookie / json</text>
+  <text class="box-text" x="513" y="646">JWT auth / RBAC</text>
+  <text class="small" x="513" y="670">request logger / error handler</text>
+
+  <rect class="box domain" x="850" y="542" width="310" height="160" />
+  <text class="box-title" x="878" y="576">领域路由</text>
+  <text class="box-text" x="878" y="603">auth / users / tasks</text>
+  <text class="box-text" x="878" y="628">task-templates / checkins</text>
+  <text class="box-text" x="878" y="653">reviews / counselor / reports</text>
+  <text class="box-text" x="878" y="678">leaderboard / resources / upload / admin</text>
+
+  <rect class="box domain" x="1205" y="542" width="300" height="160" />
+  <text class="box-title" x="1233" y="576">领域服务</text>
+  <text class="box-text" x="1233" y="603">业务校验与数据访问</text>
+  <text class="box-text" x="1233" y="628">任务发布、打卡、审核</text>
+  <text class="box-text" x="1233" y="653">导入导出、积分、提醒</text>
+  <text class="box-text" x="1233" y="678">审计、学习资源、文件上传</text>
+
+  <rect class="layer" x="50" y="815" width="1500" height="300" />
+  <text class="layer-title" x="80" y="853">基础设施与外部依赖层</text>
+  <text class="layer-note" x="80" y="878">数据持久化、文件系统、独立微服务、第三方平台与运行编排</text>
+
+  <rect class="box infra" x="90" y="925" width="210" height="112" />
+  <text class="box-title" x="116" y="958">PostgreSQL 17</text>
+  <text class="box-text" x="116" y="985">组织、用户、任务、打卡</text>
+  <text class="small" x="116" y="1010">ai_reviews / points / audit_logs</text>
+
+  <rect class="box infra" x="335" y="925" width="210" height="112" />
+  <text class="box-title" x="361" y="958">本地文件目录</text>
+  <text class="box-text" x="361" y="985">uploads / faces</text>
+  <text class="small" x="361" y="1010">exports / logs</text>
+
+  <rect class="box infra" x="580" y="925" width="210" height="112" />
+  <text class="box-title" x="606" y="958">FastAPI 人脸服务</text>
+  <text class="box-text" x="606" y="985">InsightFace</text>
+  <text class="small" x="606" y="1010">/extract /verify</text>
+
+  <rect class="box external" x="825" y="925" width="180" height="112" />
+  <text class="box-title" x="851" y="958">微信 API</text>
+  <text class="box-text" x="851" y="985">jscode2session</text>
+  <text class="small" x="851" y="1010">订阅消息</text>
+
+  <rect class="box external" x="1035" y="925" width="180" height="112" />
+  <text class="box-title" x="1061" y="958">高德地图</text>
+  <text class="box-text" x="1061" y="985">Web JS API</text>
+  <text class="small" x="1061" y="1010">逆地理编码</text>
+
+  <rect class="box external" x="1245" y="925" width="180" height="112" />
+  <text class="box-title" x="1271" y="958">DeepSeek / Chromium</text>
+  <text class="box-text" x="1271" y="985">AI 初审</text>
+  <text class="small" x="1271" y="1010">PDF 报告导出</text>
+
+  <rect class="box infra" x="595" y="1062" width="410" height="40" />
+  <text class="box-title" x="715" y="1088">Docker Compose 编排</text>
+
+  <path class="flow" d="M337 281 L382 281" />
+  <path class="flow" d="M627 281 L672 281" />
+  <path class="flow" d="M917 281 L962 281" />
+  <path class="flow" d="M1207 281 L1252 281" />
+  <path class="flow" d="M1084 337 C1084 390, 280 390, 280 560" />
+  <text class="label" x="800" y="426">/api/* 请求</text>
+  <path class="flow" d="M440 622 L485 622" />
+  <path class="flow" d="M805 622 L850 622" />
+  <path class="flow" d="M1160 622 L1205 622" />
+  <path class="flow" d="M1355 702 C1355 790, 195 790, 195 925" />
+  <path class="flow" d="M1355 702 C1355 800, 440 800, 440 925" />
+  <path class="flow" d="M1355 702 C1355 810, 685 810, 685 925" />
+  <path class="flow" d="M1355 702 C1355 820, 915 820, 915 925" />
+  <path class="flow" d="M1355 702 C1355 830, 1125 830, 1125 925" />
+  <path class="flow" d="M1355 702 L1355 925" />
+  <path class="flow soft" d="M800 1062 L800 1037" />
+  <path class="flow soft" d="M800 1062 C800 1095, 1375 1095, 1375 337" />
+  <path class="flow soft" d="M800 1062 C800 1095, 280 1095, 280 684" />
+</svg>

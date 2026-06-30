@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1040" viewBox="0 0 1500 1040" role="img" aria-labelledby="title desc">
+  <title id="title">IdeoTrack 系统架构图</title>
+  <desc id="desc">IdeoTrack 的用户端、入口部署、前端、后端 API、数据存储和外部服务架构关系图。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7f8fb; }
+      .title { font: 700 34px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #182235; }
+      .subtitle { font: 400 15px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #5f6c80; }
+      .group { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.5; rx: 14; }
+      .group-title { font: 700 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #243044; }
+      .box { stroke-width: 1.5; rx: 10; }
+      .box-title { font: 700 16px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #172033; }
+      .box-text { font: 400 13px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #3e4a5d; }
+      .small { font: 400 12px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #647085; }
+      .client { fill: #e8f2ff; stroke: #72a7df; }
+      .edge { fill: #fff4df; stroke: #d8a247; }
+      .front { fill: #eef8ee; stroke: #78ad75; }
+      .api { fill: #f1edff; stroke: #8c78d5; }
+      .data { fill: #eef7f8; stroke: #72aeb8; }
+      .ext { fill: #fff0f0; stroke: #d57d7d; }
+      .note { fill: #f6f2e8; stroke: #d5bc7d; }
+      .arrow { stroke: #58667a; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .dash { stroke-dasharray: 7 6; }
+      .label { font: 400 12px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #4c586b; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#58667a" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1500" height="1040" />
+  <text class="title" x="50" y="60">IdeoTrack 系统架构图</text>
+  <text class="subtitle" x="50" y="88">基于当前仓库：api / web / miniprogram-v2 / face-service / docker-compose.yml</text>
+
+  <rect class="group" x="40" y="125" width="260" height="755" />
+  <text class="group-title" x="64" y="162">用户端</text>
+  <rect class="box client" x="64" y="190" width="212" height="110" />
+  <text class="box-title" x="88" y="223">微信小程序 V2</text>
+  <text class="box-text" x="88" y="250">学生：任务、打卡、学习记录</text>
+  <text class="box-text" x="88" y="274">辅导员：发布、审核、报表</text>
+  <rect class="box client" x="64" y="335" width="212" height="104" />
+  <text class="box-title" x="88" y="368">Next.js 管理后台</text>
+  <text class="box-text" x="88" y="395">管理员：组织、用户、模板</text>
+  <text class="box-text" x="88" y="419">运营、学习资源、统计</text>
+  <rect class="box client" x="64" y="474" width="212" height="84" />
+  <text class="box-title" x="88" y="506">mobile/</text>
+  <text class="box-text" x="88" y="532">历史参考端，非主链路</text>
+
+  <rect class="group" x="350" y="125" width="265" height="755" />
+  <text class="group-title" x="374" y="162">入口与部署</text>
+  <rect class="box edge" x="375" y="205" width="215" height="132" />
+  <text class="box-title" x="399" y="238">Caddy 可选反代</text>
+  <text class="box-text" x="399" y="266">/admin* -> web:3001</text>
+  <text class="box-text" x="399" y="290">其他路径 -> api:3000</text>
+  <text class="small" x="399" y="316">见 Caddyfile</text>
+  <rect class="box edge" x="375" y="380" width="215" height="148" />
+  <text class="box-title" x="399" y="413">Docker Compose</text>
+  <text class="box-text" x="399" y="441">postgres + api + web</text>
+  <text class="box-text" x="399" y="465">face + 可选 caddy</text>
+  <text class="small" x="399" y="493">健康检查、卷挂载、镜像部署</text>
+
+  <rect class="group" x="665" y="125" width="310" height="755" />
+  <text class="group-title" x="689" y="162">前端应用</text>
+  <rect class="box front" x="690" y="190" width="260" height="122" />
+  <text class="box-title" x="714" y="223">web/ Next.js</text>
+  <text class="box-text" x="714" y="250">App Router + React</text>
+  <text class="box-text" x="714" y="274">basePath: /admin</text>
+  <text class="small" x="714" y="298">web/lib/* 封装 API 调用</text>
+  <rect class="box front" x="690" y="350" width="260" height="122" />
+  <text class="box-title" x="714" y="383">miniprogram-v2/</text>
+  <text class="box-text" x="714" y="410">原生微信小程序页面</text>
+  <text class="box-text" x="714" y="434">services/*Api.ts</text>
+  <text class="small" x="714" y="458">统一 wx.request + token</text>
+
+  <rect class="group" x="1030" y="125" width="410" height="755" />
+  <text class="group-title" x="1054" y="162">后端 API：api/ Express + TypeScript</text>
+  <rect class="box api" x="1060" y="190" width="350" height="110" />
+  <text class="box-title" x="1084" y="223">HTTP 中间件</text>
+  <text class="box-text" x="1084" y="250">helmet / cors / cookie / json</text>
+  <text class="box-text" x="1084" y="274">JWT auth / RBAC / request log / error handler</text>
+  <rect class="box api" x="1060" y="330" width="350" height="170" />
+  <text class="box-title" x="1084" y="363">领域路由</text>
+  <text class="box-text" x="1084" y="390">auth / users / tasks / task-templates</text>
+  <text class="box-text" x="1084" y="414">checkins / reviews / counselor / reports</text>
+  <text class="box-text" x="1084" y="438">leaderboard / learning-resources / upload / admin</text>
+  <text class="small" x="1084" y="470">统一挂载在 /api/*</text>
+  <rect class="box api" x="1060" y="535" width="350" height="170" />
+  <text class="box-title" x="1084" y="568">领域服务</text>
+  <text class="box-text" x="1084" y="595">认证、组织与用户、任务发布</text>
+  <text class="box-text" x="1084" y="619">打卡、AI 初审、人工复核、积分</text>
+  <text class="box-text" x="1084" y="643">学习资源、文件上传、报表导出、审计</text>
+  <text class="small" x="1084" y="674">src/domains/*/*.service.ts</text>
+
+  <rect class="group" x="690" y="910" width="720" height="95" />
+  <text class="group-title" x="714" y="945">数据与持久化</text>
+  <rect class="box data" x="865" y="930" width="250" height="54" />
+  <text class="box-title" x="887" y="963">PostgreSQL 17</text>
+  <text class="small" x="887" y="982">users / tasks / check_ins / audit_logs ...</text>
+  <rect class="box data" x="1145" y="930" width="230" height="54" />
+  <text class="box-title" x="1167" y="963">本地持久化目录</text>
+  <text class="small" x="1167" y="982">uploads / faces / exports / logs</text>
+
+  <rect class="group" x="40" y="910" width="600" height="95" />
+  <text class="group-title" x="64" y="945">外部与独立服务</text>
+  <rect class="box ext" x="65" y="958" width="100" height="30" />
+  <text class="small" x="82" y="978">微信 API</text>
+  <rect class="box ext" x="180" y="958" width="105" height="30" />
+  <text class="small" x="197" y="978">高德地图</text>
+  <rect class="box ext" x="300" y="958" width="105" height="30" />
+  <text class="small" x="318" y="978">DeepSeek</text>
+  <rect class="box ext" x="420" y="958" width="190" height="30" />
+  <text class="small" x="438" y="978">FastAPI 人脸服务 / Chromium</text>
+
+  <path class="arrow" d="M276 245 C320 245, 334 245, 375 245" />
+  <text class="label" x="307" y="232">HTTPS / wx.request</text>
+  <path class="arrow" d="M276 387 C320 387, 334 295, 375 295" />
+  <text class="label" x="304" y="365">/admin</text>
+  <path class="arrow dash" d="M590 454 C620 454, 648 410, 690 410" />
+  <text class="label" x="611" y="433">本地编排</text>
+  <path class="arrow" d="M590 250 C622 250, 652 250, 690 250" />
+  <path class="arrow" d="M590 296 C815 296, 900 245, 1060 245" />
+  <text class="label" x="808" y="263">API 请求</text>
+  <path class="arrow" d="M950 250 C990 250, 1018 250, 1060 250" />
+  <path class="arrow" d="M950 410 C990 410, 1018 410, 1060 410" />
+  <path class="arrow" d="M1235 300 L1235 330" />
+  <path class="arrow" d="M1235 500 L1235 535" />
+  <path class="arrow" d="M1185 705 C1120 770, 1045 860, 1000 930" />
+  <path class="arrow" d="M1285 705 C1285 790, 1275 870, 1260 930" />
+  <path class="arrow" d="M1060 650 C820 740, 575 865, 115 958" />
+  <path class="arrow" d="M1060 632 C812 735, 600 860, 232 958" />
+  <path class="arrow" d="M1060 612 C835 730, 630 862, 352 958" />
+  <path class="arrow" d="M1060 590 C845 720, 695 850, 515 958" />
+
+  <rect class="box note" x="50" y="710" width="540" height="128" />
+  <text class="box-title" x="76" y="744">核心业务边界</text>
+  <text class="box-text" x="76" y="772">管理员：内容、组织、用户、运维与统计</text>
+  <text class="box-text" x="76" y="797">辅导员：班级任务发布、打卡复核、提醒与报表</text>
+  <text class="box-text" x="76" y="822">学生：微信登录、接收任务、定位/人脸打卡、查看成长记录</text>
+</svg>

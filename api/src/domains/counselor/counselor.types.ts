@@ -7,6 +7,7 @@ export interface ClassDashboardItem {
   check_in_rate: number;
   absent_count: number;
   reminded_count: number;
+  pending_review_count: number;
 }
 
 export interface CounselorTaskDashboardItem {
@@ -18,6 +19,26 @@ export interface CounselorTaskDashboardItem {
 
 export interface CounselorTaskDashboard {
   tasks: CounselorTaskDashboardItem[];
+}
+
+export interface ClassRankingItem {
+  class_id: string;
+  class_name: string;
+  college_name: string;
+  total_students: number;
+  checked_count: number;
+  completion_rate: number;
+}
+
+export interface CounselorDashboardFilters {
+  classId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CheckInTrendFilters {
+  days?: number;
+  classId?: string;
 }
 
 export interface ClassStudentItem {
@@ -68,6 +89,7 @@ export interface ReminderRecord {
 
 export interface ClassReminderList {
   class_id: string;
+  class_name: string;
   task_id: string;
   reminders: ReminderRecord[];
 }
@@ -122,4 +144,160 @@ export interface ExportRowItem {
   checked_in_at: string;
   check_in_status: string;
   reflection_content: string;
+}
+
+/**
+ * 近 N 天打卡趋势数据点。
+ */
+export interface CheckInTrendItem {
+  date: string;
+  checked_count: number;
+  total_students: number;
+  rate: number;
+}
+
+export interface CheckInTrend {
+  days: number;
+  items: CheckInTrendItem[];
+}
+
+export interface TaskCheckInStudent {
+  student_id: string;
+  student_name: string;
+  student_school_id: string;
+  class_id: string;
+  class_name: string;
+}
+
+export interface TaskCheckInCheckedStudent extends TaskCheckInStudent {
+  status: string;
+  checked_in_at: string | null;
+}
+
+export interface TaskCheckInClassStats {
+  class_id: string;
+  class_name: string;
+  total_students: number;
+  checked_count: number;
+  absent_count: number;
+  check_in_rate: number;
+}
+
+export interface ClassTaskStat {
+  task_id: string;
+  title: string;
+  deadline_at: string;
+  total_students: number;
+  checked_count: number;
+  review_count: number;
+  completion_rate: number;
+}
+
+export interface ClassStudentSummary {
+  student_id: string;
+  student_name: string;
+  student_school_id: string;
+  total_tasks: number;
+  completed_count: number;
+  review_count: number;
+  completion_rate: number;
+}
+
+export interface ClassDetail {
+  class_id: string;
+  class_name: string;
+  college_name: string;
+  student_count: number;
+  tasks: ClassTaskStat[];
+  students: ClassStudentSummary[];
+}
+
+export interface TaskCheckInDetail {
+  task: {
+    id: string;
+    title: string;
+    content: string;
+    deadline_at: string;
+    checkin_type: string;
+    require_location: boolean;
+    require_face: boolean;
+  };
+  classes: TaskCheckInClassStats[];
+  checked_students: TaskCheckInCheckedStudent[];
+  absent_students: TaskCheckInStudent[];
+}
+
+export type ReportPeriod = 'week' | 'month' | 'custom';
+export type ReportType = 'summary' | 'class' | 'student';
+export type ReportFormat = 'pdf' | 'excel';
+
+export interface ReportExportInput {
+  period: ReportPeriod;
+  start_date?: string;
+  end_date?: string;
+  class_id?: string | null;
+  report_type: ReportType;
+  format: ReportFormat;
+}
+
+export interface DashboardReportData {
+  meta: {
+    title: string;
+    scopeLabel: string;
+    startDate: string;
+    endDate: string;
+    exportedAt: string;
+    counselorName: string;
+  };
+  overview: {
+    managedClassCount: number;
+    totalStudents: number;
+    totalTasks: number;
+    avgCompletionRate: number;
+    pendingReviewCount: number;
+    incompleteStudentCount: number;
+  };
+  classStats: Array<{
+    rank: number;
+    classId: string;
+    className: string;
+    collegeName: string;
+    studentCount: number;
+    checkedCount: number;
+    incompleteCount: number;
+    pendingReviewCount: number;
+    completionRate: number;
+  }>;
+  taskStats: Array<{
+    taskId: string;
+    title: string;
+    scope: string;
+    deadline: string;
+    totalStudents: number;
+    checkedCount: number;
+    completionRate: number;
+    pendingReviewCount: number;
+    incompleteCount: number;
+  }>;
+  highRiskStudents: Array<{
+    studentId: string;
+    studentName: string;
+    studentSchoolId: string;
+    className: string;
+    absentCount: number;
+    totalTasks: number;
+    absentRate: number;
+  }>;
+  studentDetails: Array<{
+    studentId: string;
+    studentName: string;
+    studentSchoolId: string;
+    classId: string;
+    className: string;
+    totalTasks: number;
+    completedCount: number;
+    reviewCount: number;
+    incompleteCount: number;
+    completionRate: number;
+  }>;
 }

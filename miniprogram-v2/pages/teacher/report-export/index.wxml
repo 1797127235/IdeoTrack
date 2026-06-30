@@ -1,0 +1,111 @@
+<view class="teacher-report-export-page">
+  <view class="topbar">
+    <view class="back-button" bindtap="onBackTap"></view>
+    <view class="top-title">导出报告</view>
+    <view class="top-placeholder"></view>
+  </view>
+
+  <view class="form">
+    <view class="form-card">
+      <view class="form-label">报告周期</view>
+      <view class="option-row">
+        <view
+          class="option-pill {{form.period === 'week' ? 'active' : ''}}"
+          data-period="week"
+          bindtap="onPeriodTap"
+        >本周</view>
+        <view
+          class="option-pill {{form.period === 'month' ? 'active' : ''}}"
+          data-period="month"
+          bindtap="onPeriodTap"
+        >本月</view>
+        <view
+          class="option-pill {{form.period === 'custom' ? 'active' : ''}}"
+          data-period="custom"
+          bindtap="onPeriodTap"
+        >自定义</view>
+      </view>
+
+      <view class="date-row" wx:if="{{form.period === 'custom'}}">
+        <picker mode="date" value="{{form.startDate}}" bindchange="onStartDateChange">
+          <view class="date-picker">
+            <view class="date-icon"></view>
+            <text>{{form.startDate || '开始日期'}}</text>
+          </view>
+        </picker>
+        <view class="date-sep">~</view>
+        <picker mode="date" value="{{form.endDate}}" bindchange="onEndDateChange">
+          <view class="date-picker">
+            <view class="date-icon"></view>
+            <text>{{form.endDate || '结束日期'}}</text>
+          </view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="form-card">
+      <view class="form-label">导出范围</view>
+      <view class="range-row" bindtap="onClassTap">
+        <view class="range-icon class"></view>
+        <view class="range-main">
+          <view class="range-strong">{{form.classLabel}}</view>
+          <view class="range-text" wx:if="{{form.period !== 'custom'}}">按当前周期导出</view>
+        </view>
+        <view class="range-arrow">▾</view>
+      </view>
+    </view>
+
+    <view class="form-card">
+      <view class="form-label">报告类型</view>
+      <view class="option-row">
+        <view
+          class="option-pill {{form.reportType === 'summary' ? 'active' : ''}}"
+          data-type="summary"
+          bindtap="onReportTypeTap"
+        >汇总报告</view>
+        <view
+          class="option-pill {{form.reportType === 'class' ? 'active' : ''}}"
+          data-type="class"
+          bindtap="onReportTypeTap"
+        >班级报告</view>
+        <view
+          class="option-pill {{form.reportType === 'student' ? 'active' : ''}}"
+          data-type="student"
+          bindtap="onReportTypeTap"
+        >学生明细</view>
+      </view>
+    </view>
+
+    <view class="form-card">
+      <view class="form-label">文件格式</view>
+      <view class="option-row">
+        <view
+          class="option-pill {{form.format === 'pdf' ? 'active' : ''}}"
+          data-format="pdf"
+          bindtap="onFormatTap"
+        >PDF</view>
+        <view
+          class="option-pill {{form.format === 'excel' ? 'active' : ''}}"
+          data-format="excel"
+          bindtap="onFormatTap"
+        >Excel</view>
+      </view>
+    </view>
+
+    <view class="tip-card">
+      <view class="tip-icon"></view>
+      <view class="tip-text">
+        PDF 适合汇报、归档、转发；Excel 适合后续筛选统计。
+      </view>
+    </view>
+  </view>
+
+  <view class="action-bar">
+    <button
+      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="onSubmit"
+    >{{submitting ? '正在生成…' : '生成并下载报告'}}</button>
+  </view>
+</view>

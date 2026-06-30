@@ -12,8 +12,8 @@ import {
 
 const router = Router();
 
-// 管理员：任务模板库 CRUD
-router.get('/', authenticate, requireRoles('admin'), listTaskTemplatesController);
+// 管理员：任务模板库 CRUD；辅导员：仅查看已发布模板
+router.get('/', authenticate, requireRoles('admin', 'counselor'), listTaskTemplatesController);
 router.post('/', authenticate, requireRoles('admin'), createTaskTemplateController);
 router.get('/:id', authenticate, requireRoles('admin', 'counselor'), getTaskTemplateByIdController);
 router.put('/:id', authenticate, requireRoles('admin'), updateTaskTemplateController);
